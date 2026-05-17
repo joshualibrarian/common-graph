@@ -245,6 +245,15 @@ public final class CgCbor {
         }
     }
 
+    /**
+     * Open a streaming parser that buffers bytes fed via
+     * {@link StreamParser#feed(byte[])} and fires typed callbacks on the
+     * given {@link EventSink} as whole top-level CBOR values land.
+     */
+    public static StreamParser parseStream(EventSink sink) {
+        return new CgCborStreamParser(sink);
+    }
+
     // ==================================================================================
     // Encoding-interface adapter
     //
@@ -276,6 +285,7 @@ public final class CgCbor {
         @Override public Node walk(byte[] bytes) { return CanonWalker.walk(decode(bytes)); }
         @Override public String prettyPrint(Object value) { return CgCbor.prettyPrint(value); }
         @Override public boolean isValid(byte[] bytes) { return CgCbor.isValid(bytes); }
+        @Override public StreamParser parseStream(EventSink sink) { return CgCbor.parseStream(sink); }
     }
 
     // ==================================================================================
@@ -556,7 +566,12 @@ public final class CgCbor {
     // Internal — type dispatch: CBORObject → Object
     // ==================================================================================
 
-    private static Object fromCbor(CBORObject node) {
+    /**
+     * Decode a {@link CBORObject} tree to its typed Java value — the inverse
+     * of {@link #toCbor(Object)}. Package-private: streaming parsers in this
+     * package call this directly to avoid re-encoding through bytes.
+     */
+    static Object fromCbor(CBORObject node) {
         if (node == null || node.isNull()) return null;
         if (node.isTagged()) {
             int tag = node.getMostOuterTag().ToInt32Checked();

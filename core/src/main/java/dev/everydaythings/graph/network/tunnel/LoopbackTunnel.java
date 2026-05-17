@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.network.parley;
+package dev.everydaythings.graph.network.tunnel;
 
 import dev.everydaythings.graph.identity.MultiKey;
 

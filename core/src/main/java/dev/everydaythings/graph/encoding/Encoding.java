@@ -143,6 +143,20 @@ public interface Encoding {
         throw new UnsupportedOperationException("isValid() not implemented (passthrough encoding)");
     }
 
+    /**
+     * Begin a streaming parse — feed bytes incrementally via the returned
+     * {@link StreamParser}; the given {@link EventSink}'s callbacks fire for
+     * whole top-level values as they land. Codec-agnostic by design: the
+     * sink sees typed events ({@code onRef}, {@code onText}, {@code onBody},
+     * ...), not codec-specific shapes.
+     *
+     * <p>Default throws — only codecs that can interpret their bytes (e.g.,
+     * CG-CBOR) override; passthrough encodings have no need.
+     */
+    default StreamParser parseStream(EventSink sink) {
+        throw new UnsupportedOperationException("parseStream() not implemented (passthrough encoding)");
+    }
+
     // ==================================================================================
     // Predicates relating Encoding instances to their numeric/textual properties
     // ==================================================================================

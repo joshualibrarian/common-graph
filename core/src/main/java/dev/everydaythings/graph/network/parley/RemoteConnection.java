@@ -1,74 +1,94 @@
 package dev.everydaythings.graph.network.parley;
 
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.encoding.Encoding;
+import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.network.tunnel.Tunnel;
 import lombok.extern.log4j.Log4j2;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * A Parley connection over a network transport — one wire-level conversation
- * with a remote party, wrapping a {@link Tunnel}.
+ * A live Parley conversation across a {@link Tunnel} — the result of a
+ * successful {@link Parley#connect} or {@link Parley#accept}.
  *
- * <p>RemoteConnection is the runtime tracking of one Parley conversation: the
- * codec agreed during point-and-grunt, the tunnel carrying bytes, and any
- * other per-connection state. {@link Parley} owns the set of active
- * RemoteConnections.
+ * <p>Holds the tunnel, the codec agreed during point-and-grunt, and the
+ * {@link Encoding} used to serialize outbound values. Incoming bytes are
+ * already wired to a streaming parser whose events flow into the Librarian;
+ * RemoteConnection is the <i>send</i> side of the conversation.
  *
  * <h2>Layering (bottom-up)</h2>
  * <ol>
- *   <li>Raw socket (TCP, Unix domain socket, etc.)</li>
- *   <li>Length-prefixed framing</li>
- *   <li>{@link Tunnel} — Noise XX or TLS — provides confidentiality + auth</li>
- *   <li>Codec point-and-grunt (Parley phase 1) — over plaintext-inside-the-tunnel</li>
- *   <li>Stream of self-describing chunks (Parley phase 2) — Datums + blobs</li>
+ *   <li>Raw byte transport (TCP, Unix domain socket, Reticulum, ...)</li>
+ *   <li>Optional security wrapper (Noise, TLS) — produces a {@link Tunnel}
+ *       whose {@code isConfidential()}/{@code isAuthenticated()} declare its
+ *       guarantees</li>
+ *   <li>Codec point-and-grunt (Parley phase 1)</li>
+ *   <li>Stream of self-describing values (Parley phase 2) — this object</li>
  * </ol>
- *
- * <p>The tunnel is established <em>before</em> the codec handshake.
- * Point-and-grunt speaks plaintext across an already-secure channel.
- *
- * <p>There is no LocalConnection counterpart: in-VM clients hold a direct
- * {@code Librarian} reference and don't speak Parley at all.
- *
- * <p>STUB — the actual Netty pipeline, byte plumbing, and stream wiring will
- * be adapted from the existing {@code network/transport/} code (PeerServer,
- * PeerClient, TransportEncryptionHandler, TransportCrypto) once we wire this
- * in.
  */
 @Log4j2
 public final class RemoteConnection implements AutoCloseable {
 
     private final Tunnel tunnel;
+    private final ItemRef agreedCodec;
+    private final Encoding encoder;
 
-    public RemoteConnection(Tunnel tunnel) {
-        this.tunnel = tunnel;
+    public RemoteConnection(Tunnel tunnel, ItemRef agreedCodec, Encoding encoder) {
+        this.tunnel = Objects.requireNonNull(tunnel, "tunnel");
+        this.agreedCodec = Objects.requireNonNull(agreedCodec, "agreedCodec");
+        this.encoder = Objects.requireNonNull(encoder, "encoder");
     }
 
+    /** The underlying byte tunnel. */
     public Tunnel tunnel() {
         return tunnel;
     }
 
-    /** Send a Datum (Body, Record, or Frame) to the counterparty. */
-    public CompletableFuture<Void> send(Datum datum) {
-        // TODO: encode datum via librarian.encoder() and push through tunnel
-        return CompletableFuture.completedFuture(null);
+    /** The codec agreed during point-and-grunt. */
+    public ItemRef agreedCodec() {
+        return agreedCodec;
     }
 
-    /** Send a raw content blob to the counterparty. */
-    public CompletableFuture<Void> send(ContentRef cid, byte[] content) {
-        // TODO: push raw content through tunnel (codec-prefixed if needed)
-        return CompletableFuture.completedFuture(null);
+    // ==================================================================================
+    // Sending
+    // ==================================================================================
+
+    /** Send a {@link Datum} (Body, Record, or Frame) to the counterparty. */
+    public CompletableFuture<Void> send(Datum datum) {
+        return tunnel.send(encoder.encode(datum));
     }
+
+    /**
+     * Send a bare reference — the "point-and-grunt" shorthand for
+     * "send me this." The peer's sink receives an {@code onRef} event.
+     */
+    public CompletableFuture<Void> send(HashID ref) {
+        return tunnel.send(encoder.encode(ref));
+    }
+
+    /**
+     * Send a bare text string — the lightweight shorthand for "look this up
+     * in your token dictionary." The peer's sink receives an {@code onText}
+     * event.
+     */
+    public CompletableFuture<Void> sendText(String text) {
+        return tunnel.send(encoder.encode(text));
+    }
+
+    // ==================================================================================
+    // Lifecycle
+    // ==================================================================================
 
     /** True if the underlying tunnel is alive. */
     public boolean isOpen() {
-        return tunnel != null && tunnel.isOpen();
+        return tunnel.isOpen();
     }
 
     @Override
     public void close() {
-        if (tunnel != null) {
-            tunnel.close();
-        }
+        tunnel.close();
     }
 }
