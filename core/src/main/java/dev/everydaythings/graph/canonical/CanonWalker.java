@@ -3,6 +3,7 @@ package dev.everydaythings.graph.canonical;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.HashID;
@@ -90,6 +91,7 @@ public final class CanonWalker {
             case dev.everydaythings.graph.value.Rational r -> walkRational(r);
             case HashID r        -> leafReference(r);
             case Datum d         -> walkDatum(d);
+            case Opaque op       -> new Node.Hashed(op.wrappedHash());
             case BindingTarget t -> walkBindingTarget(t);
             case List<?> list    -> walkList(list);
             case java.util.Map<?,?> m -> walkMap(m);
@@ -207,8 +209,6 @@ public final class CanonWalker {
         return switch (t) {
             case BindingTarget.RefTarget rt -> leafRefBytes(rt.asReference(), rt.asReference().toRefBytes());
             case BindingTarget.FrameTarget ft -> walkDatum(ft.body());
-            case BindingTarget.RedactedTarget rt -> new Node.Hashed(rt.wrappedHash());
-            case BindingTarget.CompressedTarget ct -> new Node.Hashed(ct.originalDatumId());
             default -> throw new IllegalArgumentException(
                     "Unsupported BindingTarget: " + t.getClass().getName());
         };

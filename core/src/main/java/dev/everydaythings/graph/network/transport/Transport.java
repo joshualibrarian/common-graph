@@ -9,19 +9,20 @@ import java.util.function.Consumer;
 
 /**
  * Transport — the SPI a bridge implements to produce {@link Tunnel}s for a
- * particular transport protocol.
+ * particular {@link dev.everydaythings.graph.network.NetworkVocabulary.Transport
+ * Transport} sememe.
  *
- * <p>A Transport handles exactly one protocol — TCP, Unix sockets, Reticulum,
- * WebSocket, etc. — declared via {@link #protocol()} as the corresponding
- * {@code @cg.transport:*} sememe from
+ * <p>A Transport handles exactly one byte-channel mechanism — TCP, Unix
+ * sockets, Reticulum, in-VM loopback — declared via {@link #transport()} as
+ * the corresponding {@code @cg.transport:*} sememe from
  * {@link dev.everydaythings.graph.network.NetworkVocabulary}.
  *
  * <p>Concrete implementations live in {@code :bridges}. Each bridge module
  * instantiates one or more Transports and exposes them however its host app
  * prefers (direct construction, dependency-injected, registered with the
  * Librarian, ...). There is deliberately <b>no central registry</b>: callers
- * know which transport they want because they know which protocol they're
- * speaking.
+ * know which transport they want because they know which kind of endpoint
+ * they're speaking to.
  *
  * <h2>Two operations</h2>
  * <ul>
@@ -36,11 +37,15 @@ import java.util.function.Consumer;
  *   <li><b>Encryption / authentication</b> — Transports produce plain byte
  *       channels. Security is added by wrapping the resulting Tunnel in a
  *       security decorator (CG-native Noise, or TLS in {@code :bridges}).
- *       Some transports — Reticulum — supply confidentiality and authentication
+ *       Some transports (Reticulum) supply confidentiality and authentication
  *       intrinsically; those expose it via the produced Tunnel's
  *       {@link Tunnel#isConfidential()} / {@link Tunnel#isAuthenticated()}
  *       declarations rather than requiring a wrapper.</li>
  *   <li><b>Framing</b> — the codec's concern, atop the Tunnel.</li>
+ *   <li><b>Application-protocol conversation</b> — that's
+ *       {@link dev.everydaythings.graph.network.NetworkVocabulary.Protocol
+ *       Protocol}'s job, layered on top of Tunnels (Parley natively; HTTP,
+ *       ActivityPub, SMTP, SIP via bridges).</li>
  *   <li><b>Discovery</b> — separate concern; may sit atop transports.</li>
  *   <li><b>Reconnection / retry</b> — higher-level connection-management
  *       concern.</li>
@@ -49,16 +54,18 @@ import java.util.function.Consumer;
 public interface Transport {
 
     /**
-     * The transport protocol this implementation serves — one of the
-     * {@code @cg.transport:*} sememes from
+     * The Transport sememe this implementation serves — one of the
+     * {@code @cg.transport:*} instances declared on the {@code Transport}
+     * archetype in
      * {@link dev.everydaythings.graph.network.NetworkVocabulary}.
      */
-    ItemRef protocol();
+    ItemRef transport();
 
     /**
-     * Open a Tunnel to the given endpoint. The endpoint's PROTOCOL binding
-     * must match this transport's {@link #protocol()}; implementations should
-     * fail the returned future with {@link IllegalArgumentException} otherwise.
+     * Open a Tunnel to the given endpoint. The endpoint's
+     * {@link Endpoint#transport() addressed transport} must match this
+     * implementation's {@link #transport()}; implementations should fail the
+     * returned future with {@link IllegalArgumentException} otherwise.
      */
     CompletableFuture<Tunnel> connect(Endpoint endpoint);
 
@@ -71,8 +78,8 @@ public interface Transport {
      * 0), the returned {@link Listener}'s {@link Listener#actualEndpoint()}
      * reports the address actually bound.
      *
-     * @throws IllegalArgumentException if {@code endpoint}'s protocol doesn't
-     *     match {@link #protocol()}
+     * @throws IllegalArgumentException if {@code endpoint}'s addressed
+     *     transport doesn't match {@link #transport()}
      * @throws java.io.UncheckedIOException if the bind fails synchronously
      */
     Listener listen(Endpoint endpoint, Consumer<Tunnel> onAccept);

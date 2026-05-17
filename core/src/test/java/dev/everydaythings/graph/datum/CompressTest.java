@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Compression preserves a body's structural identity (DatumID) across
- * compress/decompress.  The CompressedTarget carries the original hash plus
+ * compress/decompress.  The Opaque.Compressed carries the original hash plus
  * the deflated payload; the canonical walker uses the cached hash directly
  * (Node.Hashed short-circuit), so parent merkle roots are computable
  * without decompression.
@@ -45,7 +45,7 @@ class CompressTest {
         @DisplayName("compress then decompress yields a body equal to the original")
         void compressDecompress() {
             Body original = sampleBody();
-            BindingTarget.CompressedTarget target = Compress.compress(original);
+            Opaque.Compressed target = Compress.compress(original);
             Body recovered = Compress.decompress(target);
             assertThat(recovered).isEqualTo(original);
         }
@@ -54,13 +54,13 @@ class CompressTest {
         @DisplayName("CompressedTarget round-trips through CBOR")
         void cborRoundTrip() {
             Body original = sampleBody();
-            BindingTarget.CompressedTarget target = Compress.compress(original);
+            Opaque.Compressed target = Compress.compress(original);
 
             CBORObject encoded = CgCbor.toCbor(target);
             Object decoded = BindingTarget.fromCborTree(encoded);
-            assertThat(decoded).isInstanceOf(BindingTarget.CompressedTarget.class);
-            BindingTarget.CompressedTarget recoveredTarget =
-                    (BindingTarget.CompressedTarget) decoded;
+            assertThat(decoded).isInstanceOf(Opaque.Compressed.class);
+            Opaque.Compressed recoveredTarget =
+                    (Opaque.Compressed) decoded;
             assertThat(recoveredTarget).isEqualTo(target);
 
             Body recovered = Compress.decompress(recoveredTarget);
@@ -78,16 +78,16 @@ class CompressTest {
             Body original = sampleBody();
             byte[] originalHash = HashTree.hashOf(original, HashTree.DEFAULT_DIGEST);
 
-            BindingTarget.CompressedTarget target = Compress.compress(original);
+            Opaque.Compressed target = Compress.compress(original);
 
-            assertThat(target.originalDatumId()).isEqualTo(originalHash);
+            assertThat(target.wrappedHash()).isEqualTo(originalHash);
         }
 
         @Test
         @DisplayName("a parent body's DatumID is the same whether its child is compressed or inline")
         void parentHashInvariantAcrossCompression() {
             Body child = sampleBody();
-            BindingTarget.CompressedTarget compressedChild = Compress.compress(child);
+            Opaque.Compressed compressedChild = Compress.compress(child);
 
             ItemRef parentHead = ItemRef.fromString("cg.test:parent");
             ItemRef childRole = ItemRef.iid(ThematicRole.Theme.KEY);
@@ -110,7 +110,7 @@ class CompressTest {
         @DisplayName("decompressAndVerify accepts an honest payload")
         void verifyAccepts() {
             Body original = sampleBody();
-            BindingTarget.CompressedTarget target = Compress.compress(original);
+            Opaque.Compressed target = Compress.compress(original);
             Body recovered = Compress.decompressAndVerify(target);
             assertThat(recovered).isEqualTo(original);
         }
@@ -119,15 +119,15 @@ class CompressTest {
         @DisplayName("decompressAndVerify rejects a payload whose hash doesn't match the cached one")
         void verifyRejectsForgery() {
             Body original = sampleBody();
-            BindingTarget.CompressedTarget honest = Compress.compress(original);
+            Opaque.Compressed honest = Compress.compress(original);
 
             // Construct a forged target: real (compressed) payload, but a
             // hash claimed to belong to a different body.
             byte[] wrongHash = HashTree.hashOf(
                     Body.of(HEAD, List.of(new Binding(BODY_ROLE, "different text"))),
                     HashTree.DEFAULT_DIGEST);
-            BindingTarget.CompressedTarget forged =
-                    new BindingTarget.CompressedTarget(wrongHash, honest.compressedPayload());
+            Opaque.Compressed forged =
+                    new Opaque.Compressed(wrongHash, honest.compressedPayload());
 
             assertThatThrownBy(() -> Compress.decompressAndVerify(forged))
                     .isInstanceOf(IllegalStateException.class)
@@ -144,7 +144,7 @@ class CompressTest {
         void actuallyCompresses() {
             Body original = sampleBody();
             byte[] cborBytes = CgCbor.codec().encode(original);
-            BindingTarget.CompressedTarget target = Compress.compress(original);
+            Opaque.Compressed target = Compress.compress(original);
             // For our sample prose body, deflate should noticeably shrink it.
             assertThat(target.compressedPayload().length).isLessThan(cborBytes.length);
         }

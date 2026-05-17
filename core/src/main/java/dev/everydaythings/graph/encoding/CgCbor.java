@@ -13,6 +13,7 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
@@ -22,6 +23,7 @@ import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Common Graph's deterministic CBOR codec — bytes in, bytes out.
@@ -247,11 +249,13 @@ public final class CgCbor {
 
     /**
      * Open a streaming parser that buffers bytes fed via
-     * {@link StreamParser#feed(byte[])} and fires typed callbacks on the
-     * given {@link EventSink} as whole top-level CBOR values land.
+     * {@link StreamParser#feed(byte[])} and dispatches each whole top-level
+     * CBOR value to {@code onValue} (typed: Body, Record, HashID, String,
+     * Number, Boolean, {@link Encrypted}).  Parse failures go to
+     * {@code onError}.
      */
-    public static StreamParser parseStream(EventSink sink) {
-        return new CgCborStreamParser(sink);
+    public static StreamParser parseStream(Consumer<Object> onValue, Consumer<Throwable> onError) {
+        return new CgCborStreamParser(onValue, onError);
     }
 
     // ==================================================================================
@@ -285,7 +289,7 @@ public final class CgCbor {
         @Override public Node walk(byte[] bytes) { return CanonWalker.walk(decode(bytes)); }
         @Override public String prettyPrint(Object value) { return CgCbor.prettyPrint(value); }
         @Override public boolean isValid(byte[] bytes) { return CgCbor.isValid(bytes); }
-        @Override public StreamParser parseStream(EventSink sink) { return CgCbor.parseStream(sink); }
+        @Override public StreamParser parseStream(Consumer<Object> onValue, Consumer<Throwable> onError) { return CgCbor.parseStream(onValue, onError); }
     }
 
     // ==================================================================================
@@ -311,6 +315,7 @@ public final class CgCbor {
             case dev.everydaythings.graph.value.Rational r -> encodeRational(r);
             case HashID r        -> encodeRef(r);
             case Datum d         -> encodeDatum(d);
+            case Opaque op       -> encodeOpaque(op);
             case BindingTarget t -> encodeBindingTarget(t);
             case List<?> list -> {
                 CBORObject arr = CBORObject.NewArray();
@@ -549,17 +554,36 @@ public final class CgCbor {
             case BindingTarget.RefTarget rt -> CBORObject.FromCBORObjectAndTag(
                     CBORObject.FromByteArray(rt.asReference().toRefBytes()), TAG_REF);
             case BindingTarget.FrameTarget ft -> encodeDatum(ft.body());
-            case BindingTarget.RedactedTarget rt -> CBORObject.FromCBORObjectAndTag(
-                    CBORObject.FromByteArray(rt.wrappedHash()), TAG_REDACTED);
-            case BindingTarget.CompressedTarget ct -> {
-                CBORObject arr = CBORObject.NewArray();
-                arr.Add(CBORObject.FromByteArray(ct.originalDatumId()));
-                arr.Add(CBORObject.FromByteArray(ct.compressedPayload()));
-                yield CBORObject.FromCBORObjectAndTag(arr, TAG_COMPRESSED);
-            }
             default -> throw new IllegalArgumentException(
                     "Unsupported BindingTarget: " + t.getClass().getName());
         };
+    }
+
+    /**
+     * Encode an {@link Opaque} variant.  Wire shape is uniform: {@code
+     * Tag(X)[hash, payload?, refs]} — 2-array for Redacted (no payload),
+     * 3-array for Compressed and Encrypted.
+     */
+    private static CBORObject encodeOpaque(Opaque op) {
+        CBORObject arr = CBORObject.NewArray();
+        arr.Add(CBORObject.FromByteArray(op.wrappedHash()));
+        int tag;
+        if (op instanceof Opaque.Compressed c) {
+            arr.Add(CBORObject.FromByteArray(c.compressedPayload()));
+            tag = TAG_COMPRESSED;
+        } else if (op instanceof Opaque.Encrypted e) {
+            arr.Add(CBORObject.FromByteArray(e.ciphertext()));
+            tag = TAG_ENCRYPTED;
+        } else {
+            // Opaque.Redacted — sealed, only remaining case
+            tag = TAG_REDACTED;
+        }
+        CBORObject refs = CBORObject.NewArray();
+        for (HashID ref : op.recordRefs()) {
+            refs.Add(encodeRef(ref));
+        }
+        arr.Add(refs);
+        return CBORObject.FromCBORObjectAndTag(arr, tag);
     }
 
     // ==================================================================================
@@ -584,8 +608,9 @@ public final class CgCbor {
                 case TAG_REF         -> HashID.fromCborTree(node);
                 case TAG_BODY        -> Body.fromCborTree(node);
                 case TAG_RECORD      -> Record.fromCborTree(node);
-                case TAG_REDACTED    -> BindingTarget.RedactedTarget.fromCborTree(node);
-                case TAG_COMPRESSED  -> BindingTarget.CompressedTarget.fromCborTree(node);
+                case TAG_REDACTED    -> Opaque.Redacted.fromCborTree(node);
+                case TAG_COMPRESSED  -> Opaque.Compressed.fromCborTree(node);
+                case TAG_ENCRYPTED   -> Opaque.Encrypted.fromCborTree(node);
                 default -> throw new IllegalArgumentException(
                         "Unrecognized CBOR tag: " + tag);
             };

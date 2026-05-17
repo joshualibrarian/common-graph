@@ -125,7 +125,7 @@ class DatumTest {
         }
 
         @Test
-        @DisplayName("RedactedTarget preserves the binding's merkle contribution")
+        @DisplayName("Opaque.Redacted preserves the binding's merkle contribution")
         void redactionPreservesMerkleRoot() {
             // Original body with an IID target.
             Object original = HOBBIT;
@@ -134,8 +134,8 @@ class DatumTest {
             byte[] originalContribution = HashTree.hashOf(
                     original, HashTree.DEFAULT_DIGEST);
 
-            // A RedactedTarget wrapping that same hash should contribute identically.
-            Object redacted = new BindingTarget.RedactedTarget(originalContribution);
+            // An Opaque.Redacted wrapping that same hash should contribute identically.
+            Object redacted = new Opaque.Redacted(originalContribution);
             assertThat(HashTree.hashOf(
                     redacted, HashTree.DEFAULT_DIGEST))
                     .isEqualTo(originalContribution);

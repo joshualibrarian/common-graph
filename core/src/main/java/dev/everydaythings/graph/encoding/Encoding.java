@@ -8,6 +8,8 @@ import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.language.ThematicRole;
 
+import java.util.function.Consumer;
+
 /**
  * Encoding — the archetype of binary content encodings, AND the Java interface
  * that codec implementations satisfy.
@@ -145,15 +147,21 @@ public interface Encoding {
 
     /**
      * Begin a streaming parse — feed bytes incrementally via the returned
-     * {@link StreamParser}; the given {@link EventSink}'s callbacks fire for
-     * whole top-level values as they land. Codec-agnostic by design: the
-     * sink sees typed events ({@code onRef}, {@code onText}, {@code onBody},
-     * ...), not codec-specific shapes.
+     * {@link StreamParser}; whole top-level values arrive at {@code onValue}
+     * as typed Java objects ({@link dev.everydaythings.graph.datum.Body},
+     * {@link dev.everydaythings.graph.datum.Record},
+     * {@link dev.everydaythings.graph.id.HashID}, {@link String},
+     * {@link Number}, {@link Boolean}, {@link Encrypted}, …).  Parse failures
+     * arrive at {@code onError}.  Codec-agnostic by design: the consumer sees
+     * typed values, not codec-specific shapes; the consumer decides what each
+     * shape means (a top-level {@code HashID} as a fetch request, a top-level
+     * {@link String} as a token lookup, an {@link Encrypted} as a hand-to-vault,
+     * and so on).
      *
      * <p>Default throws — only codecs that can interpret their bytes (e.g.,
      * CG-CBOR) override; passthrough encodings have no need.
      */
-    default StreamParser parseStream(EventSink sink) {
+    default StreamParser parseStream(Consumer<Object> onValue, Consumer<Throwable> onError) {
         throw new UnsupportedOperationException("parseStream() not implemented (passthrough encoding)");
     }
 
