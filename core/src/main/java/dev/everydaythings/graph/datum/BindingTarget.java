@@ -47,6 +47,7 @@ public interface BindingTarget {
             int tag = node.getMostOuterTag().ToInt32Checked();
             if (tag == CgCbor.TAG_REF) return HashID.fromCborTree(node);
             if (tag == CgCbor.TAG_REDACTED) return RedactedTarget.fromCborTree(node);
+            if (tag == CgCbor.TAG_COMPRESSED) return CompressedTarget.fromCborTree(node);
             if (tag == CgCbor.TAG_BODY) return Body.fromCborTree(node);
             if (tag == 1) return java.time.Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
         }
@@ -274,6 +275,104 @@ public interface BindingTarget {
             }
             if (wrappedHash.length > show) sb.append("…");
             sb.append(")");
+            return sb.toString();
+        }
+    }
+
+    /**
+     * Non-lossy Merkle-preserving compression envelope.
+     *
+     * <p>Carries the original datum's structural hash <i>plus</i> a compressed
+     * copy of the original CG-CBOR bytes.  Where {@link RedactedTarget} elides
+     * the data and preserves only the hash, {@code CompressedTarget} preserves
+     * both — the hash short-circuits structural walks (same Node.Hashed path
+     * the redaction case uses) so parent merkle roots are computable without
+     * decompression, and the payload is available when the actual data is
+     * needed.
+     *
+     * <p>Hash-preserving across the compress/decompress boundary: the
+     * structural-walk hash of a CompressedTarget equals the structural-walk
+     * hash of the original datum it wraps.  A consumer that decompresses,
+     * decodes, and walks must reach the same hash; mismatch indicates a
+     * forged payload.
+     *
+     * <p>Wire format: {@code Tag(14, [ByteString(multihash), ByteString(deflated-cbor)])}.
+     *
+     * <p>Compose-time decision: the producer chooses what to compress and
+     * builds the {@code CompressedTarget} explicitly.  Storage and transport
+     * can also compress on the fly while bodies sit at rest; the same
+     * primitive serves both.
+     */
+    final class CompressedTarget implements BindingTarget {
+        private final byte[] originalDatumId;
+        private final byte[] compressedPayload;
+
+        /**
+         * Construct from the original's multihash and a compressed-bytes
+         * payload.  Callers are responsible for ensuring the payload
+         * decompresses to a datum whose own walk produces the given hash;
+         * the target takes both on faith.
+         */
+        public CompressedTarget(byte[] originalDatumId, byte[] compressedPayload) {
+            this.originalDatumId =
+                    Objects.requireNonNull(originalDatumId, "originalDatumId").clone();
+            this.compressedPayload =
+                    Objects.requireNonNull(compressedPayload, "compressedPayload").clone();
+        }
+
+        /** The structural Merkle hash of the (uncompressed) original. */
+        public byte[] originalDatumId() {
+            return originalDatumId.clone();
+        }
+
+        /** The compressed (deflated CG-CBOR) bytes of the original. */
+        public byte[] compressedPayload() {
+            return compressedPayload.clone();
+        }
+
+        @Factory
+        public static CompressedTarget fromCborTree(CBORObject node) {
+            if (node == null || node.isNull()) return null;
+            CBORObject inner = node.isTagged() ? node.UntagOne() : node;
+            if (inner.getType() != CBORType.Array || inner.size() != 2) {
+                throw new IllegalArgumentException(
+                        "CompressedTarget payload must be a 2-element array "
+                                + "[hash, compressedBytes]; got " + inner.getType()
+                                + (inner.getType() == CBORType.Array
+                                        ? " of size " + inner.size() : ""));
+            }
+            CBORObject hashNode = inner.get(0);
+            CBORObject payloadNode = inner.get(1);
+            if (hashNode.getType() != CBORType.ByteString
+                    || payloadNode.getType() != CBORType.ByteString) {
+                throw new IllegalArgumentException(
+                        "CompressedTarget elements must both be byte strings");
+            }
+            return new CompressedTarget(hashNode.GetByteString(), payloadNode.GetByteString());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CompressedTarget other)) return false;
+            return Arrays.equals(originalDatumId, other.originalDatumId)
+                    && Arrays.equals(compressedPayload, other.compressedPayload);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(originalDatumId) * 31 + Arrays.hashCode(compressedPayload);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("Compressed(");
+            int show = Math.min(8, originalDatumId.length);
+            for (int i = 0; i < show; i++) {
+                sb.append(String.format("%02x", originalDatumId[i]));
+            }
+            if (originalDatumId.length > show) sb.append("…");
+            sb.append(", ").append(compressedPayload.length).append(" bytes)");
             return sb.toString();
         }
     }

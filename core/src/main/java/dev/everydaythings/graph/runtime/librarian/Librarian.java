@@ -25,6 +25,7 @@ import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.Signer;
 import dev.everydaythings.graph.library.Library;
+import dev.everydaythings.graph.library.MatcherOrchestrator;
 import dev.everydaythings.graph.library.QueryWalker;
 import dev.everydaythings.graph.library.SchemaWalker;
 import dev.everydaythings.graph.library.ValidationResult;
@@ -1155,19 +1156,20 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Handle a query-shaped frame.  Per docs/query.md, queries persist on the
-     * active item (alongside other frames) AND get evaluated against the corpus
-     * via the matcher orchestrator, which emits RESULT frames back.
+     * Handle a query-shaped frame.  Routes it through the {@link MatcherOrchestrator}
+     * which evaluates the query against the librarian's indexed graph and
+     * returns RESULT frames for each match.
      *
-     * <p>For now this is a stub — the matcher orchestrator hasn't landed.  The
-     * frame is recognized as a query and a log entry is emitted; no persistence
-     * or dispatch occurs.  Wire-up of persistence + matcher dispatch is the
-     * next chunk.
+     * <p>First-cut scope (per MatcherOrchestrator docs): TypeRef head +
+     * concrete / TypeRef / literal binding targets.  Compound queries,
+     * variables, partial-applied Bool operators, and the universal {@code @any}
+     * sememe land as the matcher grows.  Query persistence (saved /
+     * subscribed queries) is separate from this dispatch path.
      */
     private SubmitResult submitQuery(Frame frame) {
-        logger.info("Query frame received (head={}); matcher orchestrator not yet implemented",
-                frame.body().head());
-        return SubmitResult.of(frame, List.of());
+        MatcherOrchestrator matcher = new MatcherOrchestrator(this);
+        List<Frame> results = matcher.match(frame.body());
+        return SubmitResult.of(frame, results);
     }
 
     /**

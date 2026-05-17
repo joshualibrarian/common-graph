@@ -57,7 +57,7 @@ An item's *role* in the system depends on the shape of its manifest, not on its 
 
 **Items whose instances are frames** are **predicates**. The Add predicate's manifest carries schema-prefixed bindings declaring what an Add frame should look like — the two THEME operands. Instances of the predicate are *not* items; they're frames headed by the predicate, with no IIDs of their own.
 
-The distinguishing detail is one binding on the schema. If the archetype's schema declares an `!@ITEM_ID` slot, its instances are items; if it doesn't, its instances are frames. One hierarchy, two usage patterns, distinguished by what their instances need.
+The distinguishing detail is one binding on the schema.  If the archetype's schema declares an `!ITEM_ID` slot, its instances are items; if it doesn't, its instances are frames.  One hierarchy, two usage patterns, distinguished by what their instances need.
 
 This is a *usage* distinction, not a *structural* one. The same item-shape can play both roles: some items are archetypes for some things and predicates for others. Some are clearly one or the other (ChessGame as archetype, Add as predicate). The world is fuzzy, and so is the ontology.
 

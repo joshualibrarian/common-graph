@@ -84,18 +84,20 @@ Domain vocabularies aren't shipped with the librarian by default; they're loaded
 
 ## Application bundles
 
-An **application bundle** is the unit of vocabulary distribution. A bundle is:
+The intended unit of vocabulary distribution is the **application bundle**.  A bundle is meant to be:
 
 - **An application archetype item** — the application's identity.
 - **A set of seed items** — the application's vocabulary (predicates, sub-archetypes, qualifiers, named entities).
 - **Code items** — the implementations of the application's archetypes (Java classes, Python modules, etc.).
 - **Bundle metadata** — version, author, dependencies, signature.
 
-The bundle is itself a manifest body (of head `@application`), signed by its author. Installing a bundle is verifying the author's signature, fetching the bundle's seed items, and registering them as scoped postings.
+The bundle would itself be a manifest body (of head `@application`), signed by its author.  Installing a bundle would mean verifying the author's signature, fetching the bundle's seed items, and registering them as scoped postings.
 
-Trust in a bundle is trust in its signer. A user who trusts a chess application installs the chess bundle; the chess vocabulary becomes available. A user who doesn't trust the chess application doesn't install it; the vocabulary stays unavailable.
+Trust in a bundle would be trust in its signer.  A user who trusts a chess application installs the chess bundle; the chess vocabulary becomes available.  A user who doesn't trust the chess application doesn't install it; the vocabulary stays unavailable.
 
-Application bundles compose. A bundle can declare dependencies on other bundles: a chess-variant application depends on a base chess bundle. The dependent bundle's vocabulary is in scope when the dependent application is active.
+Bundles would compose.  A bundle could declare dependencies on other bundles: a chess-variant application depends on a base chess bundle.  The dependent bundle's vocabulary would be in scope when the dependent application is active.
+
+This section is design intent.  Bundle definition, signed distribution, the install path, and the trust-matrix layer that gates installation are not yet implemented; the foundation-layer seeds described above are.
 
 ## Reuse over invention
 
@@ -123,19 +125,20 @@ A radically different seed vocabulary is permitted. It might use a different upp
   IID: multihash(SHA-256, "cg.predicate:add")
 
 @add's manifest body:
-  {@predicate, [
+  {@operator, [
     @ITEM_ID → <add-iid>,
     !THEME → ?numeric,
-    !THEME → ?numeric,
+    !GOAL → ?numeric,
+    @returns → !numeric,
     @ENDORSES → #<en-add-gloss>,
     @ENDORSES → #<en-add-lexeme>,   ; "add"
     @ENDORSES → #<en-plus-symbol>,  ; "+"
     @ENDORSES → #<es-sumar-lexeme>, ; "sumar"
-    @IMPLEMENTS → @add              ; self-handling (rare)
+    @IMPLEMENTS → @add              ; self-handling: this predicate's own code
   ]}
 ```
 
-Both schema slots use the same THEME role (Add is commutative); the predicate self-handles. Multiple English surface forms ("add" the verb, "+" the operator) point at the same sememe via different lexeme frames.
+Two schema slots — THEME and GOAL — for Add's left and right operands.  Add is commutative semantically, but the slots are still distinct positions because compound keys are unique within a body; using two `!THEME` bindings would collide on key.  Multiple English surface forms ("add" the verb, "+" the operator) point at the same sememe via different lexeme frames.
 
 **A WordNet synset as a domain seed.**
 

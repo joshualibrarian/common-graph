@@ -383,6 +383,64 @@ public final class CoreVocabulary {
     }
 
     /**
+     * Result — the predicate the matcher orchestrator uses to wrap each
+     * query match.  A RESULT frame carries a {@code THEME → @<matched-iid>}
+     * binding pointing at the item that satisfied the query, along with
+     * any other metadata the matcher cares to emit (match confidence,
+     * variable bindings, etc., later).
+     *
+     * <p>RESULT frames are ephemeral by convention — they're the matcher's
+     * answer to a particular query, not durable assertions about the world.
+     */
+    @Seed.Item(key = Result.KEY, head = Predicate.KEY)
+    public static final class Result {
+        public static final String KEY = "cg.predicate:result";
+        private Result() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the predicate the matcher emits to wrap each item that satisfied a query";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "result";
+    }
+
+    /**
+     * Salt — random bytes mixed into a value's bindings to randomize its
+     * structural hash, defeating brute-force enumeration of elided low-entropy
+     * values.
+     *
+     * <p>Use is by composition, not protocol: wrap the value to be salted in
+     * a body (a value archetype that admits a SALT binding, or the generic
+     * {@link dev.everydaythings.graph.value.Salted} wrapper), include the
+     * SALT binding with random bytes, hash normally.  When the wrapper is
+     * later elided via {@code RedactedTarget}, the salted hash is preserved
+     * and the salt is discarded with the value — an attacker who knows the
+     * value space can't enumerate hashes without also guessing the salt.
+     *
+     * <p>Salts are part of the identity from the moment the binding is
+     * composed; they cannot be added or removed later without changing the
+     * hash.  Choose at compose time.
+     */
+    @Seed.Item(key = Salt.KEY)
+    public static final class Salt {
+        public static final String KEY = "cg.sememe:salt";
+        private Salt() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "random bytes mixed into a value to randomize its structural hash; "
+                        + "defeats brute-force enumeration of low-entropy elided values";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "salt";
+    }
+
+    /**
      * The source-attribution predicate — names the dataset / vocabulary a sememe
      * was imported from.
      *

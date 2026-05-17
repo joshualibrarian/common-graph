@@ -147,6 +147,9 @@ public final class CgCbor {
     /** CG-CBOR Tag 13 — ENCRYPTED: encrypted-envelope marker. */
     public static final int TAG_ENCRYPTED = 13;
 
+    /** CG-CBOR tag for compressed-target envelopes (non-lossy, hash-preserving). */
+    public static final int TAG_COMPRESSED = 14;
+
     // ==================================================================================
     // Major type 7: simple values + floats
     //
@@ -538,6 +541,12 @@ public final class CgCbor {
             case BindingTarget.FrameTarget ft -> encodeDatum(ft.body());
             case BindingTarget.RedactedTarget rt -> CBORObject.FromCBORObjectAndTag(
                     CBORObject.FromByteArray(rt.wrappedHash()), TAG_REDACTED);
+            case BindingTarget.CompressedTarget ct -> {
+                CBORObject arr = CBORObject.NewArray();
+                arr.Add(CBORObject.FromByteArray(ct.originalDatumId()));
+                arr.Add(CBORObject.FromByteArray(ct.compressedPayload()));
+                yield CBORObject.FromCBORObjectAndTag(arr, TAG_COMPRESSED);
+            }
             default -> throw new IllegalArgumentException(
                     "Unsupported BindingTarget: " + t.getClass().getName());
         };
@@ -561,6 +570,7 @@ public final class CgCbor {
                 case TAG_BODY        -> Body.fromCborTree(node);
                 case TAG_RECORD      -> Record.fromCborTree(node);
                 case TAG_REDACTED    -> BindingTarget.RedactedTarget.fromCborTree(node);
+                case TAG_COMPRESSED  -> BindingTarget.CompressedTarget.fromCborTree(node);
                 default -> throw new IllegalArgumentException(
                         "Unrecognized CBOR tag: " + tag);
             };

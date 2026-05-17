@@ -208,6 +208,7 @@ public final class CanonWalker {
             case BindingTarget.RefTarget rt -> leafRefBytes(rt.asReference(), rt.asReference().toRefBytes());
             case BindingTarget.FrameTarget ft -> walkDatum(ft.body());
             case BindingTarget.RedactedTarget rt -> new Node.Hashed(rt.wrappedHash());
+            case BindingTarget.CompressedTarget ct -> new Node.Hashed(ct.originalDatumId());
             default -> throw new IllegalArgumentException(
                     "Unsupported BindingTarget: " + t.getClass().getName());
         };

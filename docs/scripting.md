@@ -104,13 +104,17 @@ The Stage hosts language runtimes through GraalVM's polyglot machinery (or equiv
 - **WebAssembly** — runs in a GraalWasm context.
 - **R, Ruby**, etc. — supported wherever the underlying polyglot host provides them.
 
-Each language context is sandboxed by GraalVM's host-access controls. Untrusted code in any language can be denied filesystem access, network access, JVM reflection, and other privileged operations. The host's trust matrix decides what each piece of code is granted.
+Each language context is sandboxed by GraalVM's host-access controls.  Untrusted code in any language can be denied filesystem access, network access, JVM reflection, and other privileged operations.  The host's trust matrix decides what each piece of code is granted.  (Capability enforcement is design intent at the time of writing; the basic dispatch path exists, the trust-matrix-driven capability bundle does not yet.)
 
-Languages communicate through GraalVM's interop machinery. A Python handler operating on a Frame (which is, in implementation terms, a Java object) sees it through a language-native surface — Python sees `frame["LHS"]` and dict-like iteration; Lisp sees keyword access; JavaScript sees property access. The Stage marshals the same Frame across languages with no copy; the language-native ergonomics emerge from the underlying interop wrappers.
+Languages communicate through GraalVM's polyglot host-access machinery.  A Python handler operating on a Frame receives the Java `Frame` object directly as a polyglot host value; from Python it calls `frame.body()`, `body.bindingsByRole(role)`, `binding.target()`, and the like — Java methods exposed through GraalPython's host interop.  The same Java object, no marshaling layer, full Java API surface.  A small per-language facade can wrap the raw host calls in idiomatic-for-that-language helpers, but the underlying primitive is host-object access.
+
+Hand-marshaling a Frame into a per-language native data shape (a Python dict, a JS object) is a possible future ergonomic layer, but it is not the default and not how the BETWEEN-Python proof works today.
 
 ## Sandboxing and capabilities
 
-Untrusted code runs with **narrowed capabilities** — what it can do is constrained by the trust matrix and enforced by the Stage. The capability surface:
+This section describes design intent.  The dispatch path is built; the trust matrix and capability enforcement layered on top of it are not yet.  The shape sketched here is what those layers will produce.
+
+Untrusted code is meant to run with **narrowed capabilities** — what it can do constrained by the trust matrix and enforced by the Stage.  The intended capability surface:
 
 - **Compute budget** — CPU time and memory limits.
 - **Host access** — filesystem read, filesystem write, network connections, environment variables, system clock.
@@ -118,9 +122,9 @@ Untrusted code runs with **narrowed capabilities** — what it can do is constra
 - **Reflection** — introspection into the host runtime.
 - **Inter-item calls** — what other items this code can dispatch to.
 
-A handler in a fully trusted item (the Librarian, certain bootstrap items) runs with all capabilities. A handler in a third-party application bundle runs with the capabilities the user granted when installing the bundle. A handler from a network-received frame runs with whatever the host's default network-source policy allows — usually very narrow.
+A handler in a fully trusted item (the Librarian, certain bootstrap items) runs with all capabilities.  A handler in a third-party application bundle is intended to run with the capabilities the user granted when installing the bundle.  A handler from a network-received frame should run with whatever the host's default network-source policy allows — usually very narrow.
 
-The capability bundle is computed by the Librarian, applied by the Stage, and enforced by GraalVM. Once the handler is running, it cannot escape its capabilities short of finding a vulnerability in the host. The system relies on the polyglot host's sandboxing primitives; it doesn't reinvent process isolation.
+The capability bundle will be computed by the Librarian, applied by the Stage, and enforced by GraalVM.  Once enforcement lands, a running handler cannot escape its capabilities short of finding a vulnerability in the host — the system relies on the polyglot host's sandboxing primitives rather than reinventing process isolation.
 
 ## Distributing code as items
 

@@ -67,18 +67,19 @@ A frame on the wire is therefore the body, followed by zero or more records. The
 
 ## Bindings
 
-A binding encodes as a 2-element or 3-element CBOR array:
+A binding encodes as a 1-, 2-, or 3-element CBOR array, with trailing nulls trimmed:
 
 ```
+[<key>]                         ; key-only — target and index both null
 [<key>, <target>]               ; ordinary binding
 [<key>, <target>, <index>]      ; ordered-group member
 ```
 
-The **key** is a CompoundKey — the binding's role plus its qualifiers. It encodes as a CBOR array whose first element is a Tag-7 reference (the role sememe) and whose remaining elements are qualifier values in canonical order. A bare-role binding (no qualifiers) encodes its key as a 1-element array.
+The **key** is a CompoundKey — the binding's role plus its qualifiers. It encodes as a 2-element CBOR array `[<head>, [<qualifiers>...]]` whose first element is a Tag-7 reference (the role sememe) and whose second is a (possibly empty) CBOR array of qualifier values in canonical order. A bare-role binding has an empty qualifiers array.
 
-The **target** is whatever value the binding carries — a Tag-7 reference, a Tag-8 nested body, a primitive (integer / text / boolean / byte string), a Tag-4 decimal, a Tag-1 instant, a Tag-6 rational, a Tag-12 redaction marker, etc. Encoders dispatch on the runtime type to pick the appropriate CBOR shape.
+The **target** is whatever value the binding carries — a Tag-7 reference, a Tag-8 nested body, a primitive (integer / text / boolean / byte string), a Tag-4 decimal, a Tag-1 instant, a Tag-6 rational, a Tag-12 redaction marker, etc. Encoders dispatch on the runtime type to pick the appropriate CBOR shape.  A null target is permitted — a HANDLES binding with no target asserts membership by role alone (the item handles its own frames).
 
-The **index** is an integer present only when the binding belongs to an ordered group of same-key siblings. Absent for unordered bindings (the common case). The two-vs-three element distinction signals presence.
+The **index** is an integer present only when the binding belongs to an ordered group of same-key siblings. Absent for unordered bindings (the common case). Trailing-null trimming collapses absent index (and absent target) to the shorter array form.
 
 ## References
 

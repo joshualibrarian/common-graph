@@ -52,6 +52,7 @@ See [`types.md`](types.md) for the meta-archetype tree and the structural roles 
 
 ## Deterministic IIDs for bootstrap
 
+
 Most IIDs are random — when a user mints a new item, the system generates 32 random bytes. But bootstrap sememes need to be agreed upon across implementations, so they use *deterministic* IIDs:
 
 ```

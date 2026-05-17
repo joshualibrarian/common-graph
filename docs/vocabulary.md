@@ -91,7 +91,7 @@ When a user types "move pawn to e4" into a chess game's prompt, the path is:
 2. Resolve each token through the dictionary in chess-game scope: `move` → @move, `pawn` → @pawn, `to` → @to-preposition, `e4` → @e4-square.
 3. Parse: the composable notations consume the tokens, build a frame with predicate @move.
 4. Submit: the frame body is signed and submitted.
-5. Dispatch: the librarian sees the frame's head is @move, finds the chess game item has `@HANDLES → @move`, routes the frame to the chess game's move handler.
+5. Dispatch: the librarian sees the frame's head is @move, finds the chess game's archetype has `@HANDLES → @move` (the API surface is declared on the archetype; instances inherit), routes the frame to the chess game's move handler.
 
 Every step rests on the same sememe vocabulary. The token dictionary resolves the user's surface forms to sememes; the dispatch path matches sememes to handlers; the result is structured behavior driven by structured language.
 

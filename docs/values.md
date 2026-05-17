@@ -77,26 +77,26 @@ A Value archetype's manifest carries `!`-bindings declaring the slots its instan
 
 ```
 @color's manifest:
-  head: @archetype
+  head: @value
   bindings:
     @ITEM_ID → <color-iid>
-    !R → ?numeric
-    !G → ?numeric
-    !B → ?numeric
+    !R → @between{ @source → 0, @goal → 255 }
+    !G → @between{ @source → 0, @goal → 255 }
+    !B → @between{ @source → 0, @goal → 255 }
 ```
 
 ```
 @quantity's manifest:
-  head: @archetype
+  head: @value
   bindings:
     @ITEM_ID → <quantity-iid>
-    !VALUE → ?numeric
-    !UNIT → ?unit
+    !value → ?numeric
+    !unit → ?unit
 ```
 
-Instance value bodies fill in those slots with concrete bindings. The system can validate a candidate value against its archetype's schema — same machinery as for any other archetype.
+Instance value bodies fill in those slots with concrete bindings.  The system can validate a candidate value against its archetype's schema — same machinery as for any other archetype.
 
-The `!`-bindings constrain target *shapes*, not target values. A Color's R can be any number; a Quantity's UNIT can be any unit; range constraints (clamping to 0-255 for color channels, dimensional constraints on Quantity sub-archetypes) live in domain-specific logic, not in the basic schema declarations.
+The `!`-binding's target is the *matcher* the slot's filled value must satisfy.  A type pattern (`?numeric`) accepts any value of that type; a partially-applied Bool-returning operator like `@between{0, 255}` accepts any value the operator returns `true` for when the candidate is plugged in as the missing operand.  Range constraints (Color's 0-255 channels, dimensional constraints on Quantity sub-archetypes) compose into the schema directly through this pattern; there is no separate "domain-specific logic" layer.
 
 ## Quantity and the SI dimensional types
 
@@ -149,7 +149,7 @@ Color is the canonical value example outside of Quantity. Its instances carry RG
 ]}
 ```
 
-Color's archetype carries schemas, glosses, and named-color sub-archetypes (`@red`, `@orange`, `@chartreuse`, ...) — common colors that get their own typed identities for convenience, each with a manifest specifying its standard component values.
+Color's archetype carries schemas and glosses.  Named colors (`@red`, `@orange`, `@chartreuse`, ...) are common Color *instances* with their RGB components fixed at their standard values — each is a body of head `@color` with concrete R, G, B bindings, given a canonical-key IID so the rest of the system can refer to them by name.  They are not sub-archetypes; they are particular values, named for convenience.
 
 Beyond Color, the presentation system uses an array of value archetypes for the typed slots its scenes work with: borders, font sizes, easing curves, animation timings. The Layout, Typography, Spatial, and Visual vocabularies all build on Color, Length, Time, and the dimensional values for their typed bindings.
 
@@ -221,11 +221,11 @@ Point is a value archetype with X and Y component slots. Other coordinate system
 
 ```
 Color schema (archetype manifest):
-  {@archetype, [
+  {@value, [
     @ITEM_ID → <color-iid>,
-    !R → ?numeric,
-    !G → ?numeric,
-    !B → ?numeric
+    !R → @between{ @source → 0, @goal → 255 },
+    !G → @between{ @source → 0, @goal → 255 },
+    !B → @between{ @source → 0, @goal → 255 }
   ]}
 
 Color instance (a value body):

@@ -38,7 +38,9 @@ For positions that are multisets (multiple same-key bindings, for example), the 
 
 The walker has to hash leaf values — the numbers, strings, references, timestamps, and bytes at the bottom of the structure — in a way that distinguishes their *kinds*. Without that, `5` (the number) and `"5"` (the string) and `b"5"` (the byte `0x35`) would hash identically, because they all hash the same one byte. The system would have no way to tell them apart by fingerprint.
 
-The walker prepends a one-byte discriminator to every leaf before hashing it. The discriminator names the leaf's kind: integer, string, boolean, big-integer, big-decimal, rational, instant, byte-blob, item-reference, content-reference, datum-reference, schema-reference, query-reference, redaction-marker. Each gets one byte, fixed forever; the discriminator bytes are part of the protocol that all implementations must agree on.
+The walker prepends a one-byte discriminator to every leaf before hashing it. The discriminator names the leaf's kind: boolean, integer, string, bytes, instant, item-id, reference (any HashID variant), big-integer. Each gets one byte, fixed forever; the discriminator bytes are part of the protocol that all implementations must agree on.
+
+All HashID variants — concrete item refs (`@`), type patterns (`?`), schema templates (`!`), content hashes (`~`), datum hashes (`#`) — share a single reference-discriminator byte.  The variant is already encoded as the first byte of the reference payload (the prefix), so a separate discriminator per variant would be redundant.  The walker hashes the full reference-bytes (prefix + multihash + sub-parts), and the prefix byte inside those bytes is what distinguishes variants in the hash.
 
 This is what makes the structural hash robust against encoding choices. An integer represented as a CBOR uint, a JSON number, or a flat-binary varint produces the same hash because all three encodings walk to the same leaf-value, the walker prepends the same integer-discriminator byte, and the resulting hash matches.
 
@@ -46,11 +48,12 @@ Discriminator bytes are part of the identity protocol and never change. New leaf
 
 ## The hash tree
 
-The Node tree the walker produces is a particular shape of Merkle tree, specialized for the data model:
+The Node tree the walker produces is a small algebraic structure with four node types:
 
-- **Datum nodes** — combine the head's hash with the hash of the bindings' multiset, in fixed order.
-- **Binding nodes** — combine the role's hash with each qualifier's hash with the target's hash, in fixed order.
-- **Leaf nodes** — hash of the discriminator byte plus the leaf value's bytes.
+- **Array nodes** — ordered sequences of child nodes.  A datum walks to `Array(head-node, Array(binding-nodes...))`.  A binding walks to `Array(key-node, target-node, …)`.  Combining the children's hashes in order produces the node's hash.
+- **Map nodes** — keyed collections, used where the data model has named-field structure rather than positional bindings.
+- **Leaf nodes** — terminal values.  Hash is the discriminator byte plus the leaf value's bytes.
+- **Hashed nodes** — short-circuit nodes carrying a precomputed hash directly.  Used for redaction (a `RedactedTarget` walks to a Hashed node whose value is the preserved structural hash of the original subtree), so the parent's hash matches whether the subtree was present or elided.
 
 The hash function used to combine bytes at each level is fixed by the protocol (currently SHA-256, but the multihash header on every produced ID names the algorithm so this is principled, not hardcoded).
 

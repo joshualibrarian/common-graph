@@ -14,38 +14,37 @@ A frame becomes a query when at least one of its references or values admits mor
 
 ```
 {@authored, [@AGENT → @tolkien, @THEME → @hobbit]}
-    Every position is a specific value. An assertion.
+    Every position is a specific value.  An assertion.
 
 {@authored, [@AGENT → @tolkien, @THEME → @any]}
-    THEME is set-returning (matches any value). A query.
+    THEME points at the universal-matcher sememe @any.  A query.
 
 {@harvest, [@PRODUCT → @tomato, @VALUE → {@gt, [@THEME → {@quantity, [@VALUE → 5, @UNIT → @kilogram]}]}]}
-    No @any appears, but the GT sub-frame is set-returning. Also a query.
+    No @any appears, but the GT sub-frame is partially applied (missing one
+    operand) and Bool-returning, so it functions as a matcher.  Also a query.
 
 {?book, [@AUTHOR → @tolkien]}
-    Head is a TypeRef (?-prefixed reference); the body matches anything in
-    the Book archetype hierarchy with that AUTHOR binding. A query.
-
-{?any, [?any → @tolkien, ?any → @book]}
-    Head and roles are query-prefixed too. A very loose "bag of terms" case.
+    Head is a TypeRef (single `?` prefix on the Book item-IID); the frame
+    matches anything in the Book archetype hierarchy with that AUTHOR
+    binding.  A query.
 ```
 
 All five are frames. The first is persisted as an assertion. The others are run as queries against the index.
 
 ## The `?` query prefix
 
-The `?` prefix marks a reference as a pattern. Where `@<iid>` says "this exact item," `?<iid>` says "anything in this item's archetype hierarchy" — anything whose head chain transitively reaches the named archetype.
+The `?` prefix marks a reference as a type pattern.  Where `@<iid>` says "this exact item," `?<iid>` says "anything in this item's archetype hierarchy" — anything whose head chain transitively reaches the named archetype.
 
 ```
-?@book       — matches any item whose archetype chain includes Book.
-?@piece      — matches any chess piece (instances of Piece's sub-archetypes).
-?@number     — matches any numeric value.
-?@user       — matches any user item.
+?book       — matches any item whose archetype chain includes Book.
+?piece      — matches any chess piece (instances of Piece's sub-archetypes).
+?number     — matches any numeric value.
+?user       — matches any user item.
 ```
+
+(Throughout this document, names like `book`, `tolkien`, `any` stand for the canonical-keyed IIDs of the corresponding sememes.  The single `?` or `@` prefix selects the reference variant; prefixes never combine.  See [`ref-scheme.md`](ref-scheme.md).)
 
 `?` references can appear anywhere a reference is valid: at a frame's head (matching frames of that predicate or archetype), at a binding's role (matching bindings with that role-class), at a binding's target (matching values of that type).
-
-Mutual exclusivity holds: a reference carries exactly one prefix. A position can be `@<iid>` (specific), `?<iid>` (pattern), or `!<iid>` (schema declaration), but never combined. See [`ref-scheme.md`](ref-scheme.md).
 
 ## `Any`
 
@@ -80,20 +79,20 @@ This is what makes range queries, comparison queries, and pattern queries fall o
 
 ## Operator return types: the `Returns` declaration
 
-Operators declare what their evaluation produces via a `@Returns` binding on the operator's manifest:
+Operators declare what their evaluation produces via a `@returns` binding on the operator's manifest:
 
 ```
 @between's manifest:
-  head: @predicate
+  head: @operator
   bindings:
     @ITEM_ID → <between-iid>
-    !THEME → ?@number
-    !SOURCE → ?@number
-    !GOAL → ?@number
-    @Returns → !@bool
+    !THEME → ?number
+    !SOURCE → ?number
+    !GOAL → ?number
+    @returns → !bool
 ```
 
-The `!@bool` target says "Between returns a value matching the Bool schema." Operators returning Bool are candidates for partial-application matching. Operators returning other types (Add returns Numeric, Concat returns String) are arithmetic / data-construction operations whose partial applications are different.
+The `!bool` target says "Between returns a value matching the Bool schema."  Operators returning Bool are candidates for partial-application matching.  Operators returning other types (Add returns Numeric, Concat returns String) are arithmetic / data-construction operations whose partial applications are different.
 
 The Returns declaration lives on the operator's own manifest as a single binding; the runtime queries it to decide whether partial application creates a query-matcher.
 
@@ -102,17 +101,18 @@ The Returns declaration lives on the operator's own manifest as a single binding
 The runtime detects whether a frame is a query by walking its structure looking for any of:
 
 1. Any reference position carries a `?` prefix (TypeRef pattern).
-2. Any reference position is `@any` (the universal matcher).
+2. Any reference position is `@any` (the universal-matcher sememe).
 3. Any binding target is a sub-frame whose head is a Bool-returning operator with fewer operands than its declared arity (partial application → matcher).
-4. Any binding's value is a literal-matcher (a value-type variant declaring "any value of this kind").
 
-If any of these conditions is true at any position, the frame is a query. If none are, the frame is an assertion. Detection is structural — no metadata, no separate type tag, no parallel categorization. The frame shape determines the routing.
+If any of these conditions is true at any position, the frame is a query.  If none are, the frame is an assertion.  Detection is structural — no metadata, no separate type tag, no parallel categorization.  The frame shape determines the routing.
+
+Today's implementation (`QueryWalker`) handles case 1.  Cases 2 and 3 are live design but not yet implemented — they require looking up a sememe's `@returns` to know whether it's Bool-typed, which means consulting the Librarian during the walk.  The structure-only first cut covers TypeRef detection and falls back to the assertion path otherwise.
 
 A frame that detects as an assertion goes through the normal persistence and dispatch path. A frame that detects as a query routes to the query evaluator, which matches the frame's pattern against indexes and returns the matching frames or items.
 
 ## Posing a query
 
-A user poses a query by writing it the same way they write any other frame: through the input pipeline. The composable notations that parse "Tolkien authored The Hobbit" into an assertion also parse "Tolkien authored ?" into a query — the difference is that "?" in the input resolves to `@any` (or to a typed pattern like `?@book` if the user types `book?`).
+A user poses a query by writing it the same way they write any other frame: through the input pipeline.  The composable notations that parse "Tolkien authored The Hobbit" into an assertion also parse "Tolkien authored ?" into a query — the difference is that "?" in the input resolves to `@any` (or to a typed pattern like `?book` if the user types `book?`).
 
 The pipeline produces a frame. The runtime detects it as a query. The query evaluator runs. Results come back as a stream of frames or items.
 
@@ -131,66 +131,66 @@ For simple queries, the result is a stream of matching items (e.g., "all books T
 
 ## Matching against indexes
 
-The librarian maintains indexes that make queries fast:
+The librarian maintains (or is designed to maintain) indexes that make queries fast:
 
-- **By IID** — given an IID, return the item's current manifest.
-- **By predicate** — given a predicate, return all frames headed by it.
-- **By binding role + target** — given a role and a target, return all frames whose binding-with-that-role points at that target.
-- **By archetype hierarchy** — given an archetype, return all items whose head chain includes it.
-- **By compound key** — given a role + qualifier set, return all bindings carrying that compound key.
+- **By IID** — given an IID, return the item's current manifest.  (Built.)
+- **By predicate** — given a predicate, return all frames headed by it.  (Built.)
+- **By binding role + target** — given a role and a target, return all frames whose binding-with-that-role points at that target.  (Built.)
+- **By compound key** — given a role + qualifier set, return all bindings carrying that compound key.  (Built.)
+- **By archetype hierarchy** — given an archetype, return all items whose head chain includes it.  (Design; the fifth index, planned but not yet implemented.)
 
-Most queries reduce to one or two index walks. A pattern query like `{?@book, [@AUTHOR → @tolkien]}` walks the archetype-hierarchy index for Book, intersects with the binding-target index for AUTHOR → @tolkien, returns the matches. More complex patterns combine index walks; the query evaluator decomposes the pattern into index queries it can execute.
+Most queries reduce to one or two index walks.  A pattern query like `{?book, [@AUTHOR → @tolkien]}` would walk the archetype-hierarchy index for Book, intersect with the binding-target index for AUTHOR → @tolkien, return the matches.  More complex patterns combine index walks; the query evaluator decomposes the pattern into index queries it can execute.
 
 The librarian's storage architecture details these indexes; see [`storage.md`](storage.md).
 
 ## Variables and cross-references
 
-A query can introduce *variables* by using `?` references with placeholder identifiers, then matching the same variable in multiple positions:
+A query can introduce *variables* — parser-level placeholders that link positions across one or more frames.  To avoid colliding with the `?`-as-type-pattern notation, variables use a `$`-prefixed identifier:
 
 ```
 {@knows, [
-  @AGENT → ?person-a,
-  @THEME → ?person-b
+  @AGENT → $person-a,
+  @THEME → $person-b
 ]}
 {@knows, [
-  @AGENT → ?person-b,
-  @THEME → ?person-a
+  @AGENT → $person-b,
+  @THEME → $person-a
 ]}
 ```
 
-Two query frames; the variables `?person-a` and `?person-b` link them. Together they ask "find pairs of people who know each other in both directions" — a transitive bidirectional pattern.
+Two query frames; the variables `$person-a` and `$person-b` link them.  Together they ask "find pairs of people who know each other in both directions" — a transitive bidirectional pattern.
 
-Variables aren't stored — they're parser-level identifiers that get bound during query evaluation. Multiple query frames sharing variables form a compound query; the evaluator finds joint solutions across all frames.
+Variables aren't stored on the wire — they're parser-level identifiers that bind during query evaluation.  Multiple query frames sharing variables form a compound query; the evaluator finds joint solutions across all frames.  The variable syntax is design intent at this point; the underlying frame model already supports the structural patterns, but the variable-binding evaluator is not yet implemented.
 
 ## Compound queries
 
-A compound query is a set of query frames evaluated jointly. The frames share variables and constraints; matches are joint solutions to all of them.
+A compound query is a set of query frames evaluated jointly.  The frames share variables and constraints; matches are joint solutions to all of them.
 
 ```
-{?@book, [@AUTHOR → ?author, @THEME → ?book]}
-{?@published, [@THEME → ?book, @YEAR → ?year]}
-{@gt, [@THEME → ?year, @THRESHOLD → 1950]}
+{?book, [@AUTHOR → $author, @THEME → $book]}
+{?published, [@THEME → $book, @YEAR → $year]}
+{@gt, [@THEME → $year, @THRESHOLD → 1950]}
 ```
 
-Three frames: find books and their authors, find their publication years, filter to post-1950. Variables `?author`, `?book`, `?year` connect them. The joint solution is the set of (author, book, year) triples satisfying all three frames.
+Three frames: find books and their authors, find their publication years, filter to post-1950.  Variables `$author`, `$book`, `$year` connect them.  The joint solution is the set of (author, book, year) triples satisfying all three frames.
 
-The query evaluator decomposes a compound query into a query plan (an order to evaluate the frames, an index strategy for each, a join strategy across them). Standard join optimization applies.
+The query evaluator decomposes a compound query into a query plan (an order to evaluate the frames, an index strategy for each, a join strategy across them).  Standard join optimization applies.  This is design intent; the planning/joining layer is not yet implemented.
 
 ## Where queries live
 
 A query frame can be:
 
-- **Ephemeral** — composed and evaluated immediately, never persisted. Most interactive queries.
-- **Saved** — committed to a manifest as an item with the Query archetype. Re-runs evaluate against the current state of the graph.
-- **Subscribed** — committed and registered for incremental notification when new matches appear. The librarian notifies the subscriber as the graph changes.
+- **Ephemeral** — composed and evaluated immediately, never persisted.  Most interactive queries.
+- **Saved** — committed to a manifest as an item with the Query archetype.  Re-runs evaluate against the current state of the graph.
+- **Subscribed** — committed and registered for incremental notification when new matches appear.  The librarian notifies the subscriber as the graph changes.
 
-Saved and subscribed queries are first-class graph entities. They have IIDs, they version, they can be shared, they can be endorsed by other items. A user's "documents I'm tracking" is just a saved query whose results stream into their UI.
+Saved and subscribed queries are first-class graph entities: they have IIDs, they version, they can be shared, they can be endorsed by other items.  A user's "documents I'm tracking" is meant to be just a saved query whose results stream into their UI.  Persisted-query and subscription machinery is design intent; the ephemeral path is what's planned for the matcher orchestrator's first cut.
 
 ## Gatekeeping
 
-Queries don't bypass the trust matrix. A query asks the librarian "show me matching items," but the librarian filters results by what the requester is authorized to see. Items the requester doesn't have access to are silently excluded; redacted items are returned with the redacted bindings hidden; encrypted items are returned only if the requester can decrypt them.
+The intended behavior: queries don't bypass the trust matrix.  A query asks the librarian "show me matching items," but the librarian filters results by what the requester is authorized to see.  Items the requester doesn't have access to are silently excluded; redacted items are returned with the redacted bindings hidden; encrypted items are returned only if the requester can decrypt them.
 
-The trust matrix applies at *query result time*, not at query *posing time*. Anyone can pose any query; what comes back depends on what they're entitled to see. This makes queries safe to share and to compose — no information leaks through asking.
+The trust matrix is intended to apply at *query result time*, not at query *posing time*.  Anyone can pose any query; what comes back depends on what they're entitled to see.  This makes queries safe to share and to compose — no information leaks through asking.  The trust matrix and the result-time filter are both design intent at the time of writing.
 
 ## Worked examples
 
@@ -199,11 +199,11 @@ The trust matrix applies at *query result time*, not at query *posing time*. Any
 ```
 {@authored, [
   @AGENT → @tolkien,
-  @THEME → ?@book
+  @THEME → ?book
 ]}
 ```
 
-THEME is a query reference — match any Book. Result: a stream of book items that have a frame `{@authored, [@AGENT → @tolkien, @THEME → @<book>]}` in storage.
+THEME is a TypeRef — match any Book.  Result: a stream of book items that have a frame `{@authored, [@AGENT → @tolkien, @THEME → @<book>]}` in storage.
 
 **"Harvests over 5 kg."**
 
@@ -213,27 +213,27 @@ THEME is a query reference — match any Book. Result: a stream of book items th
 ]}
 ```
 
-The RESULT binding's target is a partially-applied GT operator with only the threshold filled. Result: all harvest frames whose RESULT binding's target exceeds 5 kg.
+The RESULT binding's target is a partially-applied GT operator with only the threshold filled.  Result: all harvest frames whose RESULT binding's target exceeds 5 kg.
 
 **"All authoring relationships."**
 
 ```
 {@authored, [
-  @AGENT → ?author,
-  @THEME → ?work
+  @AGENT → $author,
+  @THEME → $work
 ]}
 ```
 
-Variables in both positions; no filtering. Result: a stream of (author, work) tuples covering every AUTHORED frame in scope.
+Variables in both positions; no filtering.  Result: a stream of (author, work) tuples covering every AUTHORED frame in scope.
 
 **"People who know each other (both directions)."**
 
 ```
-{@knows, [@AGENT → ?a, @THEME → ?b]}
-{@knows, [@AGENT → ?b, @THEME → ?a]}
+{@knows, [@AGENT → $a, @THEME → $b]}
+{@knows, [@AGENT → $b, @THEME → $a]}
 ```
 
-Two frames with shared variables. Result: pairs of people connected by mutual KNOWS frames.
+Two frames with shared variables.  Result: pairs of people connected by mutual KNOWS frames.
 
 ## Why queries are frames
 
