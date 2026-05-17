@@ -2,7 +2,9 @@ package dev.everydaythings.graph.identity.vault;
 
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.identity.Algorithm;
+import dev.everydaythings.graph.identity.AlgorithmHandle;
+import dev.everydaythings.graph.identity.AlgorithmVocabulary;
+import dev.everydaythings.graph.identity.JcaAlgorithmHandle;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.Binding;
@@ -24,8 +26,6 @@ import dev.everydaythings.graph.CoreVocabulary.Expires;
 import dev.everydaythings.graph.CoreVocabulary.Sequence;
 import dev.everydaythings.graph.language.ThematicRole;
 
-import java.math.BigInteger;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -33,9 +33,6 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.interfaces.EdECPublicKey;
 import java.security.spec.EdECPoint;
-import java.security.spec.EdECPublicKeySpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.NamedParameterSpec;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,7 +45,7 @@ import java.util.Optional;
  * Ephemeral vault — keypairs held in process memory, lost on exit.
  *
  * <p>Generates a fresh current + next keypair for the signing purpose at
- * construction. Additional purposes (encryption, key-agreement) will be added
+ * construction.  Additional purposes (encryption, key-agreement) will be added
  * in later phases.
  *
  * <p>Each purpose tracks its own state independently: current keypair, next
@@ -57,25 +54,37 @@ import java.util.Optional;
  * {@link Frame}s as their native output.
  *
  * <p>In-memory vaults are always unlocked — there's no encrypted-at-rest
- * material to gate behind a credential. {@link #lock()} is a no-op.
+ * material to gate behind a credential.  {@link #lock()} is a no-op.
  *
- * <p>Phase 1 supports Ed25519 only on the signing purpose. When other algorithms
- * or encryption-track keys become relevant, this class will be extended or other
- * Vault implementations will appear alongside it.
+ * <p>Phase 1 supports Ed25519 only.  The JCA hooks and raw-key encoding paths
+ * are hard-coded against the {@link AlgorithmVocabulary.Ed25519} sememe; when
+ * other algorithms or encryption-track keys become relevant, this class will
+ * be extended or other {@link Vault} implementations will appear alongside it.
  */
 public final class InMemoryVault implements Vault {
+
+    /** Sememe IID for the Ed25519 algorithm — the only algorithm this vault supports. */
+    private static final ItemRef ED25519 = ItemRef.iid(AlgorithmVocabulary.Ed25519.KEY);
+
+    /**
+     * Static Ed25519 handle used for VarSig / MultiKey construction.  Built off
+     * the {@link AlgorithmVocabulary.Ed25519} constants, so it works without a
+     * librarian present — important for tests and bare {@code Signer.inMemory()}
+     * usage.
+     */
+    private static final AlgorithmHandle ED25519_HANDLE = JcaAlgorithmHandle.ofEd25519();
 
     /**
      * Per-purpose state: keypairs (current + pre-rotation next) plus KEL position.
      */
     private static final class PurposeState {
-        final Algorithm.Sign algorithm;
+        final ItemRef algorithm;
         KeyPair currentKeyPair;
         KeyPair nextKeyPair;
         DatumRef chainHead;     // null = un-incepted
         long sequence;         // 0 before INCEPTION; 1 after; +1 per ROTATION
 
-        PurposeState(Algorithm.Sign algorithm, KeyPair currentKeyPair, KeyPair nextKeyPair) {
+        PurposeState(ItemRef algorithm, KeyPair currentKeyPair, KeyPair nextKeyPair) {
             this.algorithm = algorithm;
             this.currentKeyPair = currentKeyPair;
             this.nextKeyPair = nextKeyPair;
@@ -97,26 +106,23 @@ public final class InMemoryVault implements Vault {
     // ==================================================================================
 
     /**
-     * Generate a fresh InMemoryVault with two newly-generated keypairs (current
-     * and pre-rotation next) on the signing purpose, using the given algorithm.
+     * Generate a fresh InMemoryVault with two newly-generated Ed25519 keypairs
+     * (current and pre-rotation next) on the signing purpose.
+     *
+     * <p>InMemoryVault is currently Ed25519-only.  When other algorithms come
+     * online they will arrive in dedicated vault implementations rather than
+     * by parameterizing this factory.
      */
-    public static InMemoryVault generate(Algorithm.Sign algorithm) {
-        Objects.requireNonNull(algorithm, "algorithm");
-        PurposeState signing = new PurposeState(
-                algorithm,
-                generateKeyPair(algorithm),
-                generateKeyPair(algorithm));
+    public static InMemoryVault generate() {
+        KeyPair current = generateEd25519KeyPair();
+        KeyPair next = generateEd25519KeyPair();
+        PurposeState signing = new PurposeState(ED25519, current, next);
         Map<ItemRef, PurposeState> purposes = new HashMap<>();
         purposes.put(ItemRef.iid(IdentityVocabulary.Signing.KEY), signing);
         ItemRef identity = ItemRef.fromMultikeyBytes(
-                MultiKey.of(algorithm, rawPublicKey(signing.currentKeyPair.getPublic(), algorithm))
+                MultiKey.of(ED25519_HANDLE, rawEd25519PublicKey(current.getPublic()))
                         .encoded());
         return new InMemoryVault(purposes, identity);
-    }
-
-    /** Generate using the default signing algorithm (Ed25519). */
-    public static InMemoryVault generate() {
-        return generate(Algorithm.Sign.ED25519);
     }
 
     // ==================================================================================
@@ -187,7 +193,7 @@ public final class InMemoryVault implements Vault {
                 Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Inception.KEY)), bindings);
-        VarSig sig = signWith(state.currentKeyPair, state.algorithm, HashTree.signingPayload(body));
+        VarSig sig = signWith(state.currentKeyPair, HashTree.signingPayload(body));
         Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         state.chainHead = body.datumId();
@@ -206,12 +212,12 @@ public final class InMemoryVault implements Vault {
         }
         KeyPair oldCurrent = state.currentKeyPair;
         KeyPair newCurrent = state.nextKeyPair;
-        KeyPair newNext = generateKeyPair(state.algorithm);
+        KeyPair newNext = generateEd25519KeyPair();
 
-        MultiKey newCurrentPublic = MultiKey.of(state.algorithm,
-                rawPublicKey(newCurrent.getPublic(), state.algorithm));
-        MultiKey newNextPublic = MultiKey.of(state.algorithm,
-                rawPublicKey(newNext.getPublic(), state.algorithm));
+        MultiKey newCurrentPublic = MultiKey.of(ED25519_HANDLE,
+                rawEd25519PublicKey(newCurrent.getPublic()));
+        MultiKey newNextPublic = MultiKey.of(ED25519_HANDLE,
+                rawEd25519PublicKey(newNext.getPublic()));
         ContentRef newNextDigest = ContentRef.of(newNextPublic.encoded());
 
         long newSequence = state.sequence + 1L;
@@ -242,8 +248,8 @@ public final class InMemoryVault implements Vault {
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Rotation.KEY)), bindings);
         byte[] payload = HashTree.signingPayload(body);
-        VarSig sigOld = signWith(oldCurrent, state.algorithm, payload);
-        VarSig sigNew = signWith(newCurrent, state.algorithm, payload);
+        VarSig sigOld = signWith(oldCurrent, payload);
+        VarSig sigNew = signWith(newCurrent, payload);
 
         DatumRef bodyRef = DatumRef.of(body.datumId());
         Record recordOld = Record.of(bodyRef, List.of(), sigOld);
@@ -279,7 +285,7 @@ public final class InMemoryVault implements Vault {
                 Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Delegation.KEY)), bindings);
-        VarSig sig = signWith(signingState.currentKeyPair, signingState.algorithm, HashTree.signingPayload(body));
+        VarSig sig = signWith(signingState.currentKeyPair, HashTree.signingPayload(body));
         Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         return Frame.of(body, List.of(record));
@@ -302,7 +308,7 @@ public final class InMemoryVault implements Vault {
                 Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Revocation.KEY)), bindings);
-        VarSig sig = signWith(signingState.currentKeyPair, signingState.algorithm, HashTree.signingPayload(body));
+        VarSig sig = signWith(signingState.currentKeyPair, HashTree.signingPayload(body));
         Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         return Frame.of(body, List.of(record));
@@ -315,13 +321,13 @@ public final class InMemoryVault implements Vault {
     @Override
     public VarSig sign(byte[] message) {
         PurposeState state = requirePurpose(ItemRef.iid(IdentityVocabulary.Signing.KEY));
-        return signWith(state.currentKeyPair, state.algorithm, message);
+        return signWith(state.currentKeyPair, message);
     }
 
     @Override
     public VarSig sign(byte[] message, ItemRef purpose) {
         PurposeState state = requirePurpose(purpose);
-        return signWith(state.currentKeyPair, state.algorithm, message);
+        return signWith(state.currentKeyPair, message);
     }
 
     // ==================================================================================
@@ -329,7 +335,7 @@ public final class InMemoryVault implements Vault {
     // ==================================================================================
 
     @Override
-    public Optional<Algorithm.Sign> signingAlgorithm() {
+    public Optional<ItemRef> signingAlgorithm() {
         PurposeState state = purposes.get(ItemRef.iid(IdentityVocabulary.Signing.KEY));
         return state == null ? Optional.empty() : Optional.of(state.algorithm);
     }
@@ -359,45 +365,44 @@ public final class InMemoryVault implements Vault {
     }
 
     private static MultiKey currentPublicKey(PurposeState state) {
-        return MultiKey.of(state.algorithm,
-                rawPublicKey(state.currentKeyPair.getPublic(), state.algorithm));
+        return MultiKey.of(ED25519_HANDLE, rawEd25519PublicKey(state.currentKeyPair.getPublic()));
     }
 
     private static MultiKey nextPublicKey(PurposeState state) {
-        return MultiKey.of(state.algorithm,
-                rawPublicKey(state.nextKeyPair.getPublic(), state.algorithm));
+        return MultiKey.of(ED25519_HANDLE, rawEd25519PublicKey(state.nextKeyPair.getPublic()));
     }
 
     /** Sign a message with an explicit keypair (rotation needs both old + new). */
-    private static VarSig signWith(KeyPair keyPair, Algorithm.Sign algorithm, byte[] message) {
+    private static VarSig signWith(KeyPair keyPair, byte[] message) {
         try {
-            Signature sig = Signature.getInstance(algorithm.signatureName());
+            Signature sig = Signature.getInstance(AlgorithmVocabulary.Ed25519.SIGNATURE_NAME);
             sig.initSign(keyPair.getPrivate());
             sig.update(message);
-            return VarSig.of(algorithm, sig.sign());
+            return VarSig.of(ED25519_HANDLE, sig.sign());
         } catch (Exception e) {
             throw new RuntimeException("Signing failed", e);
         }
     }
 
     // ==================================================================================
-    // Algorithm-specific helpers (Ed25519 only for Phase 1)
+    // Ed25519-specific helpers
     // ==================================================================================
 
-    private static KeyPair generateKeyPair(Algorithm.Sign algorithm) {
+    private static KeyPair generateEd25519KeyPair() {
         try {
-            KeyPairGenerator gen = KeyPairGenerator.getInstance(algorithm.keyGeneratorName());
+            KeyPairGenerator gen = KeyPairGenerator.getInstance(AlgorithmVocabulary.Ed25519.KEY_FACTORY);
             return gen.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Unsupported algorithm: " + algorithm, e);
+            throw new RuntimeException("Ed25519 unavailable in this JCA provider", e);
         }
     }
 
-    private static byte[] rawPublicKey(PublicKey pub, Algorithm.Sign algorithm) {
-        if (algorithm != Algorithm.Sign.ED25519) {
-            throw new UnsupportedOperationException(
-                    "Raw public key extraction not implemented for " + algorithm);
-        }
+    /**
+     * Extract the 32-byte raw form of an Ed25519 public key — little-endian
+     * y-coordinate with the x-coordinate sign bit packed into bit 7 of the
+     * last byte.  Matches RFC 8032 and the multikey 0xed encoding.
+     */
+    private static byte[] rawEd25519PublicKey(PublicKey pub) {
         if (!(pub instanceof EdECPublicKey edPub)) {
             throw new IllegalStateException("Expected Ed25519 public key, got " + pub.getClass());
         }
@@ -412,35 +417,5 @@ public final class InMemoryVault implements Vault {
             raw[31] |= (byte) 0x80;
         }
         return raw;
-    }
-
-    /**
-     * Decode an Ed25519 public key from the raw 32-byte little-endian-y-with-x-bit form.
-     * Static helper used by Vault implementations and verification flows.
-     */
-    public static PublicKey publicKeyFromRaw(byte[] raw, Algorithm.Sign algorithm) {
-        if (algorithm != Algorithm.Sign.ED25519) {
-            throw new UnsupportedOperationException(
-                    "Raw public key decoding not implemented for " + algorithm);
-        }
-        if (raw.length != 32) {
-            throw new IllegalArgumentException("Ed25519 raw key must be 32 bytes, got " + raw.length);
-        }
-        boolean xOdd = (raw[31] & 0x80) != 0;
-        byte[] yLE = raw.clone();
-        yLE[31] &= 0x7F;
-        byte[] yBE = new byte[32];
-        for (int i = 0; i < 32; i++) {
-            yBE[i] = yLE[31 - i];
-        }
-        BigInteger y = new BigInteger(1, yBE);
-        try {
-            EdECPoint point = new EdECPoint(xOdd, y);
-            EdECPublicKeySpec spec = new EdECPublicKeySpec(NamedParameterSpec.ED25519, point);
-            KeyFactory kf = KeyFactory.getInstance("Ed25519");
-            return kf.generatePublic(spec);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new RuntimeException("Failed to decode Ed25519 public key", e);
-        }
     }
 }

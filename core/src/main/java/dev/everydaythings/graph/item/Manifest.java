@@ -2,6 +2,7 @@ package dev.everydaythings.graph.item;
 
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.datum.AttributedBody;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
@@ -62,6 +63,20 @@ public final class Manifest extends AttributedBody {
 
     /** ItemRef of the structural CONFIG sememe. */
     public static final ItemRef CONFIG = ItemRef.iid(CoreVocabulary.Config.KEY);
+
+    /** Canonical key for the HANDLES sememe — used as a binding role on
+     *  archetype manifests to declare which predicates the archetype receives. */
+    public static final String HANDLES_KEY = CoreVocabulary.Handles.KEY;
+
+    /** ItemRef of the HANDLES sememe. */
+    public static final ItemRef HANDLES = ItemRef.iid(CoreVocabulary.Handles.KEY);
+
+    /** Canonical key for the IMPLEMENTS sememe — used as a binding role on
+     *  code-item manifests to declare which archetype the code realizes. */
+    public static final String IMPLEMENTS_KEY = SchemaVocabulary.Implements.KEY;
+
+    /** ItemRef of the IMPLEMENTS sememe. */
+    public static final ItemRef IMPLEMENTS = ItemRef.iid(SchemaVocabulary.Implements.KEY);
 
     public Manifest(Body body, List<Record> records) {
         super(body, records);
@@ -227,6 +242,67 @@ public final class Manifest extends AttributedBody {
                 ItemRef.iid(RuntimeVocabulary.Java.KEY),
                 ItemRef.iid(RuntimeVocabulary.ClassName.KEY),
                 clazz.getName());
+    }
+
+    /**
+     * Build a HANDLES binding declaring this manifest's owner processes frames
+     * headed by {@code predicate}.
+     *
+     * <p>Shape: {@code @HANDLES → @<predicate>}.  Typically lives on an
+     * archetype manifest, declaring the API surface inherited by all instances.
+     */
+    public static Binding handles(ItemRef predicate) {
+        return Binding.ref(HANDLES, predicate);
+    }
+
+    /**
+     * Build a self-handling HANDLES binding — null target.  Asserts that the
+     * manifest's owner processes frames headed by itself, without naming the
+     * predicate redundantly.  Used by operators and other predicates that are
+     * their own actors.
+     *
+     * <p>Shape: {@code @HANDLES → ∅}.
+     */
+    public static Binding handlesSelf() {
+        return new Binding(HANDLES, null);
+    }
+
+    /**
+     * Build an IMPLEMENTS binding declaring this manifest's owner is a
+     * realization of {@code archetype}.
+     *
+     * <p>Shape: {@code @IMPLEMENTS → @<archetype>}.  Typically lives on a
+     * code-item manifest pointing at the archetype whose contract it fulfills.
+     */
+    public static Binding implementsArchetype(ItemRef archetype) {
+        return Binding.ref(IMPLEMENTS, archetype);
+    }
+
+    /**
+     * The predicate IIDs this manifest declares it HANDLES, in binding order.
+     *
+     * <p>A null-target HANDLES binding (self-handling) yields {@code null} in
+     * the returned list — callers that need to substitute the manifest's own
+     * ITEM_ID can do so explicitly.
+     */
+    public List<ItemRef> handles() {
+        return body().bindingsByRole(HANDLES).stream()
+                .map(b -> b.target() == null ? null
+                        : readIidFromTarget(b.target(), HANDLES_KEY))
+                .toList();
+    }
+
+    /**
+     * The archetype IIDs this manifest declares it IMPLEMENTS, in binding order.
+     *
+     * <p>A code item with multiple IMPLEMENTS bindings claims to realize each
+     * named archetype.  Rare today; common for code items that span concept
+     * boundaries (an adapter that implements both Source and Sink, etc.).
+     */
+    public List<ItemRef> implementsArchetypes() {
+        return body().bindingsByRole(IMPLEMENTS).stream()
+                .map(b -> readIidFromTarget(b.target(), IMPLEMENTS_KEY))
+                .toList();
     }
 
     /**

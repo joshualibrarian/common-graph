@@ -12,6 +12,8 @@ import dev.everydaythings.graph.identity.vault.InMemoryVault;
 import dev.everydaythings.graph.identity.vault.Vault;
 import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
+import dev.everydaythings.graph.identity.AlgorithmCache;
+import dev.everydaythings.graph.identity.AlgorithmHandle;
 import dev.everydaythings.graph.identity.IdentityVocabulary;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.runtime.*;
@@ -116,6 +118,13 @@ public class Librarian extends Signer {
     private final Parley parley;
 
     /**
+     * Cache of cryptographic algorithm handles, keyed by COSE id, varsig
+     * codec, multikey codec, and sememe IID.  Populated at bootstrap and
+     * lazily on first miss thereafter; see {@link AlgorithmCache}.
+     */
+    private final AlgorithmCache algorithms = new AlgorithmCache();
+
+    /**
      * Item cache: one canonical instance per IID. {@link #fetchItem} consults this
      * before hydrating from storage; {@link #register} adds explicit entries.
      * {@link Item#commit} auto-registers, so a committed item is always findable.
@@ -123,19 +132,22 @@ public class Librarian extends Signer {
     private final Map<ItemRef, Item> itemCache = new ConcurrentHashMap<>();
 
     /**
-     * Identity-only constructor (no signing capability). Primarily for hydration
-     * paths where the local node doesn't hold this Librarian's private key.
+     * Identity-only constructor (no signing capability) — convenience overload
+     * that defaults Stage to {@link ItemStage#javaOnly()}.
      *
-     * <p>Convenience overload that defaults to a Java-only {@link
-     * dev.everydaythings.graph.runtime.stage.ItemStage}.
+     * @deprecated Stage should always be explicit.  Use
+     *             {@link #Librarian(ItemStage, ItemRef, Library, Optional)}.
      */
+    @Deprecated
     public Librarian(ItemRef iid, Library library, Optional<Path> rootPath) {
-        this(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly(),
-                iid, library, rootPath);
+        this(ItemStage.javaOnly(), iid, library, rootPath);
     }
 
-    /** Identity-only constructor with explicit Stage. */
-    public Librarian(dev.everydaythings.graph.runtime.stage.ItemStage stage,
+    /**
+     * Identity-only constructor — no vault, no signing capability.  Used when
+     * hydrating an observed Librarian whose private key isn't local.
+     */
+    public Librarian(ItemStage stage,
                      ItemRef iid, Library library, Optional<Path> rootPath) {
         super(iid);
         this.stage = Objects.requireNonNull(stage, "stage");
@@ -145,26 +157,31 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Full constructor — vault holding signing material, storage, and (optional)
-     * filesystem footprint. Most callers should use a factory method
-     * ({@link #ephemeral()}, etc.) rather than calling this directly.
+     * Vault-supplied constructor — convenience overload that defaults Stage to
+     * {@link ItemStage#javaOnly()}.
      *
-     * <p>The IID is derived from the vault's initial signing public key. During
-     * construction this Librarian binds itself as its own librarian and then
-     * publishes its four-datum genesis (INCEPTION body+record on the signing
-     * track plus the Librarian's own item-manifest body+record). When the
-     * constructor returns, the Librarian is a fully-published graph identity.
-     *
-     * <p>Convenience overload that defaults to a Java-only {@link
-     * dev.everydaythings.graph.runtime.stage.ItemStage}.
+     * @deprecated Stage should always be explicit.  Use
+     *             {@link #Librarian(ItemStage, Vault, Library, Optional)} or
+     *             {@link #fromVault(ItemStage, Vault, Library, Optional)}.
      */
+    @Deprecated
     public Librarian(Vault vault, Library library, Optional<Path> rootPath) {
-        this(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly(),
-                vault, library, rootPath);
+        this(ItemStage.javaOnly(), vault, library, rootPath);
     }
 
-    /** Full constructor with explicit Stage. */
-    public Librarian(dev.everydaythings.graph.runtime.stage.ItemStage stage,
+    /**
+     * Vault-supplied constructor — vault, storage, and (optional) filesystem
+     * footprint.  IID is derived from the vault's initial signing public key.
+     * Constructor binds librarian-self and publishes the four-datum genesis
+     * (INCEPTION body+record on the signing track + the Librarian's own
+     * item-manifest body+record).  When this returns, the Librarian is a
+     * fully-published graph identity.
+     *
+     * <p>Most callers should use a factory method ({@link #ephemeral(ItemStage)},
+     * {@link #fresh(ItemStage, Path)}, {@link #fromVault}) rather than calling
+     * this directly.
+     */
+    public Librarian(ItemStage stage,
                      Vault vault, Library library, Optional<Path> rootPath) {
         super(vault);
         this.stage = Objects.requireNonNull(stage, "stage");
@@ -176,13 +193,13 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Anonymous constructor — no identity, no vault, no inception. The Librarian
-     * exists purely as a routing / fetch / cache context with no cryptographic
-     * standing. Attempts to commit, sign, or self-incept will fail.
+     * Anonymous constructor — no identity, no vault, no inception.  The
+     * Librarian exists purely as a routing / fetch / cache context with no
+     * cryptographic standing.  Attempts to commit, sign, or self-incept fail.
      */
-    private Librarian(Library library) {
+    private Librarian(ItemStage stage, Library library) {
         super((ItemRef) null);
-        this.stage = dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly();
+        this.stage = Objects.requireNonNull(stage, "stage");
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Optional.empty();
         this.parley = new Parley(this);
@@ -227,30 +244,36 @@ public class Librarian extends Signer {
     // ==================================================================================
 
     /**
-     * Create an ephemeral signed Librarian — full identity and signing capability,
-     * but everything lives in memory.
+     * Ephemeral signed Librarian on a Java-only Stage.  Convenience that
+     * defaults Stage.
      *
-     * <p>Storage is backed by SkipList stores (zero-dependency, pure Java). No
-     * filesystem footprint. Identity is a freshly-generated random ItemRef; signing
-     * is wired with a fresh in-memory vault holding two Ed25519 keypairs
-     * (current + pre-rotation next). Inception runs during construction.
-     *
-     * <p>For tests that need signing but not persistence; for one-shot tools that
-     * sign transient frames and discard them.
+     * @deprecated use {@link #ephemeral(ItemStage)} for an explicit Stage.
      */
+    @Deprecated
     public static Librarian ephemeral() {
-        return ephemeral(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly());
+        return ephemeral(ItemStage.javaOnly());
     }
 
-    /** Ephemeral Librarian on the given Stage. */
-    public static Librarian ephemeral(dev.everydaythings.graph.runtime.stage.ItemStage stage) {
+    /**
+     * Create an ephemeral signed Librarian on the given Stage — full identity
+     * and signing capability, everything in memory.
+     *
+     * <p>Storage is backed by SkipList stores (zero-dependency, pure Java).
+     * No filesystem footprint.  Identity is derived from a freshly-generated
+     * vault holding two Ed25519 keypairs (current + pre-rotation next).
+     * Inception runs during construction.
+     *
+     * <p>For tests that need signing but not persistence; for one-shot tools
+     * that sign transient frames and discard them.
+     */
+    public static Librarian ephemeral(ItemStage stage) {
         // Still byte-backed: bootstrap + token-indexed parse pipelines rely on
         // the byte-store token dictionary. Once token indexing is wired into
         // PureMapLibrary (blocked on task #48 — Posting.source flip from
         // ContentRef to DatumRef), ephemeral will switch to Library.anonymous().
         return new Librarian(
                 stage,
-                InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
+                InMemoryVault.generate(),
                 Library.inMemory(),
                 Optional.empty());
     }
@@ -269,17 +292,42 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Create an anonymous Librarian — no identity, no vault, no inception. The
-     * cheapest possible runtime context: storage is in-memory only, nothing
-     * gets signed, nothing requires identity.
+     * Create an anonymous Librarian — no identity, no vault, no inception, on
+     * a Java-only Stage.  Convenience that defaults Stage.
+     *
+     * @deprecated use {@link #anonymous(ItemStage)} for an explicit Stage.
+     */
+    @Deprecated
+    public static Librarian anonymous() {
+        return anonymous(ItemStage.javaOnly());
+    }
+
+    /**
+     * Create an anonymous Librarian on the given Stage — no identity, no
+     * vault, no inception.  The cheapest possible runtime context: storage is
+     * in-memory only, nothing gets signed, nothing requires identity.
      *
      * <p>For tests that don't need identity at all, or for one-shot tools that
      * only need to fetch / look up / route without ever attesting anything.
      * Attempting to sign, commit, or self-incept on an anonymous Librarian
      * throws {@link IllegalStateException}.
      */
-    public static Librarian anonymous() {
-        return new Librarian(Library.anonymous());
+    public static Librarian anonymous(ItemStage stage) {
+        return new Librarian(stage, Library.anonymous());
+    }
+
+    /**
+     * Create a Librarian from an existing vault — the caller supplies the
+     * vault (loaded from disk, hardware-backed, test fixture, etc.) and the
+     * Librarian inherits its IID and incepts during construction.
+     *
+     * <p>Use this when you already hold the vault material; use
+     * {@link #ephemeral(ItemStage)} or {@link #fresh(ItemStage, Path)} when
+     * you want the Librarian to mint a fresh vault for itself.
+     */
+    public static Librarian fromVault(ItemStage stage, Vault vault,
+                                      Library library, Optional<Path> rootPath) {
+        return new Librarian(stage, vault, library, rootPath);
     }
 
     /**
@@ -299,17 +347,17 @@ public class Librarian extends Signer {
      * @throws IllegalStateException if a marker already exists for a
      *                               different encoder
      */
+    @Deprecated
     public static Librarian fresh(java.nio.file.Path path) {
-        return fresh(dev.everydaythings.graph.runtime.stage.ItemStage.javaOnly(), path);
+        return fresh(ItemStage.javaOnly(), path);
     }
 
     /** Fresh persistent Librarian at the given path, on the given Stage. */
-    public static Librarian fresh(dev.everydaythings.graph.runtime.stage.ItemStage stage,
-                                  java.nio.file.Path path) {
+    public static Librarian fresh(ItemStage stage, java.nio.file.Path path) {
         Objects.requireNonNull(path, "path");
         return new Librarian(
                 stage,
-                InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
+                InMemoryVault.generate(),
                 Library.atPath(path),
                 Optional.of(path));
     }
@@ -411,9 +459,62 @@ public class Librarian extends Signer {
      */
     public void bootstrap() {
         SeedProcessor.bootstrap(this);
+        // Warm the algorithm cache now that every algorithm sememe has been
+        // seeded and indexed.  Anonymous librarians skip bootstrap and warm
+        // their cache lazily on first miss (see algorithmBy* lookups below).
+        algorithms.warm(this);
         // Self-inception now happens during construction (see
         // {@link #Librarian(Vault, Library, Optional)}); bootstrap is only
         // responsible for seed vocabulary discovery.
+    }
+
+    // ==================================================================================
+    // Algorithm lookups
+    //
+    // Each lookup hits the AlgorithmCache.  Cache misses trigger a one-time
+    // lazy warm — covers anonymous librarians (which never call bootstrap)
+    // and the rare case where a polyglot algorithm was deployed after the
+    // initial warm.
+    // ==================================================================================
+
+    /** Look up an algorithm handle by COSE identifier (e.g., -8 for Ed25519). */
+    public AlgorithmHandle algorithmByCoseId(long coseId) {
+        AlgorithmHandle h = algorithms.byCoseId(coseId);
+        if (h == null && !algorithms.isWarmed()) {
+            algorithms.warm(this);
+            h = algorithms.byCoseId(coseId);
+        }
+        return h;
+    }
+
+    /** Look up an algorithm handle by multicodec varsig code. */
+    public AlgorithmHandle algorithmByVarsigCode(long varsigCode) {
+        AlgorithmHandle h = algorithms.byVarsigCode(varsigCode);
+        if (h == null && !algorithms.isWarmed()) {
+            algorithms.warm(this);
+            h = algorithms.byVarsigCode(varsigCode);
+        }
+        return h;
+    }
+
+    /** Look up an algorithm handle by multicodec multikey code. */
+    public AlgorithmHandle algorithmByMultikeyCode(long multikeyCode) {
+        AlgorithmHandle h = algorithms.byMultikeyCode(multikeyCode);
+        if (h == null && !algorithms.isWarmed()) {
+            algorithms.warm(this);
+            h = algorithms.byMultikeyCode(multikeyCode);
+        }
+        return h;
+    }
+
+    /** Look up an algorithm handle by its sememe IID. */
+    public AlgorithmHandle algorithmByIid(ItemRef sememeIid) {
+        AlgorithmHandle h = algorithms.byIid(sememeIid);
+        if (h == null && !algorithms.isWarmed()) {
+            algorithms.warm(this);
+            h = algorithms.byIid(sememeIid);
+        }
+        return h;
     }
 
     // ==================================================================================
@@ -793,7 +894,7 @@ public class Librarian extends Signer {
      */
     public boolean verifySignedAsIdentity(ItemRef identityIid, byte[] message, VarSig varsig) {
         for (MultiKey key : currentKeys(identityIid, ItemRef.iid(IdentityVocabulary.Signing.KEY))) {
-            if (Signer.verify(key, message, varsig)) return true;
+            if (verify(key, message, varsig)) return true;
         }
         return false;
     }
@@ -1099,20 +1200,94 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Data-driven dispatch: fetch the {@link #CODE_IID CodeItem} for this
-     * Librarian implementation, walk its endorsed HANDLES frames, find one
-     * whose {@code THEME} matches the incoming predicate, read its {@code INSTRUMENT}
-     * text literal as the Java method name to invoke, reflect on the method,
-     * and call it.
+     * Dispatch a frame to whatever code implements its head predicate.  Two
+     * paths, tried in order:
      *
-     * <p>The {@code @Handler} Java annotation is the seed-time hint that
-     * generates the HANDLES frames + CodeItem manifest during {@link #bootstrap};
-     * at runtime, the endorsed frames are the source of truth. A different
-     * implementation (e.g., a Clojure Librarian) would publish its own
-     * CodeItem with its own method names, and dispatch there would resolve
-     * differently — but the predicate vocabulary is the shared protocol.
+     * <ol>
+     *   <li><b>IMPLEMENTS reverse-lookup</b> — find code items whose manifest
+     *       carries {@code IMPLEMENTS → @<predicateIid>}.  This is the new
+     *       universal path: every code item (Java, Python, Clojure, …)
+     *       declares what it implements as data; dispatch goes through
+     *       {@link ItemStage#deliver}.  Used by self-handling operators
+     *       (Add, Between) and any future polyglot code item.</li>
+     *   <li><b>Legacy endorsed-HANDLES-frames</b> — fall through when no
+     *       IMPLEMENTS hit.  This is the original Librarian-only path that
+     *       walks the librarian CodeItem's endorsed HANDLES frames and
+     *       reflects on the method named by their INSTRUMENT binding.  Still
+     *       feeds Librarian's CREATE / DELETE / LOOKUP handlers until those
+     *       migrate to the universal pattern.</li>
+     * </ol>
      */
     private List<Frame> dispatchToHandlers(Frame frame, ItemRef predicateIid) {
+        List<Frame> viaImpls = dispatchViaImplements(frame, predicateIid);
+        if (!viaImpls.isEmpty() || hasImplementer(predicateIid)) {
+            return viaImpls;
+        }
+        return dispatchViaLegacyHandlesFrames(frame, predicateIid);
+    }
+
+    /**
+     * Whether any code item in storage declares {@code IMPLEMENTS → @predicateIid}.
+     * Distinguishes "the new path found something but the handler returned
+     * empty" from "the new path had nothing to dispatch to."
+     */
+    private boolean hasImplementer(ItemRef predicateIid) {
+        return !library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, predicateIid).isEmpty();
+    }
+
+    /**
+     * New-style dispatch: find code items that {@code IMPLEMENTS} the frame's
+     * head predicate, pick one, materialize it through {@link #fetchItem},
+     * and hand the frame to {@link ItemStage#deliver}.
+     *
+     * <p>Returns an empty list when no code item implements the predicate, or
+     * when the chosen code item's {@code receive} returns nothing.  Caller
+     * distinguishes the two via {@link #hasImplementer}.
+     */
+    private List<Frame> dispatchViaImplements(Frame frame, ItemRef predicateIid) {
+        List<DatumRef> codeManifestCids =
+                library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, predicateIid);
+        if (codeManifestCids.isEmpty()) return List.of();
+
+        // Trust-matrix selection lands later; for now, first match wins.
+        DatumRef chosen = codeManifestCids.get(0);
+        Manifest manifest = fetchManifest(chosen).orElse(null);
+        if (manifest == null) return List.of();
+
+        Item codeItemInstance = fetchItem(manifest.itemId()).orElse(null);
+        if (codeItemInstance == null) return List.of();
+
+        Object result = stage.deliver(codeItemInstance, frame);
+        return unwrapResponses(result);
+    }
+
+    /** Coerce a {@code receive}-style return into a list of response frames. */
+    private static List<Frame> unwrapResponses(Object result) {
+        if (result == null) return List.of();
+        if (result instanceof Frame f) return List.of(f);
+        if (result instanceof List<?> list) {
+            List<Frame> out = new ArrayList<>(list.size());
+            for (Object o : list) {
+                if (o instanceof Frame f) out.add(f);
+            }
+            return out;
+        }
+        return List.of();
+    }
+
+    /**
+     * Legacy dispatch: fetch the {@link #CODE_IID CodeItem} for this Librarian
+     * implementation, walk its endorsed HANDLES frames, find one whose THEME
+     * matches the incoming predicate, read its INSTRUMENT text literal as the
+     * Java method name to invoke, reflect on the method, and call it.
+     *
+     * <p>The {@code @Handler} Java annotation is the seed-time hint that
+     * generates the HANDLES frames + CodeItem manifest during {@link #bootstrap}.
+     * This path is the one Librarian's own CREATE / DELETE / LOOKUP handlers
+     * still use; it will retire once those move to the universal
+     * IMPLEMENTS-based pattern.
+     */
+    private List<Frame> dispatchViaLegacyHandlesFrames(Frame frame, ItemRef predicateIid) {
         Item codeItem = fetchItem(CODE_IID).orElse(null);
         if (codeItem == null) return List.of();
 
@@ -1132,16 +1307,7 @@ public class Librarian extends Signer {
             try {
                 Object[] args = extractHandlerArgs(m, frame);
                 Object result = m.invoke(this, args);
-                if (result == null) return List.of();
-                if (result instanceof List<?> list) {
-                    List<Frame> out = new ArrayList<>(list.size());
-                    for (Object o : list) {
-                        if (o instanceof Frame f) out.add(f);
-                    }
-                    return out;
-                }
-                if (result instanceof Frame f) return List.of(f);
-                return List.of();
+                return unwrapResponses(result);
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(
                         "Handler invocation failed for predicate " + predicateIid, e);

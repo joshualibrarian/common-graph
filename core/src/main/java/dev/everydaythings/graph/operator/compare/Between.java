@@ -1,6 +1,10 @@
 package dev.everydaythings.graph.operator.compare;
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -68,6 +72,30 @@ public class Between extends Operator {
 
     public Between(ItemRef iid) { super(iid); }
     public Between(ItemRef iid, Librarian librarian) { super(iid, librarian); }
+
+    /**
+     * Universal handler entry: extract SOURCE, GOAL, THEME from the incoming
+     * BETWEEN frame's bindings and delegate to {@link #execute}.  Returns
+     * {@code null} when any operand is absent (partial application — a
+     * matcher, not a value; matcher orchestration lands separately).
+     */
+    @Override
+    public Object receive(Frame frame) {
+        Body body = frame.body();
+        Object source = readOperand(body, ThematicRole.Source.KEY);
+        Object goal   = readOperand(body, ThematicRole.Goal.KEY);
+        Object theme  = readOperand(body, ThematicRole.Theme.KEY);
+        if (source == null || goal == null || theme == null) {
+            return null;
+        }
+        return execute(source, goal, theme);
+    }
+
+    private static Object readOperand(Body body, String roleKey) {
+        return body.binding(CompoundKey.of(ItemRef.iid(roleKey)))
+                .map(Binding::target)
+                .orElse(null);
+    }
 
     @Override
     public Object execute(Object... operands) {

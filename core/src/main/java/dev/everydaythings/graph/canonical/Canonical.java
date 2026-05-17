@@ -169,7 +169,7 @@ public interface Canonical {
      * <p>Examples:
      * <ul>
      *   <li>An ID type returns {@code CBORObject.FromByteArray(multihash.toBytes())}</li>
-     *   <li>An Algorithm returns {@code CBORObject.FromInt32(coseId())}</li>
+     *   <li>A small integer-shaped value returns {@code CBORObject.FromInt32(intValue())}</li>
      *   <li>A Decimal returns {@code CBORObject.FromCborObjectAndTag(array, 4)}</li>
      * </ul>
      *

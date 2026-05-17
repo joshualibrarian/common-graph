@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.item.user;
 
-import dev.everydaythings.graph.identity.Algorithm;
+import dev.everydaythings.graph.identity.AlgorithmVocabulary;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.identity.Signer;
@@ -72,7 +72,7 @@ class SignerTest {
         void inMemoryHasSigningCapability() {
             Signer s = Signer.inMemory();
             assertThat(s.canSign()).isTrue();
-            assertThat(s.signingAlgorithm()).contains(Algorithm.Sign.ED25519);
+            assertThat(s.signingAlgorithm()).contains(ItemRef.iid(AlgorithmVocabulary.Ed25519.KEY));
             assertThat(s.signingPublicKey()).isPresent();
         }
 
@@ -81,7 +81,7 @@ class SignerTest {
         void publicKeyShape() {
             Signer s = Signer.inMemory();
             MultiKey pk = s.signingPublicKey().orElseThrow();
-            assertThat(pk.algorithm()).isEqualTo(Algorithm.Sign.ED25519);
+            assertThat(pk.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.MULTIKEY_CODE);
             assertThat(pk.rawKey()).hasSize(32);
         }
 
@@ -90,7 +90,7 @@ class SignerTest {
         void signProducesVarsig() {
             Signer s = Signer.inMemory();
             VarSig sig = s.sign("hello world".getBytes());
-            assertThat(sig.algorithm()).isEqualTo(Algorithm.Sign.ED25519);
+            assertThat(sig.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE);
             assertThat(sig.rawSig()).hasSize(64);
         }
 
@@ -103,7 +103,7 @@ class SignerTest {
             VarSig sig = s.sign(message);
             MultiKey pk = s.signingPublicKey().orElseThrow();
 
-            assertThat(Signer.verify(pk, message, sig)).isTrue();
+            assertThat(s.verify(pk, message, sig)).isTrue();
         }
 
         @Test
@@ -116,7 +116,7 @@ class SignerTest {
             VarSig sig = s.sign(message);
             MultiKey pk = s.signingPublicKey().orElseThrow();
 
-            assertThat(Signer.verify(pk, tampered, sig)).isFalse();
+            assertThat(s.verify(pk, tampered, sig)).isFalse();
         }
 
         @Test
@@ -129,7 +129,7 @@ class SignerTest {
             VarSig sig = alice.sign(message);
             MultiKey bobsKey = bob.signingPublicKey().orElseThrow();
 
-            assertThat(Signer.verify(bobsKey, message, sig)).isFalse();
+            assertThat(alice.verify(bobsKey, message, sig)).isFalse();
         }
 
         @Test
@@ -162,10 +162,11 @@ class SignerTest {
             MultiKey decoded = MultiKey.decode(original.encoded());
             assertThat(decoded).isEqualTo(original);
 
-            // Verify works with the round-tripped key
+            // Verify works with the round-tripped key.  The Signer's bound librarian
+            // resolves the algorithm handle for the handle-less decoded MultiKey.
             byte[] message = "round-trip test".getBytes();
             VarSig sig = s.sign(message);
-            assertThat(Signer.verify(decoded, message, sig)).isTrue();
+            assertThat(s.verify(decoded, message, sig)).isTrue();
         }
 
         @Test
@@ -178,7 +179,7 @@ class SignerTest {
             VarSig decoded = VarSig.decode(original.encoded());
             assertThat(decoded).isEqualTo(original);
 
-            assertThat(Signer.verify(s.signingPublicKey().orElseThrow(), message, decoded)).isTrue();
+            assertThat(s.verify(s.signingPublicKey().orElseThrow(), message, decoded)).isTrue();
         }
     }
 }

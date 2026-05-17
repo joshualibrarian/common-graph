@@ -4,7 +4,7 @@ import dev.everydaythings.graph.encoding.CgCbor;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.identity.Algorithm;
+import dev.everydaythings.graph.identity.AlgorithmVocabulary;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.runtime.RuntimeVocabulary;
@@ -188,12 +188,12 @@ class DatumTest {
 
             byte[] sig = new byte[64];
             for (int i = 0; i < 64; i++) sig[i] = (byte) i;
-            VarSig varsig = VarSig.of(Algorithm.Sign.ED25519, sig);
+            VarSig varsig = VarSig.of((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE, sig);
 
             Record record = Record.of(DatumRef.of(bodyId), List.of(), varsig);
 
             assertThat(record.head()).isEqualTo(DatumRef.of(bodyId));
-            assertThat(record.varsig().algorithm()).isEqualTo(Algorithm.Sign.ED25519);
+            assertThat(record.varsig().code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE);
         }
 
         @Test
@@ -201,7 +201,7 @@ class DatumTest {
         void cborRoundTrip() {
             DatumRef bodyId = DatumRef.of("body".getBytes());
             byte[] sig = new byte[64];
-            VarSig varsig = VarSig.of(Algorithm.Sign.ED25519, sig);
+            VarSig varsig = VarSig.of((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE, sig);
 
             Record original = Record.of(DatumRef.of(bodyId), List.of(), varsig);
             CBORObject cbor = CgCbor.toCbor(original);
@@ -216,7 +216,7 @@ class DatumTest {
             DatumRef bodyId = DatumRef.of("body".getBytes());
             byte[] sig = new byte[64];
             Record record = Record.of(DatumRef.of(bodyId), List.of(),
-                    VarSig.of(Algorithm.Sign.ED25519, sig));
+                    VarSig.of((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE, sig));
 
             CBORObject cbor = CgCbor.toCbor(record);
             assertThat(cbor.getType()).isEqualTo(com.upokecenter.cbor.CBORType.Array);
@@ -252,7 +252,7 @@ class DatumTest {
             DatumRef bodyId = DatumRef.of("body".getBytes());
             byte[] sig = new byte[64];
             Record record = Record.of(DatumRef.of(bodyId), List.of(),
-                    VarSig.of(Algorithm.Sign.ED25519, sig));
+                    VarSig.of((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE, sig));
 
             // signingPayload returns the Merkle root — not the encoded body.
             // Same record with a different signature should have the same payload.
@@ -260,7 +260,7 @@ class DatumTest {
             byte[] differentSig = new byte[64];
             differentSig[0] = 1;
             Record other = Record.of(DatumRef.of(bodyId), List.of(),
-                    VarSig.of(Algorithm.Sign.ED25519, differentSig));
+                    VarSig.of((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE, differentSig));
             assertThat(HashTree.signingPayload(other)).isEqualTo(payload);
         }
 

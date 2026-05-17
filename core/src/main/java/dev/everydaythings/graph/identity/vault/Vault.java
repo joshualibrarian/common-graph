@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.identity.vault;
 
 
-import dev.everydaythings.graph.identity.Algorithm;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.BindingTarget;
@@ -232,8 +231,14 @@ public interface Vault {
     // publicKey(purpose) / nextKeyDigest(purpose) for the per-purpose form)
     // ==================================================================================
 
-    /** The signing algorithm in use, if this vault holds signing keys. */
-    Optional<Algorithm.Sign> signingAlgorithm();
+    /**
+     * The signing-algorithm sememe IID in use, if this vault holds signing keys.
+     * Returns the algorithm sememe's identity (e.g.,
+     * {@code @cg.algorithm:ed25519}) — callers can resolve to a runtime
+     * {@link dev.everydaythings.graph.identity.AlgorithmHandle} via the
+     * librarian when verification machinery is needed.
+     */
+    Optional<ItemRef> signingAlgorithm();
 
     /** The current signing public key, if this vault holds signing keys. */
     Optional<MultiKey> signingPublicKey();
@@ -255,8 +260,12 @@ public interface Vault {
     // InMemoryVault returns empty until encryption work begins)
     // ==================================================================================
 
-    /** The encryption algorithm in use, if this vault holds encryption keys. */
-    default Optional<Algorithm.KeyMgmt> encryptionAlgorithm() {
+    /**
+     * The encryption-algorithm sememe IID in use, if this vault holds
+     * encryption keys.  Returns the algorithm sememe's identity (e.g.,
+     * {@code @cg.algorithm:ecdh-es-hkdf-256}).
+     */
+    default Optional<ItemRef> encryptionAlgorithm() {
         return Optional.empty();
     }
 

@@ -86,11 +86,16 @@ public final class Binding {
 
     /**
      * Primary constructor — a compound key, target, and optional index.
+     *
+     * <p>Target may be {@code null}.  A null-target binding asserts membership
+     * by role alone: the binding's existence on a manifest is the assertion,
+     * regardless of what it points at.  HANDLES with no target is the
+     * canonical use case (an item declaring it handles its own frames).
      */
     public Binding(CompoundKey key, Object target, Long index) {
         this.key = Objects.requireNonNull(key, "key");
-        this.target = Objects.requireNonNull(target, "target");
-        this.index = index;  // nullable
+        this.target = target;  // nullable — see javadoc
+        this.index = index;    // nullable
     }
 
     /**
@@ -276,21 +281,24 @@ public final class Binding {
 
     /**
      * Custom CBOR decoding. Wire format:
-     * {@code [CompoundKey, BindingTarget]} (2-element, no index) or
+     * {@code [CompoundKey]} (1-element, null target, no index — the trailing-null
+     * trim of the canonical layout collapses to this when both target and index
+     * are null), {@code [CompoundKey, BindingTarget]} (2-element, no index), or
      * {@code [CompoundKey, BindingTarget, Index]} (3-element, with index).
      * The third element is an integer when present.
      */
     @Factory
     public static Binding fromCborTree(CBORObject obj) {
         if (obj == null || obj.isNull()) return null;
-        if (obj.getType() != CBORType.Array || (obj.size() != 2 && obj.size() != 3)) {
+        if (obj.getType() != CBORType.Array
+                || (obj.size() != 1 && obj.size() != 2 && obj.size() != 3)) {
             throw new IllegalArgumentException(
-                    "Binding requires a 2- or 3-element CBOR array [key, target, (index)], got "
+                    "Binding requires a 1-, 2-, or 3-element CBOR array [key, (target), (index)], got "
                             + obj.getType() + (obj.getType() == CBORType.Array
                                     ? " of size " + obj.size() : ""));
         }
         CompoundKey key = dev.everydaythings.graph.encoding.CgCbor.decodeCompoundKey(obj.get(0));
-        Object target = BindingTarget.fromCborTree(obj.get(1));
+        Object target = obj.size() >= 2 ? BindingTarget.fromCborTree(obj.get(1)) : null;
         Long index = null;
         if (obj.size() == 3) {
             CBORObject idx = obj.get(2);

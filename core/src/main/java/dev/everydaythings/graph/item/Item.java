@@ -188,6 +188,33 @@ public class Item {
     }
 
     /**
+     * The universal handler entrypoint.  Given a frame whose head this item
+     * implements (per the archetype's HANDLES contract or self-handling), do
+     * whatever the frame asks for and return the result.
+     *
+     * <p>Return shapes the caller understands:
+     * <ul>
+     *   <li>{@code null} — no result, nothing to route back.</li>
+     *   <li>any value ({@link Boolean}, {@link Long}, a string, a numeric, a
+     *       structured object) — the operator-style answer.</li>
+     *   <li>a {@link Frame} — a single response frame.</li>
+     *   <li>{@code List<Frame>} — multiple response frames.</li>
+     * </ul>
+     *
+     * <p>The frame IS the call.  Internal routing on {@code frame.body().head()}
+     * is the item's own concern; the universal substrate doesn't dispatch by
+     * method name across languages.  Java implementations may switch on the
+     * head, delegate to private helpers, use a reflection-based table, or
+     * whatever fits — the contract surface is the same regardless.
+     *
+     * <p>Default implementation returns {@code null} — most items don't have
+     * behavior, they're just data containers.  Behavioural items override.
+     */
+    public Object receive(Frame frame) {
+        return null;
+    }
+
+    /**
      * Frames endorsed by the current manifest, materialized from the Library.
      *
      * <p>Walks the manifest's ENDORSES bindings, extracts the body CID from each,
