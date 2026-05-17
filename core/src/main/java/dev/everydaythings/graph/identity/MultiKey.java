@@ -12,14 +12,13 @@ import java.util.Objects;
  *
  * <p>Wire form: {@code <unsigned-varint codec> <raw-key-bytes>}.
  *
- * <p>The codec identifies the key TYPE (not its purpose). A multikey can be
- * constructed from an {@link Algorithm.Asymmetric} (which knows the codec for its
- * key type via {@link Algorithm.Asymmetric#multikeyCode()}) or from a raw codec
- * code plus key bytes.
+ * <p>The codec identifies the key TYPE (not its purpose).  A multikey can be
+ * constructed from an {@link AlgorithmHandle} (which knows its codec) or from
+ * a raw codec code plus key bytes.
  *
  * <p>Note that the same multikey code may correspond to multiple algorithms — for
  * example, RSA keys (multikey 0x1205) are used by both {@code PS256} signing and
- * {@code RSA_OAEP_256} key management. The wire form does not disambiguate
+ * {@code RSA_OAEP_256} key management.  The wire form does not disambiguate
  * algorithm purpose; that comes from context (the surrounding {@code VarSig}, or
  * the binding role).
  */
@@ -38,31 +37,13 @@ public final class MultiKey {
     }
 
     /**
-     * Construct from an {@link Algorithm.Asymmetric} and raw key bytes. The codec
-     * is taken from the algorithm. Validates length where the algorithm specifies
-     * a fixed length.
-     */
-    public static MultiKey of(Algorithm.Asymmetric algorithm, byte[] rawKey) {
-        Objects.requireNonNull(algorithm, "algorithm");
-        Objects.requireNonNull(rawKey, "rawKey");
-        validateLength(algorithm.rawKeyBytes(), rawKey.length, algorithm);
-        return build(algorithm.multikeyCode(), rawKey);
-    }
-
-    /**
-     * Construct from a raw codec code and key bytes. Validates length where a
-     * registered algorithm exists for this code with a fixed expected length.
+     * Construct from a raw codec code and key bytes.  No validation against a
+     * registered algorithm is performed here — pass through a librarian (via
+     * {@link #decode(byte[], Librarian)}) to resolve a handle and enable
+     * length-aware decoding.
      */
     public static MultiKey of(int code, byte[] rawKey) {
         Objects.requireNonNull(rawKey, "rawKey");
-        // If we recognize the code, validate length. If not, accept whatever bytes
-        // were provided (forward-compat: unknown codecs may be carried through).
-        try {
-            Algorithm.Asymmetric algorithm = Algorithm.Asymmetric.byMultikeyCode(code);
-            validateLength(algorithm.rawKeyBytes(), rawKey.length, algorithm);
-        } catch (IllegalArgumentException unknownCode) {
-            // unrecognized code; skip validation, carry bytes as-is
-        }
         return build(code, rawKey);
     }
 
@@ -121,31 +102,9 @@ public final class MultiKey {
         return new MultiKey(code, rawKey.clone(), out.toByteArray(), handle);
     }
 
-    private static void validateLength(int expected, int actual, Algorithm.Asymmetric algorithm) {
-        if (expected != 0 && actual != expected) {
-            throw new IllegalArgumentException(
-                    algorithm + " expects " + expected + " key bytes, got " + actual);
-        }
-    }
-
     /** The multikey codec code identifying the key type. */
     public int code() {
         return code;
-    }
-
-    /**
-     * The {@link Algorithm.Asymmetric} corresponding to this codec, if recognized.
-     *
-     * <p>Returns {@code null} if the codec is not registered with any known algorithm.
-     * Note that for codes shared by multiple algorithms (e.g., RSA), this returns
-     * the first registered match.
-     */
-    public Algorithm.Asymmetric algorithm() {
-        try {
-            return Algorithm.Asymmetric.byMultikeyCode(code);
-        } catch (IllegalArgumentException unknownCode) {
-            return null;
-        }
     }
 
     /** The raw key bytes (defensive copy). */

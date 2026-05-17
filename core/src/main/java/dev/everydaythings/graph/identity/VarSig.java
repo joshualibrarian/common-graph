@@ -13,9 +13,9 @@ import java.util.Objects;
  *
  * <p>Wire form: {@code <unsigned-varint codec> <raw-signature-bytes>}.
  *
- * <p>The codec identifies the signature algorithm. A varsig can be constructed from
- * an {@link Algorithm.Sign} (which knows the codec via
- * {@link Algorithm.Sign#varsigCode()}) or from a raw codec code plus signature bytes.
+ * <p>The codec identifies the signature algorithm.  A varsig can be constructed
+ * from an {@link AlgorithmHandle} (which knows its codec) or from a raw codec
+ * code plus signature bytes.
  *
  * <p>Records in the Datum architecture carry their signature as a varsig blob in their
  * signature slot, making the algorithm self-describing without requiring out-of-band
@@ -36,29 +36,13 @@ public final class VarSig {
     }
 
     /**
-     * Construct from an {@link Algorithm.Sign} and raw signature bytes. The codec
-     * is taken from the algorithm. Validates length where the algorithm specifies
-     * a fixed length.
-     */
-    public static VarSig of(Algorithm.Sign algorithm, byte[] rawSig) {
-        Objects.requireNonNull(algorithm, "algorithm");
-        Objects.requireNonNull(rawSig, "rawSig");
-        validateLength(algorithm.sigBytes(), rawSig.length, algorithm);
-        return build(algorithm.varsigCode(), rawSig);
-    }
-
-    /**
-     * Construct from a raw codec code and signature bytes. Validates length where
-     * a registered Sign algorithm exists for this code with a fixed expected length.
+     * Construct from a raw codec code and signature bytes.  No validation
+     * against a registered algorithm is performed here — pass through a
+     * librarian (via {@link #decode(byte[], Librarian)}) to resolve a handle
+     * and enable verification.
      */
     public static VarSig of(int code, byte[] rawSig) {
         Objects.requireNonNull(rawSig, "rawSig");
-        try {
-            Algorithm.Sign algorithm = Algorithm.Sign.byVarsigCode(code);
-            validateLength(algorithm.sigBytes(), rawSig.length, algorithm);
-        } catch (IllegalArgumentException unknownCode) {
-            // unrecognized code; skip validation, carry bytes as-is
-        }
         return build(code, rawSig);
     }
 
@@ -117,30 +101,9 @@ public final class VarSig {
         return new VarSig(code, rawSig.clone(), out.toByteArray(), handle);
     }
 
-    private static void validateLength(int expected, int actual, Algorithm.Sign algorithm) {
-        if (expected != 0 && actual != expected) {
-            throw new IllegalArgumentException(
-                    algorithm + " expects " + expected + " signature bytes, got " + actual);
-        }
-    }
-
     /** The varsig codec code identifying the signature algorithm. */
     public int code() {
         return code;
-    }
-
-    /**
-     * The {@link Algorithm.Sign} corresponding to this codec, if recognized.
-     *
-     * <p>Returns {@code null} if the codec is not registered with any known signing
-     * algorithm.
-     */
-    public Algorithm.Sign algorithm() {
-        try {
-            return Algorithm.Sign.byVarsigCode(code);
-        } catch (IllegalArgumentException unknownCode) {
-            return null;
-        }
     }
 
     /** The raw signature bytes (defensive copy). */
@@ -156,7 +119,7 @@ public final class VarSig {
     /**
      * The resolved algorithm handle, or {@code null} when this VarSig was
      * decoded without librarian context (via {@link #decode(byte[])} or
-     * constructed via an enum-based factory).
+     * constructed via the bare {@link #of(int, byte[])} factory).
      */
     public AlgorithmHandle handle() {
         return handle;

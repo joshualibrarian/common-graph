@@ -129,13 +129,40 @@ public final class JcaAlgorithmHandle implements AlgorithmHandle {
      * metadata off the seed manifest directly instead.
      */
     public static JcaAlgorithmHandle ofEd25519() {
-        return new JcaAlgorithmHandle(
-                ItemRef.iid(AlgorithmVocabulary.Ed25519.KEY),
-                AlgorithmVocabulary.Ed25519.COSE_ID,
-                AlgorithmVocabulary.Ed25519.VARSIG_CODE,
-                AlgorithmVocabulary.Ed25519.MULTIKEY_CODE,
-                AlgorithmVocabulary.Ed25519.SIGNATURE_NAME,
-                AlgorithmVocabulary.Ed25519.KEY_FACTORY,
-                (int) AlgorithmVocabulary.Ed25519.RAW_KEY_BYTES);
+        return ED25519_SINGLETON;
     }
+
+    /**
+     * Static fallback registry of built-in JCA-backed algorithm handles, keyed
+     * by varsig codec.  Used in librarian-less contexts (e.g., static helpers
+     * like {@link Signer#isSelfAttested}, or {@code Signer.inMemory()} call
+     * sites that don't have a librarian to consult).
+     *
+     * <p>Returns {@code null} when no built-in handle is registered for the
+     * given codec.  Callers that have a librarian should prefer
+     * {@code librarian.algorithmByVarsigCode(code)} instead — that path also
+     * picks up graph-deployed algorithms beyond the JVM built-ins.
+     */
+    public static AlgorithmHandle builtinByVarsigCode(int code) {
+        if (code == (int) AlgorithmVocabulary.Ed25519.VARSIG_CODE) return ED25519_SINGLETON;
+        return null;
+    }
+
+    /**
+     * Static fallback registry by multikey codec — companion to
+     * {@link #builtinByVarsigCode}.  Same usage guidance.
+     */
+    public static AlgorithmHandle builtinByMultikeyCode(int code) {
+        if (code == (int) AlgorithmVocabulary.Ed25519.MULTIKEY_CODE) return ED25519_SINGLETON;
+        return null;
+    }
+
+    private static final JcaAlgorithmHandle ED25519_SINGLETON = new JcaAlgorithmHandle(
+            ItemRef.iid(AlgorithmVocabulary.Ed25519.KEY),
+            AlgorithmVocabulary.Ed25519.COSE_ID,
+            AlgorithmVocabulary.Ed25519.VARSIG_CODE,
+            AlgorithmVocabulary.Ed25519.MULTIKEY_CODE,
+            AlgorithmVocabulary.Ed25519.SIGNATURE_NAME,
+            AlgorithmVocabulary.Ed25519.KEY_FACTORY,
+            (int) AlgorithmVocabulary.Ed25519.RAW_KEY_BYTES);
 }

@@ -148,9 +148,13 @@ public final class SeedProcessor {
         bindings.add(Binding.ref(Manifest.ITEM_ID, ItemRef.fromString(seedItem.key())));
 
         // Single-level @Seed.Embodies (same key as @Seed.Item) is a self-embodiment
-        // shortcut: the archetype IS its own runtime form, class literal pinned here.
+        // shortcut: the archetype IS its own runtime form.  Pin the class literal
+        // here, and also publish IMPLEMENTS → self so the universal
+        // IMPLEMENTS-based dispatch reverse-lookup finds this item when frames
+        // headed by it arrive.
         // Two-level @Seed.Embodies (with archetype=) is intentionally not consulted
-        // here — its work happens in processEmbodies, leaving this manifest untouched.
+        // here — its work happens in processEmbodies, producing a separate
+        // CodeItem manifest with its own IMPLEMENTS → @archetype binding.
         Seed.Embodies embodies = cls.getAnnotation(Seed.Embodies.class);
         boolean singleLevel = embodies != null
                 && embodies.archetype().isEmpty()
@@ -158,6 +162,7 @@ public final class SeedProcessor {
         if (singleLevel) {
             validateRuntimeClass(cls, "@Embodies");
             bindings.add(Manifest.implementation(cls));
+            bindings.add(Manifest.implementsArchetype(ItemRef.fromString(seedItem.key())));
         }
 
         for (DatumRef frameCid : buildEndorsedFrames(librarian, cls)) {

@@ -1,5 +1,8 @@
 package dev.everydaythings.graph.runtime.stage;
 
+import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.item.Item;
+
 import java.util.Set;
 
 /**
@@ -130,5 +133,38 @@ public class ItemStage {
      */
     public Set<String> polyglotLanguages() {
         return polyglotLanguages;
+    }
+
+    // ==================================================================================
+    // Deliver — the universal dispatch primitive
+    //
+    // Given a materialized {@link Item} and an incoming {@link Frame}, hand the
+    // frame to the item's receive() method.  For Java items this is a direct
+    // JVM call.  For polyglot items (PolyglotItem subclass, when wired) the
+    // receive() override dispatches through the Stage-held GraalVM Value.
+    //
+    // Today this is a thin shim — degenerate for Java.  It exists as the place
+    // where capability enforcement (trust-matrix-driven sandboxing, resource
+    // limits, sensitive-operation gates) will land when the polyglot dispatch
+    // path comes online.  Routing all dispatch through here from day one means
+    // the future enforcement landing point is already in place.
+    // ==================================================================================
+
+    /**
+     * Deliver a frame to an item, returning whatever the item's
+     * {@link Item#receive(Frame) receive} method produces.
+     *
+     * <p>The contract is uniform across languages: {@code Frame} in, value-or-
+     * {@code Frame} out.  Java items receive a direct call; polyglot items
+     * (future) delegate through their wrapped GraalVM Value.
+     *
+     * @param item  the materialized item to dispatch to (Java instance, or a
+     *              {@code PolyglotItem} once that lands).
+     * @param frame the message being delivered.
+     * @return whatever {@code receive} produces — {@code null}, a primitive
+     *         value, a {@link Frame}, a {@code List<Frame>}, etc.
+     */
+    public Object deliver(Item item, Frame frame) {
+        return item.receive(frame);
     }
 }

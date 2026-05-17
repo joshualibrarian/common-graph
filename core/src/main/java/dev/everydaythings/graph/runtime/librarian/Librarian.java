@@ -273,7 +273,7 @@ public class Librarian extends Signer {
         // ContentRef to DatumRef), ephemeral will switch to Library.anonymous().
         return new Librarian(
                 stage,
-                InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
+                InMemoryVault.generate(),
                 Library.inMemory(),
                 Optional.empty());
     }
@@ -357,7 +357,7 @@ public class Librarian extends Signer {
         Objects.requireNonNull(path, "path");
         return new Librarian(
                 stage,
-                InMemoryVault.generate(Signer.DEFAULT_ALGORITHM),
+                InMemoryVault.generate(),
                 Library.atPath(path),
                 Optional.of(path));
     }
@@ -894,7 +894,7 @@ public class Librarian extends Signer {
      */
     public boolean verifySignedAsIdentity(ItemRef identityIid, byte[] message, VarSig varsig) {
         for (MultiKey key : currentKeys(identityIid, ItemRef.iid(IdentityVocabulary.Signing.KEY))) {
-            if (Signer.verify(key, message, varsig)) return true;
+            if (verify(key, message, varsig)) return true;
         }
         return false;
     }
@@ -1200,20 +1200,94 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Data-driven dispatch: fetch the {@link #CODE_IID CodeItem} for this
-     * Librarian implementation, walk its endorsed HANDLES frames, find one
-     * whose {@code THEME} matches the incoming predicate, read its {@code INSTRUMENT}
-     * text literal as the Java method name to invoke, reflect on the method,
-     * and call it.
+     * Dispatch a frame to whatever code implements its head predicate.  Two
+     * paths, tried in order:
      *
-     * <p>The {@code @Handler} Java annotation is the seed-time hint that
-     * generates the HANDLES frames + CodeItem manifest during {@link #bootstrap};
-     * at runtime, the endorsed frames are the source of truth. A different
-     * implementation (e.g., a Clojure Librarian) would publish its own
-     * CodeItem with its own method names, and dispatch there would resolve
-     * differently — but the predicate vocabulary is the shared protocol.
+     * <ol>
+     *   <li><b>IMPLEMENTS reverse-lookup</b> — find code items whose manifest
+     *       carries {@code IMPLEMENTS → @<predicateIid>}.  This is the new
+     *       universal path: every code item (Java, Python, Clojure, …)
+     *       declares what it implements as data; dispatch goes through
+     *       {@link ItemStage#deliver}.  Used by self-handling operators
+     *       (Add, Between) and any future polyglot code item.</li>
+     *   <li><b>Legacy endorsed-HANDLES-frames</b> — fall through when no
+     *       IMPLEMENTS hit.  This is the original Librarian-only path that
+     *       walks the librarian CodeItem's endorsed HANDLES frames and
+     *       reflects on the method named by their INSTRUMENT binding.  Still
+     *       feeds Librarian's CREATE / DELETE / LOOKUP handlers until those
+     *       migrate to the universal pattern.</li>
+     * </ol>
      */
     private List<Frame> dispatchToHandlers(Frame frame, ItemRef predicateIid) {
+        List<Frame> viaImpls = dispatchViaImplements(frame, predicateIid);
+        if (!viaImpls.isEmpty() || hasImplementer(predicateIid)) {
+            return viaImpls;
+        }
+        return dispatchViaLegacyHandlesFrames(frame, predicateIid);
+    }
+
+    /**
+     * Whether any code item in storage declares {@code IMPLEMENTS → @predicateIid}.
+     * Distinguishes "the new path found something but the handler returned
+     * empty" from "the new path had nothing to dispatch to."
+     */
+    private boolean hasImplementer(ItemRef predicateIid) {
+        return !library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, predicateIid).isEmpty();
+    }
+
+    /**
+     * New-style dispatch: find code items that {@code IMPLEMENTS} the frame's
+     * head predicate, pick one, materialize it through {@link #fetchItem},
+     * and hand the frame to {@link ItemStage#deliver}.
+     *
+     * <p>Returns an empty list when no code item implements the predicate, or
+     * when the chosen code item's {@code receive} returns nothing.  Caller
+     * distinguishes the two via {@link #hasImplementer}.
+     */
+    private List<Frame> dispatchViaImplements(Frame frame, ItemRef predicateIid) {
+        List<DatumRef> codeManifestCids =
+                library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, predicateIid);
+        if (codeManifestCids.isEmpty()) return List.of();
+
+        // Trust-matrix selection lands later; for now, first match wins.
+        DatumRef chosen = codeManifestCids.get(0);
+        Manifest manifest = fetchManifest(chosen).orElse(null);
+        if (manifest == null) return List.of();
+
+        Item codeItemInstance = fetchItem(manifest.itemId()).orElse(null);
+        if (codeItemInstance == null) return List.of();
+
+        Object result = stage.deliver(codeItemInstance, frame);
+        return unwrapResponses(result);
+    }
+
+    /** Coerce a {@code receive}-style return into a list of response frames. */
+    private static List<Frame> unwrapResponses(Object result) {
+        if (result == null) return List.of();
+        if (result instanceof Frame f) return List.of(f);
+        if (result instanceof List<?> list) {
+            List<Frame> out = new ArrayList<>(list.size());
+            for (Object o : list) {
+                if (o instanceof Frame f) out.add(f);
+            }
+            return out;
+        }
+        return List.of();
+    }
+
+    /**
+     * Legacy dispatch: fetch the {@link #CODE_IID CodeItem} for this Librarian
+     * implementation, walk its endorsed HANDLES frames, find one whose THEME
+     * matches the incoming predicate, read its INSTRUMENT text literal as the
+     * Java method name to invoke, reflect on the method, and call it.
+     *
+     * <p>The {@code @Handler} Java annotation is the seed-time hint that
+     * generates the HANDLES frames + CodeItem manifest during {@link #bootstrap}.
+     * This path is the one Librarian's own CREATE / DELETE / LOOKUP handlers
+     * still use; it will retire once those move to the universal
+     * IMPLEMENTS-based pattern.
+     */
+    private List<Frame> dispatchViaLegacyHandlesFrames(Frame frame, ItemRef predicateIid) {
         Item codeItem = fetchItem(CODE_IID).orElse(null);
         if (codeItem == null) return List.of();
 
@@ -1233,16 +1307,7 @@ public class Librarian extends Signer {
             try {
                 Object[] args = extractHandlerArgs(m, frame);
                 Object result = m.invoke(this, args);
-                if (result == null) return List.of();
-                if (result instanceof List<?> list) {
-                    List<Frame> out = new ArrayList<>(list.size());
-                    for (Object o : list) {
-                        if (o instanceof Frame f) out.add(f);
-                    }
-                    return out;
-                }
-                if (result instanceof Frame f) return List.of(f);
-                return List.of();
+                return unwrapResponses(result);
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(
                         "Handler invocation failed for predicate " + predicateIid, e);

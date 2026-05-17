@@ -414,7 +414,7 @@ class ItemTest {
             VarSig sig = manifest.records().get(0).varsig();
 
             byte[] signedBytes = HashTree.signingPayload(manifest.body());
-            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig))
+            assertThat(lib.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig))
                     .isTrue();
         }
 
@@ -480,8 +480,8 @@ class ItemTest {
             VarSig sig = manifest.records().get(0).varsig();
             byte[] signedBytes = HashTree.signingPayload(manifest.body());
             // Alice's public key verifies — not the librarian's.
-            assertThat(Signer.verify(alice.signingPublicKey().orElseThrow(), signedBytes, sig)).isTrue();
-            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig)).isFalse();
+            assertThat(alice.verify(alice.signingPublicKey().orElseThrow(), signedBytes, sig)).isTrue();
+            assertThat(lib.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig)).isFalse();
         }
     }
 }

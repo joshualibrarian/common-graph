@@ -3,7 +3,7 @@ package dev.everydaythings.graph.datum;
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.identity.Algorithm;
+import dev.everydaythings.graph.identity.AlgorithmVocabulary;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
@@ -51,8 +51,8 @@ class DatumIntegrationTest {
         byte[] rawPublicKey = extractRawEd25519PublicKey(kp.getPublic());
         assertThat(rawPublicKey).hasSize(32);
 
-        // Wrap it as a MultiKey
-        MultiKey signerKey = MultiKey.of(Algorithm.Sign.ED25519, rawPublicKey);
+        // Wrap it as a MultiKey using the Ed25519 multikey codec.
+        MultiKey signerKey = MultiKey.of((int) AlgorithmVocabulary.Ed25519.MULTIKEY_CODE, rawPublicKey);
 
         // Build a body — "Tolkien authored the Hobbit"
         ItemRef tolkien = ItemRef.fromString("person.tolkien");
@@ -85,8 +85,8 @@ class DatumIntegrationTest {
         byte[] rawSignature = signer.sign();
         assertThat(rawSignature).hasSize(64);
 
-        // Wrap raw signature as VarSig
-        VarSig varsig = VarSig.of(Algorithm.Sign.ED25519, rawSignature);
+        // Wrap raw signature as VarSig using the Ed25519 varsig codec.
+        VarSig varsig = VarSig.of((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE, rawSignature);
 
         // Build the real record with the actual signature
         Record record = Record.of(
@@ -109,13 +109,13 @@ class DatumIntegrationTest {
         verifier.initVerify(kp.getPublic());
         verifier.update(recoveredToSign);
         VarSig recoveredSig = record.varsig();
-        assertThat(recoveredSig.algorithm()).isEqualTo(Algorithm.Sign.ED25519);
+        assertThat(recoveredSig.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE);
         assertThat(verifier.verify(recoveredSig.rawSig())).isTrue();
 
         // Round-trip the multikey through wire form and confirm
         MultiKey roundTrippedKey = MultiKey.decode(signerKey.encoded());
         assertThat(roundTrippedKey).isEqualTo(signerKey);
-        assertThat(roundTrippedKey.algorithm()).isEqualTo(Algorithm.Sign.ED25519);
+        assertThat(roundTrippedKey.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.MULTIKEY_CODE);
     }
 
     @Test

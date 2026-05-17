@@ -65,7 +65,7 @@ class LibrarianTest {
 
             // Round-trip: librarian signs, verify with its own public key.
             byte[] message = "librarian-signed message".getBytes();
-            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), message, lib.sign(message)))
+            assertThat(lib.verify(lib.signingPublicKey().orElseThrow(), message, lib.sign(message)))
                     .isTrue();
         }
     }
@@ -414,7 +414,7 @@ class LibrarianTest {
 
             byte[] signedBytes = HashTree.signingPayload(body);
             VarSig sig = frame.records().get(0).varsig();
-            assertThat(Librarian.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig))
+            assertThat(lib.verify(lib.signingPublicKey().orElseThrow(), signedBytes, sig))
                     .isTrue();
         }
     }
@@ -632,7 +632,7 @@ class LibrarianTest {
             Record fetched = frame.records().get(0);
 
             // Verify the signature with the librarian's own public key.
-            assertThat(Librarian.verify(
+            assertThat(lib.verify(
                     lib.signingPublicKey().orElseThrow(),
                     signedBytes,
                     fetched.varsig()))
