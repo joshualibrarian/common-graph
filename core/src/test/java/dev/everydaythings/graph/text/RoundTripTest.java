@@ -9,6 +9,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.operator.OperatorNotation;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
@@ -51,7 +52,7 @@ class RoundTripTest {
     void setUp() {
         lib = Librarian.inMemory();
         lib.bootstrap();
-        language = new Language(ItemRef.iid(Language.KEY), lib);
+        language = new OperatorNotation(lib);
         orchestrator = new Item(ItemRef.fromString("test.roundtrip-orchestrator"), lib);
     }
 
