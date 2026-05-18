@@ -206,35 +206,122 @@ public final class SeedProcessor {
     }
 
     /**
-     * Walk every {@code @Seed.Property}-annotated static field on the class and
-     * append the corresponding binding to {@code bindings}. The field's value
-     * supplies the target unless {@link Seed.Property#body()} is set (in which
-     * case the body annotation builds a nested Body target).
+     * Walk every {@code @Seed.Property}-annotated field on the class and
+     * append the corresponding binding to {@code bindings}.
+     *
+     * <p>Two modes, distinguished by {@code static}/{@code instance}:
+     *
+     * <ul>
+     *   <li><b>Static field</b> — the field's value supplies the binding
+     *       target.  For {@code role}, the value is a literal target.  For
+     *       {@code schemaRole} or {@code typeRole}, the value is the
+     *       matcher / TypeRef.</li>
+     *   <li><b>Instance field</b> — the field's <i>Java type</i> supplies
+     *       an EXPECTS declaration.  The field's type is mapped to a CG
+     *       value-archetype IID (Length → {@code Length.KEY}, Color →
+     *       {@code Color.KEY}, etc.) and used as the TypeRef constraint
+     *       on the role.  At instance construction, {@link BodyBinder}
+     *       reads the body's matching binding and populates the field.
+     *       Static and instance variants both contribute to the seed
+     *       manifest; only the instance form additionally binds at
+     *       runtime.</li>
+     * </ul>
      */
     private static void processSeedProperties(Class<?> cls, List<Binding> bindings) {
         for (Field field : cls.getDeclaredFields()) {
             Seed.Property[] properties = field.getAnnotationsByType(Seed.Property.class);
             if (properties.length == 0) continue;
-            if (!Modifier.isStatic(field.getModifiers())) {
-                throw new IllegalStateException(
-                        "@Seed.Property field " + cls.getName() + "." + field.getName()
-                                + " must be static");
-            }
-            field.setAccessible(true);
-            Object fieldValue;
-            try {
-                fieldValue = field.get(null);
-            } catch (IllegalAccessException e) {
-                throw new IllegalStateException(
-                        "Cannot read @Seed.Property field " + cls.getName() + "."
-                                + field.getName(), e);
-            }
 
-            String context = cls.getName() + "." + field.getName() + " (@Seed.Property)";
-            for (Seed.Property property : properties) {
-                bindings.add(buildPropertyBinding(property, fieldValue, context));
+            if (Modifier.isStatic(field.getModifiers())) {
+                processStaticSeedProperty(field, properties, cls, bindings);
+            } else {
+                processInstanceSeedProperty(field, properties, cls, bindings);
             }
         }
+    }
+
+    /** Process a static {@code @Seed.Property} field — value supplies the binding target. */
+    private static void processStaticSeedProperty(Field field, Seed.Property[] properties,
+                                                  Class<?> cls, List<Binding> bindings) {
+        field.setAccessible(true);
+        Object fieldValue;
+        try {
+            fieldValue = field.get(null);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(
+                    "Cannot read @Seed.Property field " + cls.getName() + "."
+                            + field.getName(), e);
+        }
+
+        String context = cls.getName() + "." + field.getName() + " (@Seed.Property)";
+        for (Seed.Property property : properties) {
+            bindings.add(buildPropertyBinding(property, fieldValue, context));
+        }
+    }
+
+    /**
+     * Process an instance {@code @Seed.Property} field — the field's Java
+     * type supplies an EXPECTS declaration (the constraint is a TypeRef
+     * to the type's CG archetype).  The runtime population from a body's
+     * matching binding is handled by {@link BodyBinder} at instance
+     * construction, not here.
+     */
+    private static void processInstanceSeedProperty(Field field, Seed.Property[] properties,
+                                                    Class<?> cls, List<Binding> bindings) {
+        String context = cls.getName() + "." + field.getName() + " (@Seed.Property instance)";
+        for (Seed.Property property : properties) {
+            // Instance fields only contribute schema (EXPECTS) — they
+            // can't have a compile-time literal target.
+            if (!property.role().isEmpty()) {
+                // role on an instance field is shorthand for "this slot has
+                // this type" — synthesize a schemaRole EXPECTS with the
+                // TypeRef derived from the field's Java type.
+                ItemRef archetypeIid = archetypeForFieldType(field.getType(), context);
+                if (archetypeIid == null) continue;  // type doesn't map to a CG archetype; skip EXPECTS
+                bindings.add(new Binding(
+                        SchemaRef.fromString(property.role()),
+                        List.of(),
+                        TypeRef.of(archetypeIid),
+                        null));
+            } else if (!property.schemaRole().isEmpty()) {
+                throw new IllegalStateException(
+                        "@Seed.Property(schemaRole=...) on instance field " + context
+                                + " — schemaRole is a static-field-only declaration");
+            } else if (!property.typeRole().isEmpty()) {
+                throw new IllegalStateException(
+                        "@Seed.Property(typeRole=...) on instance field " + context
+                                + " — typeRole is a static-field-only declaration");
+            }
+        }
+    }
+
+    /**
+     * Map a Java field type to a CG value-archetype IID for EXPECTS
+     * derivation.  Returns null when the type doesn't map cleanly
+     * (e.g., raw Java types like String, List).
+     */
+    private static ItemRef archetypeForFieldType(Class<?> fieldType, String context) {
+        // Walk up the class hierarchy looking for a public static final String KEY
+        // — CG value archetypes declare their canonical key this way.
+        Class<?> c = fieldType;
+        while (c != null && c != Object.class) {
+            try {
+                Field keyField = c.getField("KEY");
+                if (Modifier.isStatic(keyField.getModifiers())
+                        && Modifier.isFinal(keyField.getModifiers())
+                        && keyField.getType() == String.class) {
+                    String key = (String) keyField.get(null);
+                    return ItemRef.fromString(key);
+                }
+            } catch (NoSuchFieldException ignored) {
+                // Try superclass
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(
+                        "Cannot read KEY field on " + c.getName() + " for " + context, e);
+            }
+            c = c.getSuperclass();
+        }
+        return null;
     }
 
     /**

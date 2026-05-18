@@ -1,0 +1,26 @@
+// =============================================================================
+// :bridges:http — HTTP/1.1 client + server, Netty-backed.
+//
+// Foundation for protocol bridges that ride HTTP: KERI (witnesses, OOBI,
+// ACDC), ActivityPub, webhook receivers, REST-style integrations.  HTTP is
+// just HTTP at this layer; higher-level bridges decide how to translate
+// requests and responses into CG frames.
+//
+// Scoped initially to GET / POST + headers + body bytes.  Streaming,
+// chunked transfer, multipart, etc. land when an upstream bridge needs them.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+
+    // Netty — shared with :bridges:tcp.  HTTP codec rides Netty's NIO loops.
+    api "io.netty:netty-buffer:${nettyVersion}"
+    api "io.netty:netty-common:${nettyVersion}"
+    api "io.netty:netty-transport:${nettyVersion}"
+    api "io.netty:netty-handler:${nettyVersion}"
+    api "io.netty:netty-codec-http:${nettyVersion}"
+}

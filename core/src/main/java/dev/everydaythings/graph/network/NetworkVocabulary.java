@@ -46,9 +46,8 @@ import static dev.everydaythings.graph.Seed.Frame;
  *       declares it serves, and the link target of an Endpoint subarchetype's
  *       {@link Addresses} binding.</li>
  *   <li><b>Protocol vocabulary</b> — the {@link Protocol} archetype.  Instances
- *       live with their implementations (e.g.,
- *       {@link dev.everydaythings.graph.network.parley.ParleyVocabulary#Parley
- *       Parley} in the parley package; future bridges add HTTP, ActivityPub,
+ *       live with their implementations in bridge modules (e.g., {@code Parley}
+ *       in {@code :bridges:parley}; future bridges add HTTP, ActivityPub,
  *       SMTP, SIP, etc.).</li>
  * </ul>
  *
@@ -113,6 +112,23 @@ public final class NetworkVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "an endpoint's cryptographic destination identifier (Reticulum hash, etc.)";
+    }
+
+    /**
+     * NAME role — a human-meaningful string identifier for an endpoint.
+     * Used by the loopback transport (where there's no real addressing
+     * scheme but multiple paired tunnels need to coexist in-VM) and
+     * available to any transport that wants friendly addressing.
+     */
+    @Seed.Item(key = Name.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Name {
+        public static final String KEY = "cg.endpoint:name";
+        private Name() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "a human-meaningful string identifier for an endpoint";
     }
 
     // ==================================================================================
@@ -210,8 +226,8 @@ public final class NetworkVocabulary {
 
     // ==================================================================================
     // Protocol vocabulary — the Protocol archetype.  Instances are seeded with
-    // their implementations (Parley in network/parley/; future bridges add HTTP,
-    // ActivityPub, SMTP, SIP, etc.).
+    // their implementations in bridge modules (Parley in :bridges:parley;
+    // future bridges add HTTP, ActivityPub, SMTP, SIP, etc.).
     // ==================================================================================
 
     /** The archetype of application-level protocols — conversation languages spoken over Tunnels. */

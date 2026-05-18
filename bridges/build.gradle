@@ -1,14 +1,26 @@
 // =============================================================================
 // :bridges — Foreign-protocol bridges and concrete transports.
 //
-// Anything that produces a Tunnel from a real network medium (TCP, Unix
-// sockets, Reticulum, WebSockets, ...) or translates Common Graph's native
-// Parley protocol to and from an external protocol (HTTP, ActivityPub, IPFS,
-// SMTP/IMAP, ...) lives here.
+// Container module for per-bridge sub-modules.  Each sub-module brings in
+// exactly the third-party dependencies its bridge needs and nothing more,
+// so the rest of the codebase (and apps that only need one transport) don't
+// transitively pay for libraries they'll never use.
 //
-// :core defines the Tunnel abstraction, the Parley protocol, the Endpoint
-// value type, and the canonical transport-protocol sememes. :bridges plugs
-// concrete implementations in behind those abstractions.
+//   :bridges:tcp         — TCP via Netty.
+//   :bridges:unix        — Unix domain sockets via Netty.            (planned)
+//   :bridges:reticulum   — Reticulum via the RNS Python runtime.     (planned)
+//   :bridges:keri        — KERI identity event log <-> CG signatures.(planned)
+//   :bridges:activitypub — ActivityPub gateway.                      (planned)
+//   :bridges:email       — SMTP/IMAP gateway.                        (planned)
+//
+// :core defines what every bridge plugs into — the Tunnel abstraction, the
+// Parley protocol, the Endpoint value type, and the canonical transport-
+// protocol sememes.  Bridges supply concrete implementations.  One-way
+// dependency: :bridges:* → :core.  :core never depends on anything here.
+//
+// Shared scaffolding (common bridge interfaces, security wrappers, ...) can
+// land here at this level once a second sub-module's needs make the
+// abstraction concrete.  Until then, this module is just the container.
 // =============================================================================
 
 plugins {

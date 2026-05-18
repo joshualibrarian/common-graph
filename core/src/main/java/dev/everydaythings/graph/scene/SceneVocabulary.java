@@ -35,8 +35,6 @@ import static dev.everydaythings.graph.Seed.*;
  */
 public final class SceneVocabulary {
 
-    private SceneVocabulary() {}
-
     // ==================================================================================
     // Identity — selectors and identifiers for nodes.
     // ==================================================================================
@@ -231,5 +229,106 @@ public final class SceneVocabulary {
         static final String englishGloss =
                 "selector matching when a window-side interaction state is active "
                         + "(hover, selected, expanded, focused, pressed, ...)";
+    }
+
+    // ==================================================================================
+    // Container content.
+    // ==================================================================================
+
+    /**
+     * Children — a contained scene node within a {@link
+     * dev.everydaythings.graph.scene.SceneContainer SceneContainer}.
+     * One Children binding per child; ordering via the binding's index
+     * field.  Target is a nested Body (a SceneNode subarchetype).
+     */
+    @Seed.Item(key = Children.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Children {
+        public static final String KEY = "cg.quality:children";
+        private Children() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "a contained scene node within a container; one Children binding per child, "
+                        + "ordering via the binding's index field";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "children";
+    }
+
+    // ==================================================================================
+    // Text content.
+    // ==================================================================================
+
+    /**
+     * Text — literal text content of a {@link
+     * dev.everydaythings.graph.scene.SceneText SceneText} node.  Target
+     * is a String.  Mutually-exclusive with {@link Tokens}; use Text for
+     * literal strings (user content, code, debug output), Tokens for
+     * semantic text that should resolve through the language layer.
+     */
+    @Seed.Item(key = Text.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Text {
+        public static final String KEY = "cg.quality:text";
+        private Text() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "literal text content of a SceneText node";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "text";
+    }
+
+    /**
+     * Tokens — semantic text content of a {@link
+     * dev.everydaythings.graph.scene.SceneText SceneText} node.  Each
+     * Tokens binding's target is a sememe reference; the language layer
+     * resolves it to a display string in the user's language at render
+     * time.  Multiple Tokens bindings (ordered by index) compose a
+     * sentence.
+     */
+    @Seed.Item(key = Tokens.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Tokens {
+        public static final String KEY = "cg.quality:tokens";
+        private Tokens() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "semantic text content of a SceneText node — sememe references resolved by "
+                        + "the language layer to display strings in the user's language";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "tokens";
+    }
+
+    /**
+     * Format — MIME-type sememe naming how literal text should be
+     * interpreted ({@code text/plain}, {@code text/markdown}, {@code
+     * application/json}, etc.).  Lets a SceneText node carry rich-format
+     * content with the renderer applying the appropriate display
+     * conventions.  Target is an Encoding sememe.
+     */
+    @Seed.Item(key = Format.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Format {
+        public static final String KEY = "cg.quality:format";
+        private Format() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "MIME-type sememe naming how literal text should be interpreted";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "format";
     }
 }

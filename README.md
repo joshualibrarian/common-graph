@@ -30,7 +30,7 @@ When you query "red shirt," you're not searching for the *words* "red" and "shir
 
 ## The Architecture in One Page
 
-Common Graph is built from one structural primitive and a small set of conventions for using it.
+Common Graph is built from one structural primitive and a small set of conventions for using it, and a reference system, where these primitives can each reference each other in meaningful ways.
 
 ### The datum
 
@@ -42,6 +42,8 @@ Everything is a **datum**: a head plus bindings, optionally signed.
 
 A datum with no signature is a **body** — pure data, content-addressed, immutable. A datum with a signature is a **record** — an attestation over a body. Bodies and records are the only stored structures; frames, manifests, schemas, queries, and code items are all just bodies and records with different head choices.
 
+A datum is mostly made of references.  The vast majority of leaf nodes in a datum are references to other datums, and in the rest of cases, they may be literals, or even nested datums.  This means datums form a graph structure, and the references are the edges.  The head of a datum is also a reference, which means datums are mostly typed by their heads.
+
 A **frame** is a body whose head is a predicate. It makes a *semantic* assertion about meaning in the world.  "Tolkien authored The Hobbit" is a frame:
 
 ```
@@ -51,25 +53,39 @@ A **frame** is a body whose head is a predicate. It makes a *semantic* assertion
 ]}
 ```
 
-A **manifest** is a body whose head is an archetype and which carries an `@ITEM_ID` binding.  It's one version in some item's lineage.
+A **manifest** is a body whose head is an archetype and which carries an `@ITEM_ID` binding.  The `@ITEM_ID` binding names which item the manifest is for; the rest of the bindings are that item's current state.  The Hobbit's manifest might look like:
 
-A **value body** is a body whose head names a typed-value archetype. A specific color is a body whose head is the Color archetype:
+```
+{@book, [
+  @ITEM_ID  → @hobbit,
+  @TITLE    → "The Hobbit",
+  @AUTHOR   → @tolkien,
+  @PUBLISHED → 1937
+]}
+```
+
+Items persist across changes.  When a new edition ships or an attribution gets corrected, a new manifest is published with the same `@ITEM_ID` but updated bindings.  Each manifest is itself immutable like any datum; the *item* — the IID — is the continuity through versions.
+
+A **value body** is a body whose head names a typed-value archetype and which carries *no* `@ITEM_ID` binding.  It's pure value — no identity, no lineage, no versioning.  A specific shade of red:
 
 ```
 {@color, [@R → 255, @G → 0, @B → 0]}
 ```
 
-A **schema** is a body whose bindings carry `!`-prefixed references — declaring what instances of this archetype should look like. The Add predicate's manifest IS its own schema:
+Two bodies with the same RGB values *are* the same body — same structural hash, same DatumID.  There's no "which red"; values are immutable by virtue of having no identity to mutate.
+
+A **schema** is a body whose bindings carry `!`-prefixed references — declaring what instances of an archetype should look like.  The Color archetype's manifest *is* the Color schema:
 
 ```
-{@predicate, [
-  @ITEM_ID → <add-iid>,
-  !THEME → ?number,
-  !THEME → ?number
+{@archetype, [
+  @ITEM_ID → <color>,
+  !@R → BETWEEN { @SOURCE → 0, @GOAL → 255 },
+  !@G → BETWEEN { @SOURCE → 0, @GOAL → 255 },
+  !@B → BETWEEN { @SOURCE → 0, @GOAL → 255 }
 ]}
 ```
 
-Same body shape; different head choices and different binding-prefix conventions; different roles in the system. One primitive does the work of many.
+The `!`-prefixed bindings are slot declarations.  An instance is valid when its `@`-prefixed bindings satisfy the matchers — here, when each channel's value lies in the `[0, 255]` range.  Same body shape as the value above; different head, different binding-prefix conventions; different role.  One primitive does the work of many.
 
 ### Five reference prefixes
 

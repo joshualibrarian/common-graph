@@ -1,0 +1,27 @@
+// =============================================================================
+// :bridges:tcp — TCP transport via Netty.
+//
+// Implements the :core Transport SPI for the TCP transport-sememe; produces
+// Netty-backed Tunnels for connect / listen on TcpEndpoint addresses.  Netty
+// is contained to this sub-module so that core and other transports do not
+// transitively depend on it.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+
+    // Netty — NIO event loops + socket channels.
+    implementation "io.netty:netty-buffer:${nettyVersion}"
+    implementation "io.netty:netty-common:${nettyVersion}"
+    implementation "io.netty:netty-transport:${nettyVersion}"
+    implementation "io.netty:netty-handler:${nettyVersion}"
+
+    // Cross-bridge composition test: ParleyTcpTest exercises Parley running
+    // on top of a TcpTunnel.  Test-scoped so :bridges:tcp itself stays free
+    // of the dependency at runtime.
+    testImplementation project(':bridges:parley')
+}

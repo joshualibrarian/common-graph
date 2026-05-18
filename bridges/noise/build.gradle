@@ -1,0 +1,20 @@
+// =============================================================================
+// :bridges:noise — Noise-protocol Tunnel wrapper.
+//
+// NoiseTunnel wraps any underlying Tunnel to add confidentiality and
+// authenticated counterparty key via the Noise protocol framework
+// (https://noiseprotocol.org/).  Sibling to :bridges:tls; the choice
+// between them is policy.
+//
+// Current state: mechanical move from :core/network/parley/.  The Netty-
+// handler rewrite (Noise impl plugged into a Netty ChannelPipeline) lands
+// alongside the Parley pipeline rebuild.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}

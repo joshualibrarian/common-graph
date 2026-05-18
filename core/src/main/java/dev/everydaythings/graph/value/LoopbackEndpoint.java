@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -12,14 +13,19 @@ import dev.everydaythings.graph.network.NetworkVocabulary;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * LoopbackEndpoint — an {@link Endpoint} that addresses the {@link
  * NetworkVocabulary.Loopback Loopback} sentinel transport.
  *
- * <p>Body shape: {@code Body[head=LoopbackEndpoint]} — no addressing bindings.
- * Used as the in-VM marker when wiring paired tunnels with no real network
- * destination; the producer and consumer share process memory.
+ * <p>Body shape: {@code Body[head=LoopbackEndpoint]} for an unnamed
+ * endpoint, or {@code Body[head=LoopbackEndpoint, @Name=<string>]} when
+ * multiple loopback endpoints need to coexist in the same JVM (the
+ * name keys the loopback transport's listener registry).
+ *
+ * <p>Used as the in-VM marker when wiring paired tunnels with no real
+ * network destination; the producer and consumer share process memory.
  */
 @Seed.Item(
         key = LoopbackEndpoint.KEY,
@@ -37,7 +43,8 @@ public final class LoopbackEndpoint extends Endpoint {
       field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "a network destination addressing the in-VM loopback sentinel — no real "
-                    + "transport; used to wire paired tunnels within a single process";
+                    + "transport; used to wire paired tunnels within a single process, "
+                    + "optionally named so multiple endpoints can coexist";
 
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
       field = @Seed.Binding(role = ThematicRole.Value.KEY,
@@ -48,13 +55,26 @@ public final class LoopbackEndpoint extends Endpoint {
     // Construction
     // ==================================================================================
 
+    /** Unnamed loopback endpoint. */
     public LoopbackEndpoint() {
         super(ItemRef.iid(KEY), List.of());
     }
 
-    /** Factory: in-VM loopback endpoint. */
+    /** Named loopback endpoint — the name keys the loopback registry. */
+    public LoopbackEndpoint(String name) {
+        super(ItemRef.iid(KEY), List.of(
+                Binding.literal(ItemRef.iid(NetworkVocabulary.Name.KEY),
+                        Objects.requireNonNull(name, "name"))));
+    }
+
+    /** Factory: unnamed in-VM loopback endpoint. */
     public static LoopbackEndpoint of() {
         return new LoopbackEndpoint();
+    }
+
+    /** Factory: named in-VM loopback endpoint. */
+    public static LoopbackEndpoint of(String name) {
+        return new LoopbackEndpoint(name);
     }
 
     /**
@@ -68,7 +88,9 @@ public final class LoopbackEndpoint extends Endpoint {
             throw new IllegalArgumentException(
                     "Body head is not the LoopbackEndpoint archetype: " + body.headRef());
         }
-        return new LoopbackEndpoint();
+        return readName(body)
+                .map(LoopbackEndpoint::new)
+                .orElseGet(LoopbackEndpoint::new);
     }
 
     // ==================================================================================
@@ -80,8 +102,27 @@ public final class LoopbackEndpoint extends Endpoint {
         return ItemRef.iid(NetworkVocabulary.Loopback.KEY);
     }
 
+    /** Optional friendly name — empty for unnamed endpoints. */
+    public Optional<String> name() {
+        return readName(this);
+    }
+
     @Override
     public String toString() {
-        return "loopback:";
+        return name().map(n -> "loopback:" + n).orElse("loopback:");
+    }
+
+    // ==================================================================================
+    // Helpers
+    // ==================================================================================
+
+    private static Optional<String> readName(Body body) {
+        ItemRef role = ItemRef.iid(NetworkVocabulary.Name.KEY);
+        for (Binding b : body.bindings()) {
+            if (role.equals(b.role()) && b.target() instanceof String s) {
+                return Optional.of(s);
+            }
+        }
+        return Optional.empty();
     }
 }

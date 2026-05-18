@@ -30,7 +30,6 @@ import dev.everydaythings.graph.library.QueryWalker;
 import dev.everydaythings.graph.library.SchemaWalker;
 import dev.everydaythings.graph.library.ValidationResult;
 import dev.everydaythings.graph.library.index.TokenPosting;
-import dev.everydaythings.graph.network.parley.Parley;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
@@ -107,16 +106,6 @@ public class Librarian extends Signer {
     @Getter
     private final Optional<Path> rootPath;
 
-    /**
-     * The {@link Parley} protocol instance — the librarian's "talking to other
-     * parties" surface. Owns connections (local + remote), handles codec
-     * point-and-grunt, and dispatches incoming Datums to {@code @Handler} methods.
-     *
-     * <p>Always present; behaviour is currently stubbed (Parley is structural
-     * scaffolding pending wire-up).
-     */
-    @Getter
-    private final Parley parley;
 
     /**
      * Cache of cryptographic algorithm handles, keyed by COSE id, varsig
@@ -154,7 +143,6 @@ public class Librarian extends Signer {
         this.stage = Objects.requireNonNull(stage, "stage");
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
-        this.parley = new Parley(this);
     }
 
     /**
@@ -188,7 +176,6 @@ public class Librarian extends Signer {
         this.stage = Objects.requireNonNull(stage, "stage");
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
-        this.parley = new Parley(this);
         bindLibrarian(this);
         selfIncept();
     }
@@ -203,7 +190,6 @@ public class Librarian extends Signer {
         this.stage = Objects.requireNonNull(stage, "stage");
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Optional.empty();
-        this.parley = new Parley(this);
         bindLibrarian(this);
     }
 

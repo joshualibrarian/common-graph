@@ -33,9 +33,8 @@ import lombok.extern.log4j.Log4j2;
  * <ul>
  *   <li>{@link LocalSession} — the in-VM client view. Holds a direct
  *       {@link Librarian} reference; method calls dispatch directly.</li>
- *   <li>{@link RemoteSession} — the remote client view. Owns a
- *       {@link dev.everydaythings.graph.network.parley.Parley} and a
- *       {@link dev.everydaythings.graph.network.parley.RemoteConnection}; method
+ *   <li>{@code RemoteSession} (in {@code :bridges:parley}) — the remote
+ *       client view. Owns a Parley instance and a RemoteConnection; method
  *       calls become frames over the wire. Carries its own ephemeral keypair
  *       (Ed25519 → Noise X25519) delegated by the user's vault at session
  *       start. Typically the entry point of the frontend.</li>
@@ -47,7 +46,7 @@ import lombok.extern.log4j.Log4j2;
  *
  * <p>The {@code @Seed.Embodies} below points at the {@code Session} class
  * itself — the server-side embodiment. {@link LocalSession} and
- * {@link RemoteSession} are <i>not</i> separate embodiments; they're subclasses
+ * {@code RemoteSession} are <i>not</i> separate embodiments; they're subclasses
  * the appropriate client-side runtime explicitly instantiates at startup.
  *
  * <p>STUB — structure only; workspace state, device/principal/librarian/host

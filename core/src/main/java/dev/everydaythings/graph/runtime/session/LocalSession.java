@@ -25,7 +25,7 @@ import lombok.extern.log4j.Log4j2;
  * same VM as the librarian, no attack surface to defend against. Paranoid
  * configurations (regulated environments, multi-tenant same-VM) can opt in to
  * the full auth dance (DELEGATION from user vault to ephemeral session keys,
- * INCEPTION publication, etc.) just like {@link RemoteSession}.
+ * INCEPTION publication, etc.) just like {@code RemoteSession} in {@code :bridges:parley}.
  *
  * <p>STUB — structure only.
  */

@@ -1,0 +1,31 @@
+// =============================================================================
+// :bridges:tls — TLS Tunnel wrapper, Netty-backed.
+//
+// TlsTunnel wraps any underlying Tunnel to add confidentiality and
+// authenticated counterparty key via TLS.  Sibling to :bridges:noise; the
+// choice between them is policy.
+//
+// Implementation rides Netty's SslHandler in an EmbeddedChannel — that's
+// the standard pattern for taking Netty's pipeline primitives and exposing
+// them through a non-pipeline byte-channel SPI.  Same shape that
+// :bridges:http will end up using when it refactors to ride on Tunnel.
+//
+// JDK SSL provider; no native crypto deps.  Stock cert config — caller
+// supplies the SslContext.  PKI integration, Vault-backed signing via JCA
+// Provider, and cert-as-record trust resolution all land in later steps.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+
+    // Netty — SslHandler + EmbeddedChannel.
+    implementation "io.netty:netty-buffer:${nettyVersion}"
+    implementation "io.netty:netty-common:${nettyVersion}"
+    implementation "io.netty:netty-transport:${nettyVersion}"
+    implementation "io.netty:netty-codec:${nettyVersion}"
+    implementation "io.netty:netty-handler:${nettyVersion}"
+}
