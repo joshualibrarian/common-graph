@@ -180,8 +180,8 @@ public final class Color extends Value {
      * R/G/B/A from the body's bindings (A defaults to 255 when missing) and
      * returns a Color with those channel values.  Bindings on the source body
      * other than R/G/B/A are dropped from the view; full-fidelity round-trip
-     * arrives with the head-IID dispatch registry tracked in
-     * {@link Body#fromCborTree}.
+     * arrives with the head-IID dispatch registry in {@link
+     * dev.everydaythings.graph.encoding.CgCbor#decodeBody}.
      */
     public static Color from(Body body) {
         Objects.requireNonNull(body, "body");

@@ -152,7 +152,7 @@ class DatumIntegrationTest {
         assertThat(v2.endorses()).hasSize(2);
 
         // CBOR round-trip preserves identity
-        Body decoded = Body.fromCborTree(CgCbor.toCbor(v2Body));
+        Body decoded = CgCbor.decodeBody(CgCbor.toCbor(v2Body));
         assertThat(ContentRef.of(CgCbor.encode(decoded)))
                 .isEqualTo(ContentRef.of(CgCbor.encode(v2Body)));
         Manifest reconstituted = Manifest.of(decoded);

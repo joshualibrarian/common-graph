@@ -2,6 +2,7 @@ package dev.everydaythings.graph.canonical;
 
 import dev.everydaythings.graph.encoding.Digest;
 import io.ipfs.multihash.Multihash;
+import lombok.experimental.UtilityClass;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -35,9 +36,8 @@ import java.util.Comparator;
  * for SHA-256). External callers typically wrap the result in multihash
  * framing to produce an algorithm-self-describing identifier.
  */
+@UtilityClass
 public final class HashTree {
-
-    private HashTree() {}
 
     /**
      * Default Merkle-walk algorithm. SHA-256 is the network protocol commitment

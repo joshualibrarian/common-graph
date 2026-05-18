@@ -13,9 +13,11 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.CompoundKey;
+import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.HashID;
 
@@ -515,6 +517,16 @@ public final class CgCbor {
      * Element 0 is a Tag-6 ItemRef (the head). Element 1 is a CBOR array of
      * qualifiers — each Tag-6 (sememe) or CBOR text string (text qualifier).
      */
+    /**
+     * Decode a CompoundKey from its CG-CBOR encoded bytes.  Convenience
+     * overload for callers (e.g., byte-key index decoding) that only have
+     * a byte slice — keeps them from importing CBORObject.
+     */
+    public static CompoundKey decodeCompoundKey(byte[] bytes) {
+        Objects.requireNonNull(bytes, "bytes");
+        return decodeCompoundKey(CBORObject.DecodeFromBytes(bytes));
+    }
+
     public static CompoundKey decodeCompoundKey(CBORObject node) {
         if (node == null || node.getType() != CBORType.Array || node.size() != 2) {
             throw new IllegalArgumentException(
@@ -545,8 +557,8 @@ public final class CgCbor {
             if (tag == TAG_REF) {
                 return new CompoundKey.Sememe(expectItemRef(node, "CompoundKey sememe qualifier"));
             }
-            if (Opaque.isOpaqueTag(tag)) {
-                return Opaque.fromCborTree(node);
+            if (isOpaqueTag(tag)) {
+                return decodeOpaque(node);
             }
         }
         if (node.getType() == CBORType.TextString) {
@@ -562,7 +574,7 @@ public final class CgCbor {
             throw new IllegalArgumentException(
                     context + " must be Tag 6 (ItemRef), got: " + node);
         }
-        HashID ref = HashID.fromCborTree(node);
+        HashID ref = decodeHashID(node);
         if (ref.variant() != HashID.Variant.ITEM) {
             throw new IllegalArgumentException(
                     context + " must be an ItemRef (prefix '@'), got: " + ref.variant());
@@ -580,7 +592,7 @@ public final class CgCbor {
             throw new IllegalArgumentException(
                     context + " must be Tag 6 (ref), got: " + node);
         }
-        HashID ref = HashID.fromCborTree(node);
+        HashID ref = decodeHashID(node);
         return switch (ref.variant()) {
             case ITEM, TYPE, SCHEMA -> ref;
             default -> throw new IllegalArgumentException(
@@ -645,12 +657,12 @@ public final class CgCbor {
                      STD_NEG_BIGNUM  -> decodeBigInteger(node);
                 case STD_DECIMAL     -> decodeBigDecimal(node);
                 case TAG_RATIONAL    -> decodeRational(node);
-                case TAG_REF         -> HashID.fromCborTree(node);
-                case TAG_BODY        -> Body.fromCborTree(node);
-                case TAG_RECORD      -> Record.fromCborTree(node);
-                case TAG_REDACTED    -> Opaque.Redacted.fromCborTree(node);
-                case TAG_COMPRESSED  -> Opaque.Compressed.fromCborTree(node);
-                case TAG_ENCRYPTED   -> Opaque.Encrypted.fromCborTree(node);
+                case TAG_REF         -> decodeHashID(node);
+                case TAG_BODY        -> decodeBody(node);
+                case TAG_RECORD      -> decodeRecord(node);
+                case TAG_REDACTED    -> decodeOpaqueRedacted(node);
+                case TAG_COMPRESSED  -> decodeOpaqueCompressed(node);
+                case TAG_ENCRYPTED   -> decodeOpaqueEncrypted(node);
                 default -> throw new IllegalArgumentException(
                         "Unrecognized CBOR tag: " + tag);
             };
@@ -708,6 +720,269 @@ public final class CgCbor {
             out.put(fromCbor(key), fromCbor(node.get(key)));
         }
         return java.util.Collections.unmodifiableMap(out);
+    }
+
+    // ==================================================================================
+    // Per-type CBOR decoders.
+    //
+    // These centralize CG-CBOR-specific knowledge for each datum/id type.  The
+    // datum classes (Body, Record, Binding, BindingTarget, Opaque) and id types
+    // (HashID variants) deliberately do NOT host their own CBOR decoders — that
+    // would couple them to a specific wire format.  The shape recognition is
+    // CG-CBOR's job; the datum types stay pure POJOs.
+    //
+    // All methods are public so callers (including tests that build typed CBOR
+    // trees directly) can dispatch through a single class.  See also
+    // `fromCbor(CBORObject)` for the polymorphic dispatch by tag.
+    // ==================================================================================
+
+    /**
+     * Decode a {@link HashID} from its CBOR Tag-6 wrapping the ref-bytes.
+     */
+    public static HashID decodeHashID(CBORObject node) {
+        if (node == null) {
+            throw new IllegalArgumentException("HashID CBOR cannot be null");
+        }
+        if (!node.isTagged() || !node.HasMostOuterTag(TAG_REF)) {
+            throw new IllegalArgumentException(
+                    "HashID must be CBOR Tag " + TAG_REF + ", got tag "
+                            + (node.isTagged() ? node.getMostOuterTag() : "(none)"));
+        }
+        CBORObject inner = node.UntagOne();
+        if (inner.getType() != CBORType.ByteString) {
+            throw new IllegalArgumentException(
+                    "HashID Tag-6 payload must be a byte string, got: " + inner.getType());
+        }
+        return HashID.fromRefBytes(inner.GetByteString());
+    }
+
+    /**
+     * Decode a {@link Body} from its CBOR form ({@code Tag-12 [Tag-6(head),
+     * [bindings]]}).  Tolerates an untagged 2-element array as a transitional
+     * fallback.
+     */
+    public static Body decodeBody(CBORObject node) {
+        java.util.Objects.requireNonNull(node, "node");
+        if (node.isTagged() && node.HasMostOuterTag(TAG_BODY)) {
+            node = node.UntagOne();
+        }
+        if (node.getType() != CBORType.Array || node.size() != 2) {
+            throw new IllegalArgumentException(
+                    "Body requires a 2-element CBOR array, got " + node.getType()
+                            + (node.getType() == CBORType.Array ? " of size " + node.size() : ""));
+        }
+        HashID headRef = decodeHashID(node.get(0));
+        CBORObject bindingsArr = node.get(1);
+        if (bindingsArr.getType() != CBORType.Array) {
+            throw new IllegalArgumentException(
+                    "Body bindings must be a CBOR array, got " + bindingsArr.getType());
+        }
+        return new Body(headRef, decodeDatumEntries(bindingsArr));
+    }
+
+    /**
+     * Decode a {@link Record} from its CBOR form ({@code Tag-15 [DatumRef,
+     * [entries], byte-string]}).  Tolerates an untagged 3-element array.
+     */
+    public static Record decodeRecord(CBORObject node) {
+        java.util.Objects.requireNonNull(node, "node");
+        if (node.isTagged() && node.HasMostOuterTag(TAG_RECORD)) {
+            node = node.UntagOne();
+        }
+        if (node.getType() != CBORType.Array || node.size() != 3) {
+            throw new IllegalArgumentException(
+                    "Record requires a 3-element CBOR array, got " + node.getType()
+                            + (node.getType() == CBORType.Array ? " of size " + node.size() : ""));
+        }
+        HashID headRef = decodeHashID(node.get(0));
+        if (!(headRef instanceof DatumRef datumRef)) {
+            throw new IllegalArgumentException(
+                    "Record head must be a DatumRef (#-prefix), got " + headRef.variant());
+        }
+        CBORObject bindingsArr = node.get(1);
+        if (bindingsArr.getType() != CBORType.Array) {
+            throw new IllegalArgumentException(
+                    "Record bindings must be a CBOR array, got " + bindingsArr.getType());
+        }
+        List<DatumNode> entries = decodeDatumEntries(bindingsArr);
+        CBORObject sigNode = node.get(2);
+        if (sigNode.getType() != CBORType.ByteString) {
+            throw new IllegalArgumentException(
+                    "Record signature must be a CBOR byte string, got " + sigNode.getType());
+        }
+        return new Record(datumRef, entries, sigNode.GetByteString());
+    }
+
+    /**
+     * Decode the entries-list inside a Body or Record body — each element is
+     * either an {@link Opaque} variant (carries an Opaque tag) or a
+     * {@link Binding} (untagged CBOR array).
+     */
+    private static List<DatumNode> decodeDatumEntries(CBORObject arr) {
+        List<DatumNode> result = new java.util.ArrayList<>(arr.size());
+        for (CBORObject element : arr.getValues()) {
+            if (element.isTagged()
+                    && isOpaqueTag(element.getMostOuterTag().ToInt32Checked())) {
+                result.add(decodeOpaque(element));
+            } else {
+                result.add(decodeBinding(element));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * Decode a {@link Binding} from its CBOR form: a 1-, 2-, or 3-element
+     * array {@code [CompoundKey, (target), (index)]}.
+     */
+    public static Binding decodeBinding(CBORObject obj) {
+        if (obj == null || obj.isNull()) return null;
+        if (obj.getType() != CBORType.Array
+                || (obj.size() != 1 && obj.size() != 2 && obj.size() != 3)) {
+            throw new IllegalArgumentException(
+                    "Binding requires a 1-, 2-, or 3-element CBOR array, got "
+                            + obj.getType() + (obj.getType() == CBORType.Array
+                                    ? " of size " + obj.size() : ""));
+        }
+        CompoundKey key = decodeCompoundKey(obj.get(0));
+        Object target = obj.size() >= 2 ? decodeBindingTarget(obj.get(1)) : null;
+        Long index = null;
+        if (obj.size() == 3) {
+            CBORObject idx = obj.get(2);
+            if (!idx.isNull()) {
+                if (!idx.isNumber() || !idx.AsNumber().IsInteger()) {
+                    throw new IllegalArgumentException(
+                            "Binding index must be an integer, got " + idx.getType());
+                }
+                index = idx.AsInt64Value();
+            }
+        }
+        return new Binding(key, target, index);
+    }
+
+    /**
+     * Decode a binding's target slot.  Dispatches by CBOR tag / shape to one
+     * of: {@link HashID}, {@link Opaque} variant, {@link Body}, {@link Instant},
+     * or a CBOR primitive ({@link String}, {@link Long}, {@link Boolean},
+     * {@code byte[]}).
+     */
+    public static Object decodeBindingTarget(CBORObject node) {
+        if (node == null || node.isNull()) return null;
+        if (node.isTagged()) {
+            int tag = node.getMostOuterTag().ToInt32Checked();
+            if (tag == TAG_REF)        return decodeHashID(node);
+            if (tag == TAG_REDACTED)   return decodeOpaqueRedacted(node);
+            if (tag == TAG_COMPRESSED) return decodeOpaqueCompressed(node);
+            if (tag == TAG_ENCRYPTED)  return decodeOpaqueEncrypted(node);
+            if (tag == TAG_BODY)       return decodeBody(node);
+            if (tag == STD_INSTANT)    return Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
+        }
+        return switch (node.getType()) {
+            case TextString -> node.AsString();
+            case Integer    -> node.AsInt64Value();
+            case Boolean    -> node.AsBoolean();
+            case ByteString -> node.GetByteString();
+            default -> throw new IllegalArgumentException(
+                    "Cannot decode binding target from CBOR type: " + node.getType());
+        };
+    }
+
+    /** True when {@code tag} is one of the three Opaque variant tags. */
+    private static boolean isOpaqueTag(int tag) {
+        return tag == TAG_REDACTED || tag == TAG_COMPRESSED || tag == TAG_ENCRYPTED;
+    }
+
+    /**
+     * Decode an {@link Opaque} from its CBOR form.  Dispatches by tag to the
+     * appropriate variant.
+     */
+    public static Opaque decodeOpaque(CBORObject node) {
+        if (node == null || node.isNull()) {
+            throw new IllegalArgumentException("Cannot decode Opaque from null CBOR node");
+        }
+        if (!node.isTagged()) {
+            throw new IllegalArgumentException("Opaque requires a tagged CBOR value");
+        }
+        int tag = node.getMostOuterTag().ToInt32Checked();
+        return switch (tag) {
+            case TAG_REDACTED   -> decodeOpaqueRedacted(node);
+            case TAG_COMPRESSED -> decodeOpaqueCompressed(node);
+            case TAG_ENCRYPTED  -> decodeOpaqueEncrypted(node);
+            default -> throw new IllegalArgumentException("Not an Opaque CBOR tag: " + tag);
+        };
+    }
+
+    private static Opaque.Redacted decodeOpaqueRedacted(CBORObject node) {
+        if (!node.isTagged() || !node.HasMostOuterTag(TAG_REDACTED)) {
+            throw new IllegalArgumentException("Redacted requires Tag(" + TAG_REDACTED + ")");
+        }
+        CBORObject inner = node.UntagOne();
+        return new Opaque.Redacted(readOpaqueHash(inner, "Redacted"),
+                readOpaqueRecordRefs(inner, "Redacted", 1));
+    }
+
+    private static Opaque.Compressed decodeOpaqueCompressed(CBORObject node) {
+        if (!node.isTagged() || !node.HasMostOuterTag(TAG_COMPRESSED)) {
+            throw new IllegalArgumentException("Compressed requires Tag(" + TAG_COMPRESSED + ")");
+        }
+        CBORObject inner = node.UntagOne();
+        return new Opaque.Compressed(
+                readOpaqueHash(inner, "Compressed"),
+                readOpaqueBytes(inner, 1, "Compressed.payload"),
+                readOpaqueRecordRefs(inner, "Compressed", 2));
+    }
+
+    private static Opaque.Encrypted decodeOpaqueEncrypted(CBORObject node) {
+        if (!node.isTagged() || !node.HasMostOuterTag(TAG_ENCRYPTED)) {
+            throw new IllegalArgumentException("Encrypted requires Tag(" + TAG_ENCRYPTED + ")");
+        }
+        CBORObject inner = node.UntagOne();
+        return new Opaque.Encrypted(
+                readOpaqueHash(inner, "Encrypted"),
+                readOpaqueBytes(inner, 1, "Encrypted.ciphertext"),
+                readOpaqueRecordRefs(inner, "Encrypted", 2));
+    }
+
+    private static byte[] readOpaqueHash(CBORObject inner, String variant) {
+        if (inner.getType() != CBORType.Array || inner.size() < 1) {
+            throw new IllegalArgumentException(
+                    variant + " inner must be a CBOR array with at least 1 element");
+        }
+        return readOpaqueBytes(inner, 0, variant + ".wrappedHash");
+    }
+
+    private static byte[] readOpaqueBytes(CBORObject inner, int index, String label) {
+        if (inner.size() <= index) {
+            throw new IllegalArgumentException(label + ": missing element at index " + index);
+        }
+        CBORObject element = inner.get(index);
+        if (element.getType() != CBORType.ByteString) {
+            throw new IllegalArgumentException(
+                    label + ": expected ByteString, got " + element.getType());
+        }
+        return element.GetByteString();
+    }
+
+    private static List<HashID> readOpaqueRecordRefs(CBORObject inner, String variant, int index) {
+        if (inner.size() <= index) return List.of();
+        CBORObject array = inner.get(index);
+        if (array.isNull()) return List.of();
+        if (array.getType() != CBORType.Array) {
+            throw new IllegalArgumentException(
+                    variant + ".recordRefs: expected Array, got " + array.getType());
+        }
+        if (array.size() == 0) return List.of();
+        List<HashID> refs = new ArrayList<>(array.size());
+        for (int i = 0; i < array.size(); i++) {
+            CBORObject element = array.get(i);
+            if (!element.isTagged() || !element.HasMostOuterTag(TAG_REF)) {
+                throw new IllegalArgumentException(
+                        variant + ".recordRefs[" + i + "]: expected Tag("
+                                + TAG_REF + ") ref, got " + element);
+            }
+            refs.add(decodeHashID(element));
+        }
+        return java.util.Collections.unmodifiableList(refs);
     }
 
     // ==================================================================================

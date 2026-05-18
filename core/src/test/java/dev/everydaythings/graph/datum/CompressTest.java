@@ -57,7 +57,7 @@ class CompressTest {
             Opaque.Compressed target = Compress.compress(original);
 
             CBORObject encoded = CgCbor.toCbor(target);
-            Object decoded = BindingTarget.fromCborTree(encoded);
+            Object decoded = CgCbor.decodeBindingTarget(encoded);
             assertThat(decoded).isInstanceOf(Opaque.Compressed.class);
             Opaque.Compressed recoveredTarget =
                     (Opaque.Compressed) decoded;

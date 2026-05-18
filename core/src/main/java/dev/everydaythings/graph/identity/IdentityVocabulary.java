@@ -261,9 +261,7 @@ public final class IdentityVocabulary {
      *     TIME → timestamp                         # when issued
      * </pre>
      *
-     * <p>{@code PURPOSE} is a top-level thematic role (see
-     * {@link ThematicRole.Purpose}), not a qualifier inside INSTRUMENT.  The
-     * key bytes carried by INSTRUMENT are inherently multikey-encoded (their
+     * The key bytes carried by INSTRUMENT are inherently multikey-encoded (their
      * varint codec prefix self-describes the key type), so no Multikey
      * qualifier is needed for the single-INSTRUMENT case.  Inception, which
      * carries multiple INSTRUMENT bindings (current + pre-rotation next),
@@ -295,7 +293,6 @@ public final class IdentityVocabulary {
     @Seed.Item(key = Attestation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Attestation {
         public static final String KEY = "cg.sememe:attestation";
-        private Attestation() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))

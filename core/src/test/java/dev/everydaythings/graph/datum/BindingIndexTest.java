@@ -73,7 +73,7 @@ class BindingIndexTest {
         void nullIndexRoundTrip() {
             Binding original = new Binding(CHILD, NODE_A);
             CBORObject cbor = CgCbor.toCbor(original);
-            Binding decoded = Binding.fromCborTree(cbor);
+            Binding decoded = CgCbor.decodeBinding(cbor);
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.index()).isNull();
         }
@@ -83,7 +83,7 @@ class BindingIndexTest {
         void indexedRoundTrip() {
             Binding original = new Binding(CHILD, List.of(), NODE_A, 5L);
             CBORObject cbor = CgCbor.toCbor(original);
-            Binding decoded = Binding.fromCborTree(cbor);
+            Binding decoded = CgCbor.decodeBinding(cbor);
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.index()).isEqualTo(5L);
         }
@@ -202,7 +202,7 @@ class BindingIndexTest {
             CBORObject cbor = CgCbor.toCbor(original);
             // Trailing-null trim collapses [key, null, null] to [key].
             assertThat(cbor.size()).isEqualTo(1);
-            Binding decoded = Binding.fromCborTree(cbor);
+            Binding decoded = CgCbor.decodeBinding(cbor);
             assertThat(decoded).isEqualTo(original);
             assertThat(decoded.target()).isNull();
             assertThat(decoded.index()).isNull();
@@ -235,7 +235,7 @@ class BindingIndexTest {
             byte[] originalHash = HashTree.hashOf(body, HashTree.DEFAULT_DIGEST);
 
             CBORObject cbor = CgCbor.toCbor(body);
-            Body decoded = Body.fromCborTree(cbor);
+            Body decoded = CgCbor.decodeBody(cbor);
             assertThat(decoded.bindings()).hasSize(1);
             assertThat(decoded.bindings().get(0).target()).isNull();
             byte[] decodedHash = HashTree.hashOf(decoded, HashTree.DEFAULT_DIGEST);

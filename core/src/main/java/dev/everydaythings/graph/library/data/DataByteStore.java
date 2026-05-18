@@ -1,13 +1,8 @@
 package dev.everydaythings.graph.library.data;
 
 
-import com.upokecenter.cbor.CBORObject;
-import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.canonical.Canonical;
 import dev.everydaythings.graph.encoding.Encoding;
-import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
@@ -79,6 +74,20 @@ public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
         return Optional.empty();
     }
 
+    /**
+     * Decode stored bytes through the store's encoder and return the value
+     * iff it's a {@link Datum}.  Returns null on either an unparseable blob
+     * or a payload that decodes to a non-Datum (e.g., a stray primitive).
+     */
+    default Datum decodeDatum(byte[] bytes) {
+        try {
+            Object decoded = rawEncoder().decode(bytes);
+            return decoded instanceof Datum d ? d : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     @Override
     default boolean has(DatumRef datumId) {
         return !contentIdsForDatum(datumId).isEmpty();
@@ -143,27 +152,6 @@ public interface DataByteStore extends DataStore, ByteStore<DataStore.Column> {
         if (!hasContent(cid)) return false;
         db(DataStore.Column.OBJECTS).key(cid).delete();
         return true;
-    }
-
-    // ==================================================================================
-    // Decoding
-    // ==================================================================================
-
-    /**
-     * Decode CBOR-encoded bytes as a Datum. Returns null if the bytes don't
-     * parse as a 2-element Body or 3-element Record array.
-     */
-    static Datum decodeDatum(byte[] bytes) {
-        try {
-            CBORObject node = CBORObject.DecodeFromBytes(bytes);
-            if (node.getType() != CBORType.Array) return null;
-            int size = node.size();
-            if (size == 2) return Body.fromCborTree(node);
-            if (size == 3) return Record.fromCborTree(node);
-            return null;
-        } catch (RuntimeException e) {
-            return null;
-        }
     }
 
     private static byte[] concat(byte[] a, byte[] b) {

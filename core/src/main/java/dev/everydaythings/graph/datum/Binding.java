@@ -1,8 +1,5 @@
 package dev.everydaythings.graph.datum;
 
-import com.upokecenter.cbor.CBORObject;
-import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.canonical.Factory;
 import dev.everydaythings.graph.canonical.Layout;
 import dev.everydaythings.graph.canonical.Order;
 import dev.everydaythings.graph.id.CompoundKey;
@@ -10,7 +7,6 @@ import dev.everydaythings.graph.id.CompoundKey.Qualifier;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.HashID;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -273,44 +269,6 @@ public final class Binding implements DatumNode {
      */
     public static Binding literal(ItemRef role, Object target) {
         return new Binding(role, target);
-    }
-
-    // ==================================================================================
-    // CBOR decoding (legacy entry point — codec calls this for polymorphic dispatch)
-    // ==================================================================================
-
-    /**
-     * Custom CBOR decoding. Wire format:
-     * {@code [CompoundKey]} (1-element, null target, no index — the trailing-null
-     * trim of the canonical layout collapses to this when both target and index
-     * are null), {@code [CompoundKey, BindingTarget]} (2-element, no index), or
-     * {@code [CompoundKey, BindingTarget, Index]} (3-element, with index).
-     * The third element is an integer when present.
-     */
-    @Factory
-    public static Binding fromCborTree(CBORObject obj) {
-        if (obj == null || obj.isNull()) return null;
-        if (obj.getType() != CBORType.Array
-                || (obj.size() != 1 && obj.size() != 2 && obj.size() != 3)) {
-            throw new IllegalArgumentException(
-                    "Binding requires a 1-, 2-, or 3-element CBOR array [key, (target), (index)], got "
-                            + obj.getType() + (obj.getType() == CBORType.Array
-                                    ? " of size " + obj.size() : ""));
-        }
-        CompoundKey key = dev.everydaythings.graph.encoding.CgCbor.decodeCompoundKey(obj.get(0));
-        Object target = obj.size() >= 2 ? BindingTarget.fromCborTree(obj.get(1)) : null;
-        Long index = null;
-        if (obj.size() == 3) {
-            CBORObject idx = obj.get(2);
-            if (!idx.isNull()) {
-                if (!idx.isNumber() || !idx.AsNumber().IsInteger()) {
-                    throw new IllegalArgumentException(
-                            "Binding index must be an integer, got " + idx.getType());
-                }
-                index = idx.AsInt64Value();
-            }
-        }
-        return new Binding(key, target, index);
     }
 
     // ==================================================================================

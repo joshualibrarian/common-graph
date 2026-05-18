@@ -74,7 +74,7 @@ class BindingRoleVariantTest {
             SchemaRef role = SchemaRef.iid(R_KEY);
             Binding original = new Binding(role, 255L);
             CBORObject cbor = CgCbor.toCbor(original);
-            Binding decoded = Binding.fromCborTree(cbor);
+            Binding decoded = CgCbor.decodeBinding(cbor);
             assertThat(decoded.role()).isEqualTo(role);
             assertThat(decoded.role()).isInstanceOf(SchemaRef.class);
             assertThat(decoded).isEqualTo(original);
@@ -109,7 +109,7 @@ class BindingRoleVariantTest {
             TypeRef role = TypeRef.iid(R_KEY);
             Binding original = new Binding(role, 255L);
             CBORObject cbor = CgCbor.toCbor(original);
-            Binding decoded = Binding.fromCborTree(cbor);
+            Binding decoded = CgCbor.decodeBinding(cbor);
             assertThat(decoded.role()).isEqualTo(role);
             assertThat(decoded.role()).isInstanceOf(TypeRef.class);
         }
@@ -177,7 +177,7 @@ class BindingRoleVariantTest {
 
             // CBOR round-trip preserves all of this.
             CBORObject cbor = CgCbor.toCbor(manifest);
-            Body decoded = Body.fromCborTree(cbor);
+            Body decoded = CgCbor.decodeBody(cbor);
             assertThat(decoded).isEqualTo(manifest);
             for (Binding b : decoded.bindings()) {
                 assertThat(b.role()).isInstanceOf(SchemaRef.class);

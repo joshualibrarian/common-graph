@@ -86,7 +86,7 @@ class BodyHeadVariantTest {
             Body original = Body.of(head, List.of(
                     Binding.literal(R, 200L)));
             CBORObject cbor = CgCbor.toCbor(original);
-            Body decoded = Body.fromCborTree(cbor);
+            Body decoded = CgCbor.decodeBody(cbor);
             assertThat(decoded.head()).isEqualTo(head);
             assertThat(decoded.isQueryBody()).isTrue();
             assertThat(decoded).isEqualTo(original);
@@ -121,7 +121,7 @@ class BodyHeadVariantTest {
             Body original = Body.of(head, List.of(
                     Binding.literal(R, 255L)));
             CBORObject cbor = CgCbor.toCbor(original);
-            Body decoded = Body.fromCborTree(cbor);
+            Body decoded = CgCbor.decodeBody(cbor);
             assertThat(decoded.head()).isEqualTo(head);
             assertThat(decoded.isSchemaBody()).isTrue();
             assertThat(decoded).isEqualTo(original);

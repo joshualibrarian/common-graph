@@ -1,12 +1,7 @@
 package dev.everydaythings.graph.datum;
 
 
-import dev.everydaythings.graph.canonical.Factory;
-import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.id.*;
-import com.upokecenter.cbor.CBORObject;
-import com.upokecenter.cbor.CBORType;
-import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -25,44 +20,6 @@ import java.util.Objects;
  * </ul>
  */
 public interface BindingTarget extends DatumNode {
-
-    /**
-     * Decode a binding target from CBOR.  Returns raw types (no wrapper):
-     *
-     * <ul>
-     *   <li>Tag {@link CgCbor#TAG_REF}        → {@link HashID}            — bare reference</li>
-     *   <li>Tag {@link CgCbor#TAG_REDACTED}   → {@link Opaque.Redacted}   — Merkle elision marker</li>
-     *   <li>Tag {@link CgCbor#TAG_COMPRESSED} → {@link Opaque.Compressed} — compressed subtree</li>
-     *   <li>Tag {@link CgCbor#TAG_ENCRYPTED}  → {@link Opaque.Encrypted}  — encrypted subtree</li>
-     *   <li>Tag {@link CgCbor#TAG_BODY}       → {@link Body}              — inline nested body</li>
-     *   <li>Tag 1                             → {@link java.time.Instant} — epoch-millis time</li>
-     *   <li>Bare {@code TextString}            → {@link String}</li>
-     *   <li>Bare {@code Integer}               → {@link Long}</li>
-     *   <li>Bare {@code Boolean}               → {@link Boolean}</li>
-     *   <li>Bare {@code ByteString}            → {@code byte[]}</li>
-     * </ul>
-     */
-    @Factory
-    static Object fromCborTree(CBORObject node) {
-        if (node == null || node.isNull()) return null;
-        if (node.isTagged()) {
-            int tag = node.getMostOuterTag().ToInt32Checked();
-            if (tag == CgCbor.TAG_REF) return HashID.fromCborTree(node);
-            if (tag == CgCbor.TAG_REDACTED) return Opaque.Redacted.fromCborTree(node);
-            if (tag == CgCbor.TAG_COMPRESSED) return Opaque.Compressed.fromCborTree(node);
-            if (tag == CgCbor.TAG_ENCRYPTED) return Opaque.Encrypted.fromCborTree(node);
-            if (tag == CgCbor.TAG_BODY) return Body.fromCborTree(node);
-            if (tag == 1) return java.time.Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
-        }
-        return switch (node.getType()) {
-            case TextString -> node.AsString();
-            case Integer    -> node.AsInt64Value();
-            case Boolean    -> node.AsBoolean();
-            case ByteString -> node.GetByteString();
-            default -> throw new IllegalArgumentException(
-                    "Cannot decode binding target from CBOR type: " + node.getType());
-        };
-    }
 
     /**
      * Convenience factory for item references in bindings — produces a
@@ -140,12 +97,6 @@ public interface BindingTarget extends DatumNode {
             return true;
         }
 
-        @Factory
-        public static RefTarget fromCborTree(CBORObject node) {
-            if (node == null || node.isNull()) return null;
-            return new RefTarget(HashID.fromCborTree(node));
-        }
-
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -179,15 +130,6 @@ public interface BindingTarget extends DatumNode {
         }
 
         public Body body() { return body; }
-
-        @Factory
-        public static FrameTarget fromCborTree(CBORObject node) {
-            if (node == null || node.isNull()) return null;
-            CBORObject inner = node.isTagged() ? node.UntagOne() : node;
-            // TODO: Body.fromCborTree once wired up; for now FrameTarget decode is
-            // a no-op stub. Inline-datum targets are written but not yet round-tripped.
-            return null;
-        }
 
         @Override
         public boolean equals(Object o) {

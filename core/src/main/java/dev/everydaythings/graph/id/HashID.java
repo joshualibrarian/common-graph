@@ -1,7 +1,5 @@
 package dev.everydaythings.graph.id;
 
-import com.upokecenter.cbor.CBORObject;
-import com.upokecenter.cbor.CBORType;
 import dev.everydaythings.graph.canonical.Encode;
 import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.encoding.TextBase;
@@ -210,29 +208,6 @@ public abstract sealed class HashID implements DatumNode permits ItemRef, TypeRe
             default -> throw new IllegalArgumentException(
                     "Unknown HashID prefix character: '" + prefix + "'");
         };
-    }
-
-    /**
-     * Decode from CBOR Tag 6 wrapping the ref-bytes.
-     */
-    public static HashID fromCborTree(CBORObject node) {
-        if (node == null) {
-            throw new IllegalArgumentException("HashID CBOR cannot be null");
-        }
-        if (!node.isTagged() || !node.HasMostOuterTag(
-                dev.everydaythings.graph.encoding.CgCbor.TAG_REF)) {
-            throw new IllegalArgumentException(
-                    "HashID must be CBOR Tag "
-                            + dev.everydaythings.graph.encoding.CgCbor.TAG_REF
-                            + ", got tag "
-                            + (node.isTagged() ? node.getMostOuterTag() : "(none)"));
-        }
-        CBORObject inner = node.UntagOne();
-        if (inner.getType() != CBORType.ByteString) {
-            throw new IllegalArgumentException(
-                    "HashID Tag-6 payload must be a byte string, got: " + inner.getType());
-        }
-        return fromRefBytes(inner.GetByteString());
     }
 
     /** A self-delimiting multihash slice — bytes and the next-read index. */

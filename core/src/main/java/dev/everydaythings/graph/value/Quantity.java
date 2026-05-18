@@ -149,8 +149,8 @@ public class Quantity extends Value {
      * Reads the magnitude and unit-exponent bindings off the body and rebuilds
      * a Quantity with those components.  Bindings other than the magnitude or
      * unit exponents are dropped from the view; full-fidelity round-trip
-     * arrives with the head-IID dispatch registry tracked in
-     * {@link Body#fromCborTree}.
+     * arrives with the head-IID dispatch registry in {@link
+     * dev.everydaythings.graph.encoding.CgCbor#decodeBody}.
      */
     public static Quantity from(Body body) {
         Objects.requireNonNull(body, "body");

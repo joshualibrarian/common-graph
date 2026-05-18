@@ -76,12 +76,12 @@ class TypeRefSchemaRefTest {
         }
 
         @Test
-        @DisplayName("CBOR Tag-6 round-trip via HashID.fromCborTree")
+        @DisplayName("CBOR Tag-6 round-trip via CgCbor.decodeHashID")
         void cborRoundTrip() {
             TypeRef original = TypeRef.fromString(KEY);
             CBORObject node = CBORObject.FromByteArray(original.toRefBytes())
                     .WithTag(CgCbor.TAG_REF);
-            HashID decoded = HashID.fromCborTree(node);
+            HashID decoded = CgCbor.decodeHashID(node);
             assertThat(decoded)
                     .isInstanceOf(TypeRef.class)
                     .isEqualTo(original);
@@ -176,12 +176,12 @@ class TypeRefSchemaRefTest {
         }
 
         @Test
-        @DisplayName("CBOR Tag-6 round-trip via HashID.fromCborTree")
+        @DisplayName("CBOR Tag-6 round-trip via CgCbor.decodeHashID")
         void cborRoundTrip() {
             SchemaRef original = SchemaRef.fromString(KEY);
             CBORObject node = CBORObject.FromByteArray(original.toRefBytes())
                     .WithTag(CgCbor.TAG_REF);
-            HashID decoded = HashID.fromCborTree(node);
+            HashID decoded = CgCbor.decodeHashID(node);
             assertThat(decoded)
                     .isInstanceOf(SchemaRef.class)
                     .isEqualTo(original);

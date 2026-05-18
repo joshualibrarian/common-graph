@@ -89,7 +89,7 @@ class OpaqueTest {
 
         private static Opaque roundTrip(Opaque op) {
             CBORObject encoded = CgCbor.toCbor(op);
-            return Opaque.fromCborTree(encoded);
+            return CgCbor.decodeOpaque(encoded);
         }
     }
 

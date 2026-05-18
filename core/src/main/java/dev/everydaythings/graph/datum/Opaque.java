@@ -1,8 +1,5 @@
 package dev.everydaythings.graph.datum;
 
-import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.canonical.Factory;
-import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.id.HashID;
 
 import java.util.ArrayList;
@@ -85,39 +82,6 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
     List<HashID> recordRefs();
 
     // ==================================================================================
-    // CBOR dispatch — package factory used by BindingTarget.fromCborTree and others.
-    // ==================================================================================
-
-    /**
-     * Decode an Opaque from its CBOR form.  Dispatches by tag to the
-     * appropriate variant's {@code fromCborTree}.
-     */
-    @Factory
-    static Opaque fromCborTree(CBORObject node) {
-        if (node == null || node.isNull()) {
-            throw new IllegalArgumentException("Cannot decode Opaque from null CBOR node");
-        }
-        if (!node.isTagged()) {
-            throw new IllegalArgumentException("Opaque requires a tagged CBOR value");
-        }
-        int tag = node.getMostOuterTag().ToInt32Checked();
-        return switch (tag) {
-            case CgCbor.TAG_REDACTED   -> Redacted.fromCborTree(node);
-            case CgCbor.TAG_COMPRESSED -> Compressed.fromCborTree(node);
-            case CgCbor.TAG_ENCRYPTED  -> Encrypted.fromCborTree(node);
-            default -> throw new IllegalArgumentException(
-                    "Not an Opaque CBOR tag: " + tag);
-        };
-    }
-
-    /** Whether the given tag is one of the Opaque variants' tags. */
-    static boolean isOpaqueTag(int tag) {
-        return tag == CgCbor.TAG_REDACTED
-                || tag == CgCbor.TAG_COMPRESSED
-                || tag == CgCbor.TAG_ENCRYPTED;
-    }
-
-    // ==================================================================================
     // Redacted — hash only.
     // ==================================================================================
 
@@ -147,16 +111,6 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
 
         @Override public byte[] wrappedHash() { return wrappedHash.clone(); }
         @Override public List<HashID> recordRefs() { return recordRefs; }
-
-        @Factory
-        public static Redacted fromCborTree(CBORObject node) {
-            Objects.requireNonNull(node, "node");
-            if (!node.isTagged() || !node.HasMostOuterTag(CgCbor.TAG_REDACTED)) {
-                throw new IllegalArgumentException("Redacted requires Tag(" + CgCbor.TAG_REDACTED + ")");
-            }
-            CBORObject inner = node.UntagOne();
-            return new Redacted(readHash(inner, "Redacted"), readRecordRefs(inner, "Redacted", 1));
-        }
 
         @Override
         public boolean equals(Object o) {
@@ -212,18 +166,6 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
         @Override public byte[] wrappedHash() { return wrappedHash.clone(); }
         public byte[] compressedPayload() { return compressedPayload.clone(); }
         @Override public List<HashID> recordRefs() { return recordRefs; }
-
-        @Factory
-        public static Compressed fromCborTree(CBORObject node) {
-            Objects.requireNonNull(node, "node");
-            if (!node.isTagged() || !node.HasMostOuterTag(CgCbor.TAG_COMPRESSED)) {
-                throw new IllegalArgumentException("Compressed requires Tag(" + CgCbor.TAG_COMPRESSED + ")");
-            }
-            CBORObject inner = node.UntagOne();
-            byte[] hash = readHash(inner, "Compressed");
-            byte[] payload = readBytes(inner, 1, "Compressed.payload");
-            return new Compressed(hash, payload, readRecordRefs(inner, "Compressed", 2));
-        }
 
         @Override
         public boolean equals(Object o) {
@@ -284,18 +226,6 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
         public byte[] ciphertext() { return ciphertext.clone(); }
         @Override public List<HashID> recordRefs() { return recordRefs; }
 
-        @Factory
-        public static Encrypted fromCborTree(CBORObject node) {
-            Objects.requireNonNull(node, "node");
-            if (!node.isTagged() || !node.HasMostOuterTag(CgCbor.TAG_ENCRYPTED)) {
-                throw new IllegalArgumentException("Encrypted requires Tag(" + CgCbor.TAG_ENCRYPTED + ")");
-            }
-            CBORObject inner = node.UntagOne();
-            byte[] hash = readHash(inner, "Encrypted");
-            byte[] cipher = readBytes(inner, 1, "Encrypted.ciphertext");
-            return new Encrypted(hash, cipher, readRecordRefs(inner, "Encrypted", 2));
-        }
-
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -320,54 +250,4 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
         }
     }
 
-    // ==================================================================================
-    // Shared CBOR-read helpers.
-    // ==================================================================================
-
-    private static byte[] readHash(CBORObject inner, String variant) {
-        if (inner.getType() != com.upokecenter.cbor.CBORType.Array || inner.size() < 1) {
-            throw new IllegalArgumentException(
-                    variant + " inner must be a CBOR array with at least 1 element");
-        }
-        return readBytes(inner, 0, variant + ".wrappedHash");
-    }
-
-    private static byte[] readBytes(CBORObject inner, int index, String label) {
-        if (inner.size() <= index) {
-            throw new IllegalArgumentException(label + ": missing element at index " + index);
-        }
-        CBORObject element = inner.get(index);
-        if (element.getType() != com.upokecenter.cbor.CBORType.ByteString) {
-            throw new IllegalArgumentException(
-                    label + ": expected ByteString, got " + element.getType());
-        }
-        return element.GetByteString();
-    }
-
-    /**
-     * Read the optional record-refs array from position {@code index} of an
-     * Opaque variant's inner CBOR array.  Empty list when the position is
-     * absent or contains an empty array; throws on malformed entries.
-     */
-    private static List<HashID> readRecordRefs(CBORObject inner, String variant, int index) {
-        if (inner.size() <= index) return List.of();
-        CBORObject array = inner.get(index);
-        if (array.isNull()) return List.of();
-        if (array.getType() != com.upokecenter.cbor.CBORType.Array) {
-            throw new IllegalArgumentException(
-                    variant + ".recordRefs: expected Array, got " + array.getType());
-        }
-        if (array.size() == 0) return List.of();
-        List<HashID> refs = new ArrayList<>(array.size());
-        for (int i = 0; i < array.size(); i++) {
-            CBORObject element = array.get(i);
-            if (!element.isTagged() || !element.HasMostOuterTag(CgCbor.TAG_REF)) {
-                throw new IllegalArgumentException(
-                        variant + ".recordRefs[" + i + "]: expected Tag("
-                                + CgCbor.TAG_REF + ") ref, got " + element);
-            }
-            refs.add(HashID.fromCborTree(element));
-        }
-        return Collections.unmodifiableList(refs);
-    }
 }

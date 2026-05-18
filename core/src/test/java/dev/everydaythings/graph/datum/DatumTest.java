@@ -56,7 +56,7 @@ class DatumTest {
             ));
 
             CBORObject cbor = CgCbor.toCbor(original);
-            Body decoded = Body.fromCborTree(cbor);
+            Body decoded = CgCbor.decodeBody(cbor);
 
             assertThat(decoded).isEqualTo(original);
             assertThat(ContentRef.of(CgCbor.encode(decoded)))
@@ -80,7 +80,7 @@ class DatumTest {
             record.Add(CBORObject.NewArray());
             record.Add(CBORObject.FromByteArray(new byte[]{0x01}));
 
-            assertThatThrownBy(() -> Body.fromCborTree(record))
+            assertThatThrownBy(() -> CgCbor.decodeBody(record))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -91,7 +91,7 @@ class DatumTest {
             body.Add(CgCbor.toCbor(DatumRef.of(DatumRef.of("x".getBytes()))));
             body.Add(CBORObject.NewArray());
 
-            assertThatThrownBy(() -> Body.fromCborTree(body))
+            assertThatThrownBy(() -> CgCbor.decodeBody(body))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -205,7 +205,7 @@ class DatumTest {
 
             Record original = Record.of(DatumRef.of(bodyId), List.of(), varsig);
             CBORObject cbor = CgCbor.toCbor(original);
-            Record decoded = Record.fromCborTree(cbor);
+            Record decoded = CgCbor.decodeRecord(cbor);
 
             assertThat(decoded).isEqualTo(original);
         }
@@ -230,7 +230,7 @@ class DatumTest {
             body.Add(CgCbor.toCbor(DatumRef.of(DatumRef.of("x".getBytes()))));
             body.Add(CBORObject.NewArray());
 
-            assertThatThrownBy(() -> Record.fromCborTree(body))
+            assertThatThrownBy(() -> CgCbor.decodeRecord(body))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -242,7 +242,7 @@ class DatumTest {
             record.Add(CBORObject.NewArray());
             record.Add(CBORObject.FromByteArray(new byte[]{0x01}));
 
-            assertThatThrownBy(() -> Record.fromCborTree(record))
+            assertThatThrownBy(() -> CgCbor.decodeRecord(record))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 

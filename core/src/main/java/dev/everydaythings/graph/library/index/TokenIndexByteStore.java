@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.library.index;
 
 
-import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.id.CompoundKey;
@@ -139,8 +138,8 @@ public interface TokenIndexByteStore extends TokenIndexStore, ByteStore<TokenInd
             if (afterDatum > key.length) return null;
 
             byte[] compoundKeyBytes = Arrays.copyOfRange(key, afterDatum, key.length);
-            CompoundKey bindingKey = dev.everydaythings.graph.encoding.CgCbor.decodeCompoundKey(
-                    CBORObject.DecodeFromBytes(compoundKeyBytes));
+            CompoundKey bindingKey = dev.everydaythings.graph.encoding.CgCbor
+                    .decodeCompoundKey(compoundKeyBytes);
             return new ParsedKey(token, datum, bindingKey);
         } catch (Exception e) {
             return null;

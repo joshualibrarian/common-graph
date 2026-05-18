@@ -1,19 +1,11 @@
 package dev.everydaythings.graph.id;
 
 import dev.everydaythings.graph.encoding.CgCbor;
-
-import dev.everydaythings.graph.canonical.Scope;
-
 import com.upokecenter.cbor.CBORObject;
-import dev.everydaythings.graph.canonical.Canonical;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

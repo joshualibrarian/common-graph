@@ -1,9 +1,5 @@
 package dev.everydaythings.graph.datum;
 
-import com.upokecenter.cbor.CBORObject;
-import com.upokecenter.cbor.CBORType;
-import dev.everydaythings.graph.canonical.Factory;
-import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.id.HashID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
@@ -106,60 +102,6 @@ public non-sealed class Body extends Datum {
 
     /** True when this body's head is a {@link SchemaRef} — the body is a schema/expectation. */
     public boolean isSchemaBody() { return head instanceof SchemaRef; }
-
-    /**
-     * Decode a Body from its CBOR form: {@code Tag-12 [Tag-6(head), [bindings]]}.
-     *
-     * <p>Tolerates an untagged 2-element array as a transitional fallback so
-     * legacy bytes still decode while the encoding shift propagates.
-     *
-     * <p>TODO (soon): head-IID dispatch registry — when a head matches a
-     * registered value-class (Color, Quantity, Point, ...), return a typed
-     * subclass instance instead of a generic Body. Today callers must
-     * explicitly view-cast via, e.g., {@code Color.from(body)}.
-     *
-     * @throws IllegalArgumentException if the inner array length is not 2 or
-     *         the head is not an ItemRef.
-     */
-    @Factory
-    public static Body fromCborTree(CBORObject node) {
-        Objects.requireNonNull(node, "node");
-        if (node.isTagged() && node.HasMostOuterTag(CgCbor.TAG_BODY)) {
-            node = node.UntagOne();
-        }
-        if (node.getType() != CBORType.Array || node.size() != 2) {
-            throw new IllegalArgumentException(
-                    "Body requires a 2-element CBOR array, got " + node.getType()
-                            + (node.getType() == CBORType.Array ? " of size " + node.size() : ""));
-        }
-        HashID headRef = HashID.fromCborTree(node.get(0));
-        // Body's constructor enforces the IID-family constraint; rather than
-        // duplicate the check here, let it throw on ContentRef / DatumRef heads.
-        CBORObject bindingsArr = node.get(1);
-        if (bindingsArr.getType() != CBORType.Array) {
-            throw new IllegalArgumentException(
-                    "Body bindings must be a CBOR array, got " + bindingsArr.getType());
-        }
-        List<DatumNode> entries = decodeEntries(bindingsArr);
-        return new Body(headRef, entries);
-    }
-
-    /**
-     * Decode the bindings-list CBOR array.  Each element is either a Binding
-     * (CBOR Array) or an Opaque variant (CBOR tag).  Dispatch by shape.
-     */
-    private static List<DatumNode> decodeEntries(CBORObject arr) {
-        List<DatumNode> result = new java.util.ArrayList<>(arr.size());
-        for (CBORObject element : arr.getValues()) {
-            if (element.isTagged()
-                    && Opaque.isOpaqueTag(element.getMostOuterTag().ToInt32Checked())) {
-                result.add(Opaque.fromCborTree(element));
-            } else {
-                result.add(Binding.fromCborTree(element));
-            }
-        }
-        return List.copyOf(result);
-    }
 
     @Override
     public boolean equals(Object o) {

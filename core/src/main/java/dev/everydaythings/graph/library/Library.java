@@ -228,7 +228,7 @@ public final class Library implements AutoCloseable {
         // bytes. Otherwise it's a raw content blob; just delete.
         Optional<byte[]> bytesOpt = data.getContent(cid);
         if (bytesOpt.isEmpty()) return false;
-        Datum d = DataByteStore.decodeDatum(bytesOpt.get());
+        Datum d = data instanceof DataByteStore dbs ? dbs.decodeDatum(bytesOpt.get()) : null;
         if (d != null) {
             index.unindex(d, d.datumId());
             tokens.unindex(d, d.datumId());

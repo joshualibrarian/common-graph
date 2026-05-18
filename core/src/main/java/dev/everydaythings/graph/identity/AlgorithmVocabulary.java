@@ -697,6 +697,7 @@ public final class AlgorithmVocabulary {
     // ==================================================================================
 
     /** SHA-256 — 256-bit Secure Hash Algorithm 2 (NIST FIPS 180-4). */
+    //TODO: this is duplicated and must be merged with digest.Sha254, and others
     @Seed.Item(key = Sha256.KEY, head = Algorithm.KEY)
     public static final class Sha256 {
         public static final String KEY = "cg.algorithm:sha-256";
