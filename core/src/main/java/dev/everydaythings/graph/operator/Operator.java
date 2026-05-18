@@ -309,19 +309,42 @@ public abstract class Operator extends Item {
                 .findFirst();
     }
 
+    /** Fixity sememes recognized as operator-form markers on a Lexeme's VALUE binding. */
+    private static final java.util.Set<ItemRef> RECOGNIZED_FIXITIES = java.util.Set.of(
+            ItemRef.iid(Infix.KEY),
+            ItemRef.iid(Prefix.KEY),
+            ItemRef.iid(Postfix.KEY));
+
+    /**
+     * Scan a Lexeme frame's bindings for a VALUE binding whose qualifiers include any
+     * recognized fixity sememe; on match, extract fixity + precedence + associativity.
+     * Other qualifiers on the same binding (e.g., {@code OperatorNotation.KEY} as the
+     * language tag) are ignored — we match by presence of a fixity qualifier, not by
+     * exact compound-key equality.
+     */
     private static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
-        for (ItemRef fixity : List.of(ItemRef.iid(Infix.KEY),
-                ItemRef.iid(Prefix.KEY),
-                ItemRef.iid(Postfix.KEY))) {
-            CompoundKey valueWithFixity = CompoundKey.of(ItemRef.iid(ThematicRole.Value.KEY), fixity);
-            if (lexemeFrame.binding(valueWithFixity).isPresent()) {
-                long precedence = readPrecedence(lexemeFrame).orElse(0L);
-                ItemRef associativity = readAssociativity(lexemeFrame)
-                        .orElse(ItemRef.iid(Left.KEY));
-                return Optional.of(new OperatorForm(fixity, precedence, associativity));
+        ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
+        return lexemeFrame.bindings()
+                .filter(b -> valueRole.equals(b.role()))
+                .map(b -> {
+                    ItemRef fixity = fixityQualifier(b);
+                    if (fixity == null) return null;
+                    long precedence = readPrecedence(lexemeFrame).orElse(0L);
+                    ItemRef associativity = readAssociativity(lexemeFrame).orElse(ItemRef.iid(Left.KEY));
+                    return new OperatorForm(fixity, precedence, associativity);
+                })
+                .filter(java.util.Objects::nonNull)
+                .findFirst();
+    }
+
+    /** Return the fixity sememe from a binding's qualifiers, or null if none present. */
+    private static ItemRef fixityQualifier(Binding binding) {
+        for (CompoundKey.Qualifier q : binding.qualifiers()) {
+            if (q instanceof CompoundKey.Sememe s && RECOGNIZED_FIXITIES.contains(s.id())) {
+                return s.id();
             }
         }
-        return Optional.empty();
+        return null;
     }
 
     /** Read the integer precedence from an operator-form Lexeme's ATTRIBUTE[Precedence] binding. */
