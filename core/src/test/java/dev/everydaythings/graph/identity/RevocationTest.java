@@ -5,7 +5,7 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.IdentityVocabulary.Compromise;
+import dev.everydaythings.graph.CoreVocabulary.Compromise;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Revocation;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;

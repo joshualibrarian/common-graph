@@ -159,9 +159,19 @@ class HttpServerClientTest {
     class ClientFailures {
 
         @Test
-        @DisplayName("non-http scheme is rejected synchronously in the returned future")
-        void httpsSchemeUnsupported() {
+        @DisplayName("https:// without an SslContext fails the future with IllegalStateException")
+        void httpsRequiresSslContext() {
             CompletableFuture<HttpResponse> future = client.get(URI.create("https://example.com/"));
+            assertThatThrownBy(() -> future.get(1, TimeUnit.SECONDS))
+                    .isInstanceOf(ExecutionException.class)
+                    .hasCauseInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("SslContext");
+        }
+
+        @Test
+        @DisplayName("unknown scheme is rejected with IllegalArgumentException")
+        void unknownSchemeRejected() {
+            CompletableFuture<HttpResponse> future = client.get(URI.create("ftp://example.com/"));
             assertThatThrownBy(() -> future.get(1, TimeUnit.SECONDS))
                     .isInstanceOf(ExecutionException.class)
                     .hasCauseInstanceOf(IllegalArgumentException.class)

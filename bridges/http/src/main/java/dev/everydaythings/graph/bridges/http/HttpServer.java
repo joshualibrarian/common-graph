@@ -1,115 +1,68 @@
 package dev.everydaythings.graph.bridges.http;
 
-import dev.everydaythings.graph.network.IpAddress;
+import dev.everydaythings.graph.bridges.tcp.TcpTransport;
+import dev.everydaythings.graph.bridges.tls.TlsTunnel;
+import dev.everydaythings.graph.network.transport.Transport;
+import dev.everydaythings.graph.network.tunnel.Tunnel;
 import dev.everydaythings.graph.value.TcpEndpoint;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.ssl.SslContext;
 import lombok.extern.log4j.Log4j2;
 
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Netty-backed HTTP/1.1 server.  Binds to a {@link TcpEndpoint}, routes
- * incoming requests through an {@link HttpRouter}, sends responses back.
+ * Convenience HTTP/1.1 server.  Owns a {@link TcpTransport} listener and
+ * (optionally) an {@link SslContext} for HTTPS, and composes them with
+ * {@link TlsTunnel} and {@link HttpExchange#serve(Tunnel, HttpRouter, int)}
+ * to serve requests through a {@link HttpRouter}.
  *
- * <h2>Threading</h2>
+ * <p>For callers who want to manage their own composition — for example a
+ * service that wants HTTP on top of a non-TCP transport — call
+ * {@link HttpExchange#serve(Tunnel, HttpRouter)} directly on whatever
+ * Tunnel they have.
  *
- * <p>One boss group (single-threaded accept loop) and one worker group
- * (default Netty sizing).  Handlers run on the worker thread that
- * delivered the request; if a handler returns a not-yet-complete
- * {@link CompletableFuture}, the response write is scheduled onto the
- * channel's event loop when the future completes.
+ * <h2>HTTPS</h2>
  *
- * <h2>Body limits</h2>
- *
- * <p>{@link HttpObjectAggregator} caps a single request body at 16 MiB.
- * Bridges with larger payload needs can raise the cap via
- * {@link Builder#maxContentLength}.
+ * <p>Pass an {@link SslContext} via {@link Builder#tls(SslContext)} to
+ * make the server speak HTTPS.  Internally each accepted TCP tunnel is
+ * wrapped with {@link TlsTunnel#server(Tunnel, SslContext)} before being
+ * handed to {@link HttpExchange}.  The HTTP layer has no knowledge that
+ * TLS is in play.
  *
  * <h2>Lifecycle</h2>
  *
- * <p>Construct via {@link Builder}, then call {@link #start} (synchronous
- * bind) which returns the address actually bound — relevant when the
- * caller passed port 0.  {@link #close} shuts the server down gracefully,
- * draining in-flight requests up to a short deadline.
+ * <p>{@link #start} binds the listener and returns the address actually
+ * bound (useful for {@code :0} ephemeral-port binds).  {@link #close}
+ * stops accepting new connections and shuts the transport down.
  */
 @Log4j2
 public final class HttpServer implements AutoCloseable {
 
-    public static final int DEFAULT_MAX_CONTENT_LENGTH = 16 * 1024 * 1024;
+    public static final int DEFAULT_MAX_CONTENT_LENGTH = HttpExchange.DEFAULT_MAX_CONTENT_LENGTH;
 
     private final HttpRouter router;
     private final TcpEndpoint bindEndpoint;
+    private final SslContext sslContext;
     private final int maxContentLength;
+    private final TcpTransport transport;
+    private final boolean ownsTransport;
 
-    private final EventLoopGroup bossGroup;
-    private final EventLoopGroup workerGroup;
-
-    private Channel serverChannel;
+    private Transport.Listener listener;
     private TcpEndpoint actualEndpoint;
 
     private HttpServer(Builder b) {
         this.router = b.router;
         this.bindEndpoint = b.bindEndpoint;
+        this.sslContext = b.sslContext;
         this.maxContentLength = b.maxContentLength;
-        this.bossGroup = new NioEventLoopGroup(1);
-        this.workerGroup = new NioEventLoopGroup();
+        this.transport = b.transport != null ? b.transport : new TcpTransport();
+        this.ownsTransport = b.transport == null;
     }
 
     /** Bind the server, return the address actually bound. */
     public TcpEndpoint start() {
-        ServerBootstrap bootstrap = new ServerBootstrap()
-                .group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel.class)
-                .childOption(ChannelOption.TCP_NODELAY, true)
-                .childHandler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new HttpServerCodec());
-                        ch.pipeline().addLast(new HttpObjectAggregator(maxContentLength));
-                        ch.pipeline().addLast(new RequestHandler(router));
-                    }
-                });
-        try {
-            serverChannel = bootstrap.bind(
-                    new InetSocketAddress(
-                            bindEndpoint.host().toInetAddress(),
-                            bindEndpoint.port()))
-                    .sync().channel();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("HttpServer.start interrupted", e);
-        }
-        InetSocketAddress local = (InetSocketAddress) serverChannel.localAddress();
-        this.actualEndpoint = TcpEndpoint.of(
-                IpAddress.fromInetAddress(local.getAddress()),
-                local.getPort());
+        listener = transport.listen(bindEndpoint, this::accept);
+        actualEndpoint = (TcpEndpoint) listener.actualEndpoint();
         return actualEndpoint;
     }
 
@@ -121,15 +74,22 @@ public final class HttpServer implements AutoCloseable {
         return actualEndpoint;
     }
 
+    private void accept(Tunnel tcpTunnel) {
+        Tunnel tunnel = sslContext == null
+                ? tcpTunnel
+                : TlsTunnel.server(tcpTunnel, sslContext);
+        try {
+            HttpExchange.serve(tunnel, router, maxContentLength);
+        } catch (RuntimeException e) {
+            logger.warn("Failed to start HTTP serving on accepted tunnel", e);
+            tunnel.close();
+        }
+    }
+
     @Override
     public void close() {
-        try {
-            if (serverChannel != null) serverChannel.close().sync();
-            bossGroup.shutdownGracefully(0, 200, TimeUnit.MILLISECONDS).sync();
-            workerGroup.shutdownGracefully(0, 200, TimeUnit.MILLISECONDS).sync();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        if (listener != null) listener.close();
+        if (ownsTransport) transport.close();
     }
 
     public static Builder builder() {
@@ -139,7 +99,9 @@ public final class HttpServer implements AutoCloseable {
     public static final class Builder {
         private HttpRouter router;
         private TcpEndpoint bindEndpoint;
+        private SslContext sslContext;
         private int maxContentLength = DEFAULT_MAX_CONTENT_LENGTH;
+        private TcpTransport transport;
 
         public Builder router(HttpRouter router) {
             this.router = router;
@@ -151,9 +113,21 @@ public final class HttpServer implements AutoCloseable {
             return this;
         }
 
+        /** Enable HTTPS with the given SslContext.  Must be a server-mode context. */
+        public Builder tls(SslContext sslContext) {
+            this.sslContext = sslContext;
+            return this;
+        }
+
         public Builder maxContentLength(int bytes) {
             if (bytes < 1) throw new IllegalArgumentException("maxContentLength must be >= 1");
             this.maxContentLength = bytes;
+            return this;
+        }
+
+        /** Use a caller-provided TcpTransport.  Caller owns its lifecycle. */
+        public Builder transport(TcpTransport transport) {
+            this.transport = transport;
             return this;
         }
 
@@ -161,109 +135,6 @@ public final class HttpServer implements AutoCloseable {
             Objects.requireNonNull(router, "router");
             Objects.requireNonNull(bindEndpoint, "bindEndpoint");
             return new HttpServer(this);
-        }
-    }
-
-    // ==================================================================================
-    // Netty handler — translates FullHttpRequest → our HttpRequest, dispatches to
-    // the router, writes the resulting HttpResponse back as FullHttpResponse.
-    // ==================================================================================
-
-    private static final class RequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
-
-        private final HttpRouter router;
-
-        RequestHandler(HttpRouter router) {
-            this.router = router;
-        }
-
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest nettyReq) {
-            HttpRequest request = toHttpRequest(nettyReq);
-            boolean keepAlive = HttpUtil.isKeepAlive(nettyReq);
-
-            CompletableFuture<HttpResponse> futureResp;
-            try {
-                futureResp = router.dispatch(request);
-            } catch (RuntimeException e) {
-                futureResp = CompletableFuture.failedFuture(e);
-            }
-
-            futureResp.whenComplete((resp, err) -> {
-                FullHttpResponse nettyResp;
-                if (err != null) {
-                    logger.warn("HTTP handler failed for {} {}: {}",
-                            request.method(), request.uri().getRawPath(), err.toString());
-                    nettyResp = buildErrorResponse();
-                } else if (resp == null) {
-                    nettyResp = buildErrorResponse();
-                } else {
-                    nettyResp = toNettyResponse(resp);
-                }
-                if (keepAlive && nettyResp.status().code() < 500) {
-                    nettyResp.headers().set(HttpHeaderNames.CONNECTION, "keep-alive");
-                    ctx.writeAndFlush(nettyResp);
-                } else {
-                    nettyResp.headers().set(HttpHeaderNames.CONNECTION, "close");
-                    ctx.writeAndFlush(nettyResp).addListener(ChannelFutureListener.CLOSE);
-                }
-            });
-        }
-
-        @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            logger.warn("HTTP pipeline exception on {}", ctx.channel(), cause);
-            ctx.close();
-        }
-
-        private static HttpRequest toHttpRequest(FullHttpRequest nettyReq) {
-            HttpMethod method = mapMethod(nettyReq.method().name());
-            URI uri;
-            try {
-                uri = new URI(nettyReq.uri());
-            } catch (URISyntaxException e) {
-                uri = URI.create("/");
-            }
-            HttpHeaders headers = new HttpHeaders();
-            for (Map.Entry<String, String> h : nettyReq.headers()) {
-                headers.add(h.getKey(), h.getValue());
-            }
-            ByteBuf content = nettyReq.content();
-            byte[] body = new byte[content.readableBytes()];
-            content.readBytes(body);
-            return new HttpRequest(method, uri, headers, body);
-        }
-
-        private static FullHttpResponse toNettyResponse(HttpResponse resp) {
-            ByteBuf buf = Unpooled.wrappedBuffer(resp.bodyRaw());
-            FullHttpResponse out = new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.valueOf(resp.status()),
-                    buf);
-            for (Map.Entry<String, java.util.List<String>> entry : resp.headers().asMap().entrySet()) {
-                for (String value : entry.getValue()) {
-                    out.headers().add(entry.getKey(), value);
-                }
-            }
-            out.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, resp.bodyLength());
-            return out;
-        }
-
-        private static FullHttpResponse buildErrorResponse() {
-            return new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.INTERNAL_SERVER_ERROR,
-                    Unpooled.EMPTY_BUFFER);
-        }
-
-        private static HttpMethod mapMethod(String name) {
-            return switch (name) {
-                case "GET" -> HttpMethod.GET;
-                case "POST" -> HttpMethod.POST;
-                case "PUT" -> HttpMethod.PUT;
-                case "DELETE" -> HttpMethod.DELETE;
-                default -> throw new IllegalArgumentException("Unsupported HTTP method: " + name);
-            };
         }
     }
 }

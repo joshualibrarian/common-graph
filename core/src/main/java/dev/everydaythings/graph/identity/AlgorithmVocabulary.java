@@ -146,6 +146,35 @@ public final class AlgorithmVocabulary {
                 "the JCA Signature algorithm transformation (e.g., \"Ed25519\", \"SHA256withECDSA\")";
     }
 
+    /** JCA MessageDigest name — for hash algorithms. */
+    @Seed.Item(key = DigestName.KEY)
+    public static final class DigestName {
+        public static final String KEY = "cg.algorithm:digest-name";
+        private DigestName() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the JCA MessageDigest algorithm name (e.g., \"SHA-256\", \"SHA-384\")";
+    }
+
+    /**
+     * ASN.1 OID for the algorithm — used in X.509 certs, PKCS#10 CSRs, JWS/JWE,
+     * and other ASN.1-encoded crypto formats.  Foreign-format interop only;
+     * CG-native traffic uses the algorithm sememe IID directly.
+     */
+    @Seed.Item(key = Asn1Oid.KEY)
+    public static final class Asn1Oid {
+        public static final String KEY = "cg.algorithm:asn1-oid";
+        private Asn1Oid() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the ASN.1 OID for the algorithm — used in X.509, PKCS#10, JOSE, and "
+                        + "other ASN.1-encoded crypto formats";
+    }
+
     /** Cryptographic key family — points at {@code @okp}, {@code @ec}, or {@code @rsa}. */
     @Seed.Item(key = KeyFamily.KEY)
     public static final class KeyFamily {
@@ -354,6 +383,9 @@ public final class AlgorithmVocabulary {
 
         @Seed.Property(role = SigBytes.KEY)
         public static final long SIG_BYTES = 64;
+
+        @Seed.Property(role = Asn1Oid.KEY)
+        public static final String ASN1_OID = "1.3.101.112";
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
@@ -655,5 +687,107 @@ public final class AlgorithmVocabulary {
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "ChaCha20-Poly1305 — ChaCha20 stream cipher with Poly1305 authentication";
+    }
+
+    // ==================================================================================
+    // Hash algorithms — cryptographic digests.  Keyless primitives; no purpose
+    // binding (the Purpose role describes key-bearing algorithms only).  Used
+    // as the digest component of cert signature suites ("ECDSA-SHA256",
+    // "RSA-PKCS1-SHA384") and anywhere a content hash needs naming.
+    // ==================================================================================
+
+    /** SHA-256 — 256-bit Secure Hash Algorithm 2 (NIST FIPS 180-4). */
+    @Seed.Item(key = Sha256.KEY, head = Algorithm.KEY)
+    public static final class Sha256 {
+        public static final String KEY = "cg.algorithm:sha-256";
+        private Sha256() {}
+
+        @Seed.Property(role = CoseId.KEY)
+        public static final long COSE_ID = -16;
+
+        @Seed.Property(role = DigestName.KEY)
+        public static final String DIGEST_NAME = "SHA-256";
+
+        @Seed.Property(role = Asn1Oid.KEY)
+        public static final String ASN1_OID = "2.16.840.1.101.3.4.2.1";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "SHA-256 — 256-bit Secure Hash Algorithm 2 (NIST FIPS 180-4)";
+    }
+
+    /** SHA-384 — 384-bit Secure Hash Algorithm 2 (NIST FIPS 180-4). */
+    @Seed.Item(key = Sha384.KEY, head = Algorithm.KEY)
+    public static final class Sha384 {
+        public static final String KEY = "cg.algorithm:sha-384";
+        private Sha384() {}
+
+        @Seed.Property(role = CoseId.KEY)
+        public static final long COSE_ID = -43;
+
+        @Seed.Property(role = DigestName.KEY)
+        public static final String DIGEST_NAME = "SHA-384";
+
+        @Seed.Property(role = Asn1Oid.KEY)
+        public static final String ASN1_OID = "2.16.840.1.101.3.4.2.2";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "SHA-384 — 384-bit Secure Hash Algorithm 2 (NIST FIPS 180-4)";
+    }
+
+    /** SHA-512 — 512-bit Secure Hash Algorithm 2 (NIST FIPS 180-4). */
+    @Seed.Item(key = Sha512.KEY, head = Algorithm.KEY)
+    public static final class Sha512 {
+        public static final String KEY = "cg.algorithm:sha-512";
+        private Sha512() {}
+
+        @Seed.Property(role = CoseId.KEY)
+        public static final long COSE_ID = -44;
+
+        @Seed.Property(role = DigestName.KEY)
+        public static final String DIGEST_NAME = "SHA-512";
+
+        @Seed.Property(role = Asn1Oid.KEY)
+        public static final String ASN1_OID = "2.16.840.1.101.3.4.2.3";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "SHA-512 — 512-bit Secure Hash Algorithm 2 (NIST FIPS 180-4)";
+    }
+
+    // ==================================================================================
+    // Ciphersuites — whole-suite sememes bundling a KEM + AEAD + KDF.
+    // Whole-suite (not piece-by-piece) to minimize misconfiguration surface.
+    // Used as a single {@code INSTRUMENT → @suite-iid} binding on ENCRYPT bodies.
+    // ==================================================================================
+
+    /**
+     * X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD.
+     *
+     * <p>The default ciphersuite for ENCRYPT bodies (see
+     * {@link EncryptionVocabulary.Encrypt}).  Used as
+     * {@code INSTRUMENT → @ItemRef.iid(X25519_AES256GCM_HKDF.KEY)} to name this suite.
+     *
+     * <p>Concretely: sender generates ephemeral X25519 keypair; for each
+     * recipient performs ECDH against the recipient's long-term encryption-track
+     * X25519 pubkey to derive a shared secret; runs HKDF-SHA256 to derive a key
+     * wrapping key (KEK); encrypts the data encryption key (DEK) with that KEK;
+     * encrypts the cleartext with the DEK using AES-256-GCM (which includes its
+     * own AEAD authentication tag).
+     */
+    @Seed.Item(key = X25519_AES256GCM_HKDF.KEY)
+    public static final class X25519_AES256GCM_HKDF {
+        public static final String KEY = "cg.algorithm:x25519-aes256gcm-hkdf-sha256";
+        private X25519_AES256GCM_HKDF() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD "
+                        + "ciphersuite for hybrid encryption with per-recipient key wrap";
     }
 }

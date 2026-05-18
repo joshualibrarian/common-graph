@@ -8,7 +8,9 @@ import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.language.ThematicRole;
 
-import java.util.function.Consumer;
+import java.io.InputStream;
+import java.util.Optional;
+
 
 /**
  * Encoding — the archetype of binary content encodings, AND the Java interface
@@ -146,23 +148,36 @@ public interface Encoding {
     }
 
     /**
-     * Begin a streaming parse — feed bytes incrementally via the returned
-     * {@link StreamParser}; whole top-level values arrive at {@code onValue}
-     * as typed Java objects ({@link dev.everydaythings.graph.datum.Body},
-     * {@link dev.everydaythings.graph.datum.Record},
-     * {@link dev.everydaythings.graph.id.HashID}, {@link String},
-     * {@link Number}, {@link Boolean}, {@link Encrypted}, …).  Parse failures
-     * arrive at {@code onError}.  Codec-agnostic by design: the consumer sees
-     * typed values, not codec-specific shapes; the consumer decides what each
-     * shape means (a top-level {@code HashID} as a fetch request, a top-level
-     * {@link String} as a token lookup, an {@link Encrypted} as a hand-to-vault,
-     * and so on).
+     * Decode one top-level value from the stream — the streaming-decode
+     * primitive used by Parley (and any other protocol that reads a series
+     * of self-delimited values off a byte stream).
+     *
+     * <p>Semantics by outcome:
+     * <ul>
+     *   <li><b>Complete value</b>: returns {@code Optional.of(value)} and
+     *       leaves the stream position past the consumed bytes.</li>
+     *   <li><b>Short read</b> (stream doesn't contain enough bytes for a
+     *       complete value): returns {@code Optional.empty()} and resets
+     *       the stream position to where it was before the call.  The
+     *       caller can re-attempt after appending more bytes.</li>
+     *   <li><b>Decoded null</b> (the codec's representation of an explicit
+     *       null value): also returns {@code Optional.empty()}, but with
+     *       the stream position <i>advanced</i> past the consumed bytes.
+     *       The two empty cases are distinguished by whether the stream's
+     *       position moved.</li>
+     *   <li><b>Malformed</b>: throws.  Stream position is undefined; the
+     *       caller should treat the stream as poisoned.</li>
+     * </ul>
+     *
+     * <p>The stream must support {@link InputStream#mark}/
+     * {@link InputStream#reset} (a {@link java.io.ByteArrayInputStream
+     * ByteArrayInputStream} is the canonical caller-provided type).
      *
      * <p>Default throws — only codecs that can interpret their bytes (e.g.,
      * CG-CBOR) override; passthrough encodings have no need.
      */
-    default StreamParser parseStream(Consumer<Object> onValue, Consumer<Throwable> onError) {
-        throw new UnsupportedOperationException("parseStream() not implemented (passthrough encoding)");
+    default Optional<Object> decodeOne(InputStream in) {
+        throw new UnsupportedOperationException("decodeOne() not implemented (passthrough encoding)");
     }
 
     // ==================================================================================

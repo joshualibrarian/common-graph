@@ -18,4 +18,12 @@ plugins {
 
 dependencies {
     api project(':core')
+
+    // Netty — ParleyFramer is a ByteToMessageDecoder; the pipeline runs in
+    // an EmbeddedChannel adapted to the Tunnel SPI (same pattern as
+    // :bridges:tls and :bridges:http).
+    implementation "io.netty:netty-buffer:${nettyVersion}"
+    implementation "io.netty:netty-common:${nettyVersion}"
+    implementation "io.netty:netty-transport:${nettyVersion}"
+    implementation "io.netty:netty-codec:${nettyVersion}"
 }

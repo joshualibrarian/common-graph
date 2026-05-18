@@ -19,11 +19,14 @@ import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.HashID;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Common Graph's deterministic CBOR codec — bytes in, bytes out.
@@ -248,14 +251,40 @@ public final class CgCbor {
     }
 
     /**
-     * Open a streaming parser that buffers bytes fed via
-     * {@link StreamParser#feed(byte[])} and dispatches each whole top-level
-     * CBOR value to {@code onValue} (typed: Body, Record, HashID, String,
-     * Number, Boolean, {@link Encrypted}).  Parse failures go to
-     * {@code onError}.
+     * Streaming-decode primitive — read one top-level CBOR value from the
+     * stream, discriminate complete / short-read / malformed.  See
+     * {@link Encoding#decodeOne(InputStream)} for the contract.  This is the
+     * single entry point Parley (and any other streaming consumer) uses for
+     * CG-CBOR streams.
      */
-    public static StreamParser parseStream(Consumer<Object> onValue, Consumer<Throwable> onError) {
-        return new CgCborStreamParser(onValue, onError);
+    public static Optional<Object> decodeOne(InputStream in) {
+        Objects.requireNonNull(in, "in");
+        in.mark(Integer.MAX_VALUE);
+        try {
+            CBORObject obj = CBORObject.Read(in);
+            return Optional.ofNullable(fromCbor(obj));
+        } catch (Exception e) {
+            int available = -1;
+            try {
+                available = in.available();
+            } catch (IOException ignored) {
+                // available() failed; fall through and treat as malformed.
+            }
+            if (available == 0) {
+                // EOF mid-value — reset position and signal short-read.
+                try {
+                    in.reset();
+                } catch (IOException resetErr) {
+                    // Reset failed (the stream didn't honour mark()).  Wrap and
+                    // propagate as a parse error; callers can't recover anyway.
+                    throw new RuntimeException(
+                            "Stream does not support mark/reset; cannot recover from short read", resetErr);
+                }
+                return Optional.empty();
+            }
+            // Bytes remained — the data is malformed.
+            throw new RuntimeException("Malformed CG-CBOR", e);
+        }
     }
 
     // ==================================================================================
@@ -289,7 +318,7 @@ public final class CgCbor {
         @Override public Node walk(byte[] bytes) { return CanonWalker.walk(decode(bytes)); }
         @Override public String prettyPrint(Object value) { return CgCbor.prettyPrint(value); }
         @Override public boolean isValid(byte[] bytes) { return CgCbor.isValid(bytes); }
-        @Override public StreamParser parseStream(Consumer<Object> onValue, Consumer<Throwable> onError) { return CgCbor.parseStream(onValue, onError); }
+        @Override public Optional<Object> decodeOne(InputStream in) { return CgCbor.decodeOne(in); }
     }
 
     // ==================================================================================
@@ -602,8 +631,9 @@ public final class CgCbor {
 
     /**
      * Decode a {@link CBORObject} tree to its typed Java value — the inverse
-     * of {@link #toCbor(Object)}. Package-private: streaming parsers in this
-     * package call this directly to avoid re-encoding through bytes.
+     * of {@link #toCbor(Object)}.  Package-private: the streaming primitive
+     * {@link #decodeOne(InputStream)} is the public entry point for typed
+     * value extraction from a CBOR stream.
      */
     static Object fromCbor(CBORObject node) {
         if (node == null || node.isNull()) return null;

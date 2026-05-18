@@ -8,31 +8,32 @@ import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.language.ThematicRole;
 
 /**
- * Identity vocabulary — the sememes and predicates whose meaning is tied to the
- * identity / key-management domain.
+ * Identity vocabulary — the sememes and predicates whose meaning is tied to
+ * the identity / key-management domain.
  *
- * <p>Two flavors of entries live here:
+ * <p>Sibling crypto-domain vocabularies:
  * <ul>
- *   <li><b>Key-track purposes</b> — {@link Signing}, {@link Encryption}. The
- *       narrowings that scope a key-event chain (KEL) to a specific
- *       cryptographic purpose.</li>
- *   <li><b>Key-event predicates</b> — {@link Inception}, {@link Rotation},
- *       {@link Delegation}, {@link Revocation}. The frame heads that establish,
- *       advance, authorize, and retract identity-bearing assertions.</li>
+ *   <li>{@link AlgorithmVocabulary} — the algorithm sememes themselves
+ *       (Ed25519, X25519, AES-GCM, ciphersuites) plus their metadata.</li>
+ *   <li>{@link EncryptionVocabulary} — encryption-flow primitives (the
+ *       ENCRYPT event + the qualifiers that narrow binding slots inside
+ *       ENCRYPT bodies: Multikey, Keywrap, EphemeralPubkey).</li>
+ *   <li>This file — identities, key tracks, key-event predicates (Inception,
+ *       Rotation, Delegation, Revocation), forward-reference qualifiers
+ *       (Next), the Delegator role.</li>
  * </ul>
  *
- * <p>Each inner class is a bare seed declaration — KEY, IID, and {@code @Seed.Frame}
- * gloss/lexeme annotations. The predicates carry no behavior of their own;
- * body-reading helpers (extract committed keys, check self-attestation, read
- * sequence numbers, etc.) live on {@link Signer}, which is the natural home for
- * code that produces and consumes these frames.
+ * <p>Each inner class is a bare seed declaration — KEY, IID, and
+ * {@code @Seed.Frame} gloss/lexeme annotations.  The predicates carry no
+ * behavior of their own; body-reading helpers (extract committed keys,
+ * check self-attestation, read sequence numbers, etc.) live on
+ * {@link Signer}, which is the natural home for code that produces and
+ * consumes these frames.
  *
- * <p>General-purpose sememes used incidentally by identity frames
- * (Next/Threshold/Witness/Sequence/Expires, Compromise/Retirement/Fraud/Mistake,
- * Multikey) currently live in {@code semantics.CoreVocabulary} and the root
- * {@code CoreVocabulary} — they're applicable beyond identity even though they
- * happen to be exercised here. Migration into this file is a separate future
- * step if/when that scoping decision is revisited.
+ * <p>Reason sememes (Compromise / Retirement / Fraud / Mistake), historically
+ * declared here for use by REVOCATION, now live in
+ * {@link CoreVocabulary} since they apply equally well to non-identity
+ * retractions.
  */
 public final class IdentityVocabulary {
 
@@ -233,75 +234,127 @@ public final class IdentityVocabulary {
     }
 
     /**
-     * ENCRYPT — a meaningful event asserting that some bytes have been encrypted
-     * for specific recipients using a specific algorithm. The cipher bytes
-     * themselves are opaque content (typically Tag-10-wrapped); this body carries
-     * all the metadata needed to decrypt: recipients, algorithm, key wraps,
-     * ephemeral keys, time. A record signs this body normally.
+     * ATTESTATION — a third party's signed assertion about another identity's
+     * key binding.  The body declares subject + key + purpose + validity;
+     * the record's signer is the <i>attester</i> rather than the subject.
      *
-     * <p>The fact of encryption is meaningful (who encrypted what for whom, when);
-     * the cipher bytes are pure mechanics. The body captures the meaningful event;
-     * the bytes live alongside as a content-addressed opaque blob.
+     * <p>Together, body + record form a {@link dev.everydaythings.graph.datum.Frame
+     * Frame} that IS the certificate.  No separate cert archetype exists in
+     * CG: an X.509 cert from PKI ingests as an Attestation frame whose
+     * attester is the issuing CA; a CG-native peer attestation is an
+     * Attestation frame whose attester is a peer; a self-signed AID cert
+     * uses {@link Inception} (the self-attested key binding) instead.
      *
-     * <p>Body shape (typical):
+     * <p>Trust resolution walks Attestation records from a peer's pubkey
+     * back to a trusted anchor (a directly-trusted IID, or a trusted root
+     * cert ingested as an Attestation).
+     *
+     * <p>Body shape:
      * <pre>
-     * ENCRYPT
-     *     [optional] AGENT → @signer-iid                  # omit for anonymous
-     *     THEME → ~cipher-cid                              # the encrypted bytes
-     *     BENEFICIARY → @recipient-iid                     # one per recipient (multiset)
-     *     INSTRUMENT → @algorithm-suite-sememe             # which ciphersuite
-     *     INSTRUMENT [EPHEMERAL_PUBKEY] → bytes            # sender's ephemeral X25519 pubkey
-     *     INSTRUMENT [KEYWRAP, @recipient-iid] → bytes     # wrapped DEK per recipient
-     *     TIME → timestamp                                 # when encrypted
+     * ATTESTATION
+     *     AGENT     → @attester-iid                # the signer (CA, peer, self for inception)
+     *     THEME     → @subject-iid                 # whose key is being attested
+     *     INSTRUMENT → key-bytes                   # subject's pubkey (multikey-encoded — self-describing)
+     *     PURPOSE   → @signing / @encryption / ...  # the key's cryptographic purpose
+     *     ATTRIBUTE [VALIDITY_FROM]  → instant     # lower bound (maps to X.509 notBefore)
+     *     ATTRIBUTE [VALIDITY_UNTIL] → instant     # upper bound (maps to X.509 notAfter)
+     *     TIME → timestamp                         # when issued
      * </pre>
      *
-     * <p>Granularity is a per-use choice — encrypt the smallest unit needed,
-     * whether a single binding value (inline Tag-10), a whole frame, or an
-     * entire item. The ENCRYPT body is the same primitive at all granularities.
+     * <p>{@code PURPOSE} is a top-level thematic role (see
+     * {@link ThematicRole.Purpose}), not a qualifier inside INSTRUMENT.  The
+     * key bytes carried by INSTRUMENT are inherently multikey-encoded (their
+     * varint codec prefix self-describes the key type), so no Multikey
+     * qualifier is needed for the single-INSTRUMENT case.  Inception, which
+     * carries multiple INSTRUMENT bindings (current + pre-rotation next),
+     * does use {@code INSTRUMENT [MULTIKEY]} / {@code [NEXT]} qualifiers
+     * to distinguish them.
+     *
+     * <p>Difference from {@link Inception}: Inception is the founding
+     * self-attested event on a KEL chain — sequence=1, FOLLOWS empty, record
+     * signature MUST come from the committed keys themselves.  Attestation
+     * is third-party — no chain semantics; the record is signed by AGENT
+     * (the attester), normally distinct from THEME (the subject).
+     *
+     * <h2>X.509 ingestion modes (future-compatible)</h2>
+     *
+     * <p>The v1 ingestion path produces an Attestation Frame whose record is
+     * the local Librarian's "I verified this at time T" attestation, having
+     * verified the X.509 chain via standard PKIX (JSSE).  This loses the
+     * issuer's cryptographic signature at the CG layer but keeps the body
+     * shape clean.
+     *
+     * <p>The body shape <i>leaves room</i> for richer modes without breaking
+     * change: an optional {@code SOURCE → ~original-der-cid} binding can
+     * preserve the original X.509 DER bytes as an opaque payload; additional
+     * Records on the same Frame can carry the original issuer's signature
+     * over those preserved bytes.  Trust verification can then check either
+     * the local Librarian's attestation, the original issuer's PKI
+     * signature, or both — additive, not breaking.
      */
-    @Seed.Item(key = Encrypt.KEY, head = CoreVocabulary.Predicate.KEY)
-    public static final class Encrypt {
-        public static final String KEY = "cg.sememe:encrypt";
-        private Encrypt() {}
+    @Seed.Item(key = Attestation.KEY, head = CoreVocabulary.Predicate.KEY)
+    public static final class Attestation {
+        public static final String KEY = "cg.sememe:attestation";
+        private Attestation() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "an event asserting that some bytes have been encrypted for specific recipients";
+                "a third party's signed assertion binding a key (or other property) "
+                        + "to a subject identity";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "encryption";
+        static final String englishNounLemma = "attestation";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "encrypt";
+        static final String englishVerbLemma = "attest";
     }
 
     // ==================================================================================
-    // Key-material qualifiers — narrowings applied to bindings that carry key
-    // bytes or key-state-chain forward references.
+    // Validity-window qualifiers — used inside ATTESTATION bodies (and any
+    // other binding whose temporal validity needs to be declared structurally
+    // rather than left implicit).
     // ==================================================================================
 
     /**
-     * Qualifier marking a binding's bytes target as a multikey-encoded public key
-     * (varint codec prefix + raw key material).
-     *
-     * <p>Used on {@code INSTRUMENT} bindings inside INCEPTION and ROTATION frames
-     * to commit current keys, and anywhere a key lives in data. The target is
-     * plain bytes; the qualifier identifies "these bytes are a multikey-format key."
+     * Lower bound of a validity window.  Used as
+     * {@code ATTRIBUTE [VALIDITY_FROM] → instant}.  Maps to X.509
+     * {@code notBefore} when ingesting / emitting certs.
      */
-    @Seed.Item(key = Multikey.KEY)
-    public static final class Multikey {
-        public static final String KEY = "cg.value:multikey";
-        private Multikey() {}
+    @Seed.Item(key = ValidityFrom.KEY)
+    public static final class ValidityFrom {
+        public static final String KEY = "cg.sememe:validity-from";
+        private ValidityFrom() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "qualifier marking a binding's bytes target as a multikey-encoded "
-                        + "public key (varint codec prefix + raw key material)";
+                "lower bound of a validity window (the instant from which the assertion holds)";
     }
+
+    /**
+     * Upper bound of a validity window.  Used as
+     * {@code ATTRIBUTE [VALIDITY_UNTIL] → instant}.  Maps to X.509
+     * {@code notAfter} when ingesting / emitting certs.
+     */
+    @Seed.Item(key = ValidityUntil.KEY)
+    public static final class ValidityUntil {
+        public static final String KEY = "cg.sememe:validity-until";
+        private ValidityUntil() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "upper bound of a validity window (the instant after which the assertion no longer holds)";
+    }
+
+    // ==================================================================================
+    // Forward-reference qualifier — used inside KEL events for pre-rotation
+    // commitments.  Generic enough to apply to other digest-before-reveal
+    // commitments but currently only exercised here.
+    // ==================================================================================
 
     /**
      * Forward reference — the "next" of something committed by digest before reveal.
@@ -326,162 +379,9 @@ public final class IdentityVocabulary {
         static final String englishAdjectiveLemma = "next";
     }
 
-    /**
-     * Qualifier marking a binding's bytes target as a wrapped (encrypted) data
-     * encryption key (DEK) for a specific recipient.
-     *
-     * <p>Used on {@code INSTRUMENT [Keywrap, @recipient-iid] → bytes} bindings
-     * inside ENCRYPT bodies. The bytes are the DEK encrypted under a key
-     * derived from ECDH between the sender's ephemeral key and the recipient's
-     * long-term encryption-track pubkey. The recipient qualifier identifies
-     * which keywrap is for whom.
-     */
-    @Seed.Item(key = Keywrap.KEY)
-    public static final class Keywrap {
-        public static final String KEY = "cg.value:keywrap";
-        private Keywrap() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier marking a binding's bytes target as a wrapped data encryption key "
-                        + "(DEK) for a specific recipient";
-    }
-
-    /**
-     * Qualifier marking a binding's bytes target as a sender's ephemeral public
-     * key for ECDH key agreement (X25519 or similar).
-     *
-     * <p>Used on a single {@code INSTRUMENT [EphemeralPubkey] → bytes} binding
-     * per ENCRYPT body. Recipients combine this with their own long-term
-     * private key to derive the shared secret that unwraps the DEK. Ephemeral
-     * per-encryption-event keys give forward secrecy: compromise of long-term
-     * keys later cannot decrypt past messages.
-     */
-    @Seed.Item(key = EphemeralPubkey.KEY)
-    public static final class EphemeralPubkey {
-        public static final String KEY = "cg.value:ephemeral-pubkey";
-        private EphemeralPubkey() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier marking a binding's bytes target as a sender's ephemeral public "
-                        + "key for ECDH key agreement (gives forward secrecy)";
-    }
-
     // ==================================================================================
-    // Reason sememes — formal causes for revocation/retraction. Used as PURPOSE
-    // on REVOCATION bodies. Generic enough that they apply to non-identity
-    // retractions too (a fraudulent claim, a mistaken assertion), but currently
-    // the cleanest home is here alongside REVOCATION itself.
+    // Roles
     // ==================================================================================
-
-    /** Compromise — an exposure or breach (cryptographic, structural, or social). */
-    @Seed.Item(key = Compromise.KEY)
-    public static final class Compromise {
-        public static final String KEY = "cg.sememe:compromise";
-        private Compromise() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "an exposure or breach — cryptographic, structural, or social";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "compromise";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "compromise";
-    }
-
-    /** Retirement — routine cessation of use; no incident. */
-    @Seed.Item(key = Retirement.KEY)
-    public static final class Retirement {
-        public static final String KEY = "cg.sememe:retirement";
-        private Retirement() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "routine cessation of use or service; no incident, just no longer active";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "retirement";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "retire";
-    }
-
-    /** Fraud — deceit, intentional misrepresentation. */
-    @Seed.Item(key = Fraud.KEY)
-    public static final class Fraud {
-        public static final String KEY = "cg.sememe:fraud";
-        private Fraud() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss = "deceit; intentional misrepresentation";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "fraud";
-    }
-
-    /** Mistake — an honest error, no malice. */
-    @Seed.Item(key = Mistake.KEY)
-    public static final class Mistake {
-        public static final String KEY = "cg.sememe:mistake";
-        private Mistake() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss = "an honest error; no malice intended";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "mistake";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "mistake";
-    }
-
-    // ==================================================================================
-    // Cryptographic algorithm suites — whole-suite sememes identifying a specific
-    // ciphersuite bundle (KEM + AEAD + KDF). Whole-suite (not piece-by-piece) to
-    // minimize misconfiguration surface. New suites added as separate inner
-    // classes as needed.
-    // ==================================================================================
-
-    /**
-     * X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD.
-     *
-     * <p>The default ciphersuite for ENCRYPT bodies. Used as
-     * {@code INSTRUMENT → @ItemRef.iid(X25519_AES256GCM_HKDF.KEY)} to name this suite.
-     *
-     * <p>Concretely: sender generates ephemeral X25519 keypair; for each
-     * recipient performs ECDH against the recipient's long-term encryption-track
-     * X25519 pubkey to derive a shared secret; runs HKDF-SHA256 to derive a key
-     * wrapping key (KEK); encrypts the data encryption key (DEK) with that KEK;
-     * encrypts the cleartext with the DEK using AES-256-GCM (which includes its
-     * own AEAD authentication tag).
-     */
-    @Seed.Item(key = X25519_AES256GCM_HKDF.KEY)
-    public static final class X25519_AES256GCM_HKDF {
-        public static final String KEY = "cg.algo:x25519-aes256gcm-hkdf-sha256";
-        private X25519_AES256GCM_HKDF() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD "
-                        + "ciphersuite for hybrid encryption with per-recipient key wrap";
-    }
 
     /** Delegator — one who delegates authority, responsibility, or a task. */
     @Seed.Item(key = Delegator.KEY)

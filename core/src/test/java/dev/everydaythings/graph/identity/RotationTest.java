@@ -6,7 +6,7 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
+import dev.everydaythings.graph.identity.EncryptionVocabulary.Multikey;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Next;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Rotation;
 import dev.everydaythings.graph.runtime.librarian.Librarian;

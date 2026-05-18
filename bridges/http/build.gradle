@@ -17,7 +17,14 @@ plugins {
 dependencies {
     api project(':core')
 
-    // Netty — shared with :bridges:tcp.  HTTP codec rides Netty's NIO loops.
+    // HTTP rides on Tunnel.  TCP provides the base tunnel for the convenience
+    // HttpClient/HttpServer wrappers; TLS wraps a TCP tunnel for HTTPS.  Both
+    // are part of the public API of the convenience layer.
+    api project(':bridges:tcp')
+    api project(':bridges:tls')
+
+    // Netty — HTTP codec in EmbeddedChannel pipelines for the primitive
+    // HttpExchange layer.
     api "io.netty:netty-buffer:${nettyVersion}"
     api "io.netty:netty-common:${nettyVersion}"
     api "io.netty:netty-transport:${nettyVersion}"

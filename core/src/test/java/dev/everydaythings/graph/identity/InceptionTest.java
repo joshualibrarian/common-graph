@@ -2,7 +2,7 @@ package dev.everydaythings.graph.identity;
 
 
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
-import dev.everydaythings.graph.identity.IdentityVocabulary.Multikey;
+import dev.everydaythings.graph.identity.EncryptionVocabulary.Multikey;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;

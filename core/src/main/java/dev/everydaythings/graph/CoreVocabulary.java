@@ -513,4 +513,85 @@ public final class CoreVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "witness";
     }
+
+    // ==================================================================================
+    // Reason sememes — formal causes for revocation / retraction / repudiation.
+    // Generic enough to apply to non-identity retractions too (a fraudulent claim,
+    // a mistaken assertion), so they live here rather than in IdentityVocabulary
+    // even though their first use site is REVOCATION.
+    // ==================================================================================
+
+    /** Compromise — an exposure or breach (cryptographic, structural, or social). */
+    @Seed.Item(key = Compromise.KEY)
+    public static final class Compromise {
+        public static final String KEY = "cg.sememe:compromise";
+        private Compromise() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "an exposure or breach — cryptographic, structural, or social";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "compromise";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "compromise";
+    }
+
+    /** Retirement — routine cessation of use; no incident. */
+    @Seed.Item(key = Retirement.KEY)
+    public static final class Retirement {
+        public static final String KEY = "cg.sememe:retirement";
+        private Retirement() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "routine cessation of use or service; no incident, just no longer active";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "retirement";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "retire";
+    }
+
+    /** Fraud — deceit, intentional misrepresentation. */
+    @Seed.Item(key = Fraud.KEY)
+    public static final class Fraud {
+        public static final String KEY = "cg.sememe:fraud";
+        private Fraud() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "deceit; intentional misrepresentation";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "fraud";
+    }
+
+    /** Mistake — an honest error, no malice. */
+    @Seed.Item(key = Mistake.KEY)
+    public static final class Mistake {
+        public static final String KEY = "cg.sememe:mistake";
+        private Mistake() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "an honest error; no malice intended";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "mistake";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "mistake";
+    }
 }
