@@ -20,6 +20,7 @@ import dev.everydaythings.graph.language.ThematicRole;
  */
 @Seed.Item(key = Power.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Power.KEY)
+@Seed.Cili("i39979")
 public class Power extends Operator {
 
     public static final String KEY = "cg.predicate:power";

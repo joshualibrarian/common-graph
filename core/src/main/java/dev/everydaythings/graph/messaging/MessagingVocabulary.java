@@ -32,6 +32,7 @@ public final class MessagingVocabulary {
      * other bindings name the participants and context.
      */
     @Seed.Item(key = Message.KEY)
+    @Seed.Cili("i69368")
     public static final class Message {
         public static final String KEY = "cg.predicate:message";
         private Message() {}

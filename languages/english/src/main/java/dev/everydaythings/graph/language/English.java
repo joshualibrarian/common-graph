@@ -15,7 +15,6 @@ import dev.everydaythings.graph.text.FrameMap.Part;
 import dev.everydaythings.graph.text.ParseContext;
 import dev.everydaythings.graph.text.ParseParams;
 import dev.everydaythings.graph.text.TextSpan;
-import dev.everydaythings.graph.text.TokenLattice;
 import dev.everydaythings.graph.text.TokenLattice.TokenSpan;
 
 import java.math.BigDecimal;
@@ -66,6 +65,28 @@ public class English extends Language {
     @Override
     public ULocale locale() {
         return ULocale.ENGLISH;
+    }
+
+    // ==================================================================================
+    // Locale-specific literal recognition
+    //
+    // English inherits locale-aware number parsing from {@link Language#recognizeNumber}
+    // for free — ICU's NumberFormat for {@link ULocale#ENGLISH} handles "3.14",
+    // "10,000", "-5", "1.5e2" correctly.  We just add the English-specific extras
+    // the base class can't know about.
+    // ==================================================================================
+
+    /**
+     * Boolean literal recognition — English uses {@code true} and {@code false}.
+     * Case-insensitive ({@code True}, {@code TRUE} all accepted) since natural
+     * English doesn't fix case for these words; the parser doesn't enforce
+     * casing the way a programming language would.
+     */
+    @Override
+    protected Optional<Object> recognizeBoolean(String text) {
+        if ("true".equalsIgnoreCase(text)) return Optional.of(Boolean.TRUE);
+        if ("false".equalsIgnoreCase(text)) return Optional.of(Boolean.FALSE);
+        return Optional.empty();
     }
 
     // ==================================================================================
@@ -177,7 +198,7 @@ public class English extends Language {
 
         // Direct object (THEME) — first non-preposition operand after the verb.
         if (idx < tokens.size() && !isEnglishPrepositionToken(tokens.get(idx))) {
-            Object themeVal = operandValue(tokens.get(idx));
+            Object themeVal = recognizeOperand(tokens.get(idx)).orElse(null);
             if (themeVal != null) {
                 bindings.add(makeBinding(
                         ItemRef.iid(ThematicRole.Theme.KEY),
@@ -195,7 +216,7 @@ public class English extends Language {
             if (prepRoleIid == null) { idx++; continue; }
 
             TokenSpan operandToken = tokens.get(idx + 1);
-            Object operandVal = operandValue(operandToken);
+            Object operandVal = recognizeOperand(operandToken).orElse(null);
             if (operandVal == null) { idx += 2; continue; }
 
             bindings.add(makeBinding(
@@ -326,27 +347,12 @@ public class English extends Language {
     }
 
     // ==================================================================================
-    // Operand resolution + binding construction
+    // Binding construction
+    //
+    // Operand resolution (token → value) lives on {@link Language#recognizeOperand},
+    // inherited.  English contributes only the literal-shape overrides (booleans;
+    // future: English-specific number words, multi-word lexemes).
     // ==================================================================================
-
-    /**
-     * Convert a token to a binding-target value. LITERAL tokens parse as a
-     * {@code Long}; WORD tokens use the first posting's target ItemRef (proper
-     * nouns, references). Returns null when the token resolves to nothing useful.
-     */
-    private static Object operandValue(TokenSpan token) {
-        if (token.kind() == TokenLattice.Kind.LITERAL) {
-            try {
-                return Long.parseLong(token.surfaceText().trim());
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        if (!token.postings().isEmpty()) {
-            return token.postings().get(0).target();
-        }
-        return null;
-    }
 
     private static BindingMap makeBinding(ItemRef roleIid, Object target,
                                           TextSpan targetSpan, BigDecimal confidence) {

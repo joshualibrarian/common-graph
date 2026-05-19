@@ -15,6 +15,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 /** The division operator. Infix, left-associative, precedence 20. */
 @Seed.Item(key = Divide.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Divide.KEY)
+@Seed.Cili("i24946")
 public class Divide extends BinaryArithmetic {
 
     public static final String KEY = "cg.predicate:divide";

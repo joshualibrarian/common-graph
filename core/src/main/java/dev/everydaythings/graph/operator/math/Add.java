@@ -27,6 +27,7 @@ import dev.everydaythings.graph.value.Numeric;
  */
 @Seed.Item(key = Add.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Add.KEY)
+@Seed.Cili("i24940")
 public class Add extends BinaryArithmetic {
 
     /** Canonical key for the addition predicate. */

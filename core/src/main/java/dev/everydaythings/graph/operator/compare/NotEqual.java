@@ -16,6 +16,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 /** Inequality. Infix, non-associative, precedence 5. Numeric-aware (same as {@link Equal} negated). */
 @Seed.Item(key = NotEqual.KEY, head = Operator.KEY)
 @Seed.Embodies(key = NotEqual.KEY)
+@Seed.Cili("i61998")
 public class NotEqual extends Operator {
 
     public static final String KEY = "cg.predicate:not-equal";

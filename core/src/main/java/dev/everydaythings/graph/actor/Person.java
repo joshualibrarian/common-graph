@@ -23,6 +23,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
  * assigned by the creating party.
  */
 @Seed.Item(key = Person.KEY)
+@Seed.Cili("i35562")
 public class Person extends Actor {
 
     /** Canonical key for the Person archetype. */

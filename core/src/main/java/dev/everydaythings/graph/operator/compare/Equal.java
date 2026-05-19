@@ -20,6 +20,7 @@ import dev.everydaythings.graph.language.ThematicRole;
  */
 @Seed.Item(key = Equal.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Equal.KEY)
+@Seed.Cili("i34989")
 public class Equal extends Operator {
 
     public static final String KEY = "cg.predicate:equal";

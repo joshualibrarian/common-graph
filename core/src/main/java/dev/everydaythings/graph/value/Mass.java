@@ -17,6 +17,7 @@ import java.util.Map;
  * <p>Body shape: {@code Body[head=Mass, Value=N, @<MassUnit>=1]}.
  */
 @Seed.Item(key = Mass.KEY, head = Quantity.KEY)
+@Seed.Cili("i63403")
 public final class Mass extends Quantity {
 
     public static final String KEY = "cg.value:mass";

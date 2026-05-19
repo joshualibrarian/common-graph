@@ -17,7 +17,8 @@ import dev.everydaythings.graph.id.ItemRef;
  * interjection, preposition. Extensible (determiner, article, particle, etc.)
  * if WordNet or other imports require additions.
  *
- * <p>Pure-data seeds.
+ * <p>Each carries its CILI id (the WordNet "word class" sense) so cross-language
+ * grammar imports merge cleanly into the same items.
  */
 @Seed.Item(key = PartOfSpeech.KEY)
 public final class PartOfSpeech {
@@ -29,6 +30,7 @@ public final class PartOfSpeech {
 
     /** Noun — naming a person, place, thing, or idea. */
     @Seed.Item(key = Noun.KEY)
+    @Seed.Cili("i69682")
     public static final class Noun {
         public static final String KEY = "cg.pos:noun";
         private Noun() {}
@@ -36,6 +38,7 @@ public final class PartOfSpeech {
 
     /** Verb — describing an action, event, or state. */
     @Seed.Item(key = Verb.KEY)
+    @Seed.Cili("i69683")
     public static final class Verb {
         public static final String KEY = "cg.pos:verb";
         private Verb() {}
@@ -43,6 +46,7 @@ public final class PartOfSpeech {
 
     /** Adjective — modifying a noun. */
     @Seed.Item(key = Adjective.KEY)
+    @Seed.Cili("i69688")
     public static final class Adjective {
         public static final String KEY = "cg.pos:adjective";
         private Adjective() {}
@@ -50,6 +54,7 @@ public final class PartOfSpeech {
 
     /** Adverb — modifying a verb, adjective, or another adverb. */
     @Seed.Item(key = Adverb.KEY)
+    @Seed.Cili("i69689")
     public static final class Adverb {
         public static final String KEY = "cg.pos:adverb";
         private Adverb() {}
@@ -57,6 +62,7 @@ public final class PartOfSpeech {
 
     /** Pronoun — substituting for a noun. */
     @Seed.Item(key = Pronoun.KEY)
+    @Seed.Cili("i69718")
     public static final class Pronoun {
         public static final String KEY = "cg.pos:pronoun";
         private Pronoun() {}
@@ -64,6 +70,7 @@ public final class PartOfSpeech {
 
     /** Conjunction — connecting clauses or phrases. */
     @Seed.Item(key = Conjunction.KEY)
+    @Seed.Cili("i69721")
     public static final class Conjunction {
         public static final String KEY = "cg.pos:conjunction";
         private Conjunction() {}
@@ -71,6 +78,7 @@ public final class PartOfSpeech {
 
     /** Interjection — a standalone exclamatory utterance. */
     @Seed.Item(key = Interjection.KEY)
+    @Seed.Cili("i74106")
     public static final class Interjection {
         public static final String KEY = "cg.pos:interjection";
         private Interjection() {}
@@ -78,6 +86,7 @@ public final class PartOfSpeech {
 
     /** Preposition — relating a noun phrase to another sentence element. */
     @Seed.Item(key = Preposition.KEY)
+    @Seed.Cili("i69717")
     public static final class Preposition {
         public static final String KEY = "cg.pos:preposition";
         private Preposition() {}

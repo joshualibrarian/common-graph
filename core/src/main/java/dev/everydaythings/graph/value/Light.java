@@ -39,6 +39,7 @@ import java.util.Objects;
  * LightVocabulary.Ambient Ambient} carries the fill / shadow color.
  */
 @Seed.Item(key = Light.KEY, head = Value.KEY)
+@Seed.Cili("i97892")
 public final class Light extends Value {
 
     public static final String KEY = "cg.value:light";

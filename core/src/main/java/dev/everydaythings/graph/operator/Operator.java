@@ -124,9 +124,31 @@ public abstract class Operator extends Item {
         // symbol position for OperatorNotation; function-name+paren for
         // FunctionNotation). If neither yields a frame, the operator wasn't
         // recognized in any active surface form here.
-        FrameMap fromOperator = OperatorNotation.parseAnchor(this, ctx);
-        if (!fromOperator.isEmpty()) return fromOperator;
-        return FunctionNotation.parseAnchor(this, ctx);
+        //
+        // Notation parseAnchor methods are instance methods (so they can call
+        // their Language's recognizeOperand for locale-aware literal handling),
+        // fetched here from the librarian.  In seed/siloed mode (no librarian)
+        // we return empty — parse only runs at runtime.
+        if (librarian() == null) return FrameMap.empty();
+
+        OperatorNotation opNotation = librarian().fetchItem(ItemRef.iid(OperatorNotation.KEY))
+                .filter(OperatorNotation.class::isInstance)
+                .map(OperatorNotation.class::cast)
+                .orElse(null);
+        if (opNotation != null) {
+            FrameMap fromOperator = opNotation.parseAnchor(this, ctx);
+            if (!fromOperator.isEmpty()) return fromOperator;
+        }
+
+        FunctionNotation fnNotation = librarian().fetchItem(ItemRef.iid(FunctionNotation.KEY))
+                .filter(FunctionNotation.class::isInstance)
+                .map(FunctionNotation.class::cast)
+                .orElse(null);
+        if (fnNotation != null) {
+            return fnNotation.parseAnchor(this, ctx);
+        }
+
+        return FrameMap.empty();
     }
 
     // ==================================================================================

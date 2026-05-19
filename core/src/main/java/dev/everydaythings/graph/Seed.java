@@ -625,6 +625,47 @@ public class Seed {
     }
 
     /**
+     * Shortcut for declaring this seed's CILI (Collaborative Interlingual Index)
+     * identifier — the language-neutral concept id that aligns CG sememes with
+     * WordNets across languages.  Expands to a {@link Frame @Seed.Frame} whose
+     * predicate is {@code cg.sememe:cili-id}, with back-link THEME → seed and
+     * a VALUE binding carrying the {@code "iN"} text.
+     *
+     * <p>Supports both placements:
+     * <pre>{@code
+     * // Class-level — concise when the value is purely data:
+     * @Seed.Cili("i24940")
+     * public static final class Add { ... }
+     *
+     * // Field-level — when the value should be a referenceable Java constant:
+     * public static final class Add {
+     *     @Seed.Cili public static final String CILI = "i24940";
+     * }
+     * }</pre>
+     *
+     * <p>Exactly one CILI id per seed; not repeatable.  The class-level form
+     * requires a non-empty {@link #value}; the field-level form requires the
+     * annotation's {@code value} to be empty (the field's String content is
+     * used).  Misuse (both empty, both set, multiple fields) is rejected at
+     * bootstrap.
+     *
+     * <p>CILI ids look up against WordNet synsets — find the lemma in OEWN,
+     * follow {@code <Sense>} to {@code <Synset>}, read its {@code ili="iN"}.
+     */
+    @Target({ElementType.TYPE, ElementType.FIELD})
+    @Retention(RetentionPolicy.RUNTIME)
+    public static @interface Cili {
+
+        /**
+         * The CILI id ({@code "iN"} where N is the WordNet ili integer).  Set
+         * directly when the annotation is on a class; leave empty (the default)
+         * when the annotation is on a String field and the field's content
+         * carries the value.
+         */
+        String value() default "";
+    }
+
+    /**
      * Class-level shortcut for declaring English lexemes on the enclosing
      * {@link Item @Seed.Item}.  Expands to one {@link Frame @Seed.Frame} per
      * supplied lemma, whose predicate is {@code cg.predicate:lexeme}, with

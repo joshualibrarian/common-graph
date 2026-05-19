@@ -20,6 +20,7 @@ import dev.everydaythings.graph.language.ThematicRole;
  */
 @Seed.Item(key = Subtract.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Subtract.KEY)
+@Seed.Cili("i24942")
 public class Subtract extends BinaryArithmetic {
 
     public static final String KEY = "cg.predicate:subtract";
