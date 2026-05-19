@@ -86,8 +86,11 @@ public class FunctionNotation extends Language {
      * that the immediately following token is an open-group {@code (}, find the
      * matching close, recursively parse the bracketed args (comma-separated), and
      * emit a frame with positional bindings.
+     *
+     * <p>Instance method (rather than static) so the arg-resolution helpers can
+     * call {@code this.recognizeOperand} for locale-aware literal recognition.
      */
-    public static FrameMap parseAnchor(Operator self, ParseContext ctx) {
+    public FrameMap parseAnchor(Operator self, ParseContext ctx) {
         Optional<String> nameOpt = lookupFunctionName(self);
         if (nameOpt.isEmpty()) return FrameMap.empty();
         String functionName = nameOpt.get();
@@ -100,13 +103,13 @@ public class FunctionNotation extends Language {
         }
 
         for (TextSpan span : selfAnchor.get().spans()) {
-            int nameIdx = OperatorNotation.indexOfTokenSpan(ctx.tokens(), span);
+            int nameIdx = Language.indexOfTokenSpan(ctx.tokens(), span);
             if (nameIdx < 0) continue;
             if (!functionName.equals(ctx.tokens().get(nameIdx).surfaceText())) continue;
             if (nameIdx + 1 >= ctx.tokens().size()) continue;
             TokenSpan next = ctx.tokens().get(nameIdx + 1);
-            if (!OperatorNotation.isOpenGroup(next)) continue;
-            int closeIdx = OperatorNotation.findMatchingClose(ctx.tokens(), nameIdx + 1);
+            if (!Language.isOpenGroup(next)) continue;
+            int closeIdx = Language.findMatchingClose(ctx.tokens(), nameIdx + 1);
             if (closeIdx < 0) continue;
             return buildCallFrame(self, ctx, nameIdx, nameIdx + 1, closeIdx);
         }
@@ -118,8 +121,8 @@ public class FunctionNotation extends Language {
      * through {@code )}; each parsed arg becomes a positional binding (arg0 →
      * THEME, arg1 → GOAL, additional args dropped in V1).
      */
-    private static FrameMap buildCallFrame(Operator self, ParseContext ctx,
-                                           int nameIdx, int openIdx, int closeIdx) {
+    private FrameMap buildCallFrame(Operator self, ParseContext ctx,
+                                    int nameIdx, int openIdx, int closeIdx) {
         TextSpan callSpan = new TextSpan(
                 ctx.tokens().get(nameIdx).span().start(),
                 ctx.tokens().get(closeIdx).span().end());
@@ -155,7 +158,7 @@ public class FunctionNotation extends Language {
      * is recursively parsed via the same engine; single-token args use direct
      * literal/ref extraction.
      */
-    private static List<Operand> parseArgs(ParseContext ctx, int openIdx, int closeIdx) {
+    private List<Operand> parseArgs(ParseContext ctx, int openIdx, int closeIdx) {
         List<Operand> args = new ArrayList<>();
         int chunkStart = openIdx + 1;
         for (int i = openIdx + 1; i < closeIdx; i++) {
@@ -182,11 +185,11 @@ public class FunctionNotation extends Language {
      * single literal/ref token becomes that target directly; multi-token chunks
      * are recursively parsed via the engine.
      */
-    private static Operand parseArgChunk(ParseContext ctx, int start, int end) {
+    private Operand parseArgChunk(ParseContext ctx, int start, int end) {
         if (start >= end) return null;
         if (end - start == 1) {
             TokenSpan t = ctx.tokens().get(start);
-            Object target = OperatorNotation.tokenTarget(t);
+            Object target = recognizeOperand(t).orElse(null);
             if (target == null) return null;
             return new Operand(target, List.of(t.span()));
         }
@@ -259,16 +262,16 @@ public class FunctionNotation extends Language {
         if (target instanceof BindingTarget.RefTarget rt) {
             DatumRef cid = rt.asDatumId();
             Optional<Frame> innerFrame = librarian().fetchFrame(cid);
-            if (innerFrame.isEmpty()) return renderLiteral(target);
+            if (innerFrame.isEmpty()) return renderOperandFallback(target);
             Body inner = innerFrame.get().body();
-            if (!(inner.head() instanceof ItemRef ref)) return renderLiteral(target);
+            if (!(inner.head() instanceof ItemRef ref)) return renderOperandFallback(target);
             List<Object> innerTargets = operandTargetsByRole(inner);
-            return renderCall(ref.iid(), innerTargets).orElseGet(() -> renderLiteral(target));
+            return renderCall(ref.iid(), innerTargets).orElseGet(() -> renderOperandFallback(target));
         }
-        return renderLiteral(target);
+        return renderOperandFallback(target);
     }
 
-    private static String renderLiteral(Object target) {
+    private static String renderOperandFallback(Object target) {
         if (target == null) return null;
         if (target instanceof String s) return s;
         return target.toString();

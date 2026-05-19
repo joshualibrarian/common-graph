@@ -24,6 +24,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
  * from the Service's Signer at the operating Actor.
  */
 @Seed.Item(key = Service.KEY)
+@Seed.Cili("i38428")
 public class Service extends Actor {
 
     /** Canonical key for the Service archetype. */

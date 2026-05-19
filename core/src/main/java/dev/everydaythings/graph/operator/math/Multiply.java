@@ -15,6 +15,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 /** The multiplication operator. Infix, left-associative, precedence 20 (above add/sub). */
 @Seed.Item(key = Multiply.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Multiply.KEY)
+@Seed.Cili("i24944")
 public class Multiply extends BinaryArithmetic {
 
     public static final String KEY = "cg.predicate:multiply";

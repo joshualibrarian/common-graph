@@ -15,6 +15,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 /** The logical-NOT operator. Prefix, right-associative, precedence 25. */
 @Seed.Item(key = Not.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Not.KEY)
+@Seed.Cili("i71973")
 public class Not extends Operator {
 
     public static final String KEY = "cg.predicate:not";

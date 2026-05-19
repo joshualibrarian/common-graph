@@ -18,12 +18,10 @@ import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
 import dev.everydaythings.graph.text.FrameMap.Part;
 import dev.everydaythings.graph.text.FrameMapTarget;
-import dev.everydaythings.graph.text.GroupVocabulary;
 import dev.everydaythings.graph.text.ParseContext;
 import dev.everydaythings.graph.text.ParseEngine;
 import dev.everydaythings.graph.text.ParseParams;
 import dev.everydaythings.graph.text.TextSpan;
-import dev.everydaythings.graph.text.TokenLattice;
 import dev.everydaythings.graph.text.TokenLattice.TokenSpan;
 
 import java.math.BigDecimal;
@@ -96,8 +94,13 @@ public class OperatorNotation extends Language {
      * anchor spans at the outer level (anchors inside paren groups are deferred to
      * the recursive paren resolver), reads its operator-form metadata, and emits
      * either a single-anchor or chained FrameMap delta.
+     *
+     * <p>Instance method (rather than static) so the operand-resolution helpers can
+     * call {@code this.recognizeOperand} for locale-aware literal recognition.
+     * Callers (typically {@link Operator#parse}) fetch the OperatorNotation Language
+     * item from the librarian and invoke this method on the instance.
      */
-    public static FrameMap parseAnchor(Operator self, ParseContext ctx) {
+    public FrameMap parseAnchor(Operator self, ParseContext ctx) {
         Optional<TokenAnchor> selfAnchor = ctx.anchors().tokenAnchors().stream()
                 .filter(ta -> ta.participant().iid().equals(self.iid()))
                 .findFirst();
@@ -138,8 +141,8 @@ public class OperatorNotation extends Language {
     }
 
     /** Build a single-anchor FrameMap, resolving operands from context. */
-    private static FrameMap buildAnchorFrame(Operator self, int anchorIdx,
-                                             ParseContext ctx, OperatorForm form) {
+    private FrameMap buildAnchorFrame(Operator self, int anchorIdx,
+                                      ParseContext ctx, OperatorForm form) {
         Operand left = resolveLeftOperand(ctx, anchorIdx);
         Operand right = resolveRightOperand(ctx, anchorIdx);
         return buildFrameWithOperands(self, anchorIdx, left, right, ctx, form);
@@ -149,9 +152,9 @@ public class OperatorNotation extends Language {
      * Build a single-anchor FrameMap with operands provided externally — used by
      * {@link #buildChainFrame} to splice prior chain segments in as operands.
      */
-    private static FrameMap buildFrameWithOperands(Operator self, int anchorIdx,
-                                                   Operand left, Operand right,
-                                                   ParseContext ctx, OperatorForm form) {
+    private FrameMap buildFrameWithOperands(Operator self, int anchorIdx,
+                                            Operand left, Operand right,
+                                            ParseContext ctx, OperatorForm form) {
         TextSpan anchorSpan = ctx.tokens().get(anchorIdx).span();
 
         double fitness = contextFitness(form.fixity(), left, right);
@@ -186,8 +189,8 @@ public class OperatorNotation extends Language {
     }
 
     /** Build a chain frame for multi-anchor associative infix operators. */
-    private static FrameMap buildChainFrame(Operator self, List<Integer> anchorIndices,
-                                            ParseContext ctx, OperatorForm form) {
+    private FrameMap buildChainFrame(Operator self, List<Integer> anchorIndices,
+                                     ParseContext ctx, OperatorForm form) {
         boolean leftAssoc = ItemRef.iid(Operator.Left.KEY).equals(form.associativity());
         if (leftAssoc) {
             FrameMap current = buildAnchorFrame(self, anchorIndices.get(0), ctx, form);
@@ -275,13 +278,6 @@ public class OperatorNotation extends Language {
                 Math.max(0.0, Math.min(0.9999, value)));
     }
 
-    static int indexOfTokenSpan(List<TokenSpan> tokens, TextSpan span) {
-        for (int i = 0; i < tokens.size(); i++) {
-            if (tokens.get(i).span().equals(span)) return i;
-        }
-        return -1;
-    }
-
     /** Build a role binding from a resolved operand, or null if no usable operand. */
     private static BindingMap makeBinding(Operand op, ItemRef role, BigDecimal confidence) {
         if (op == null) return null;
@@ -296,7 +292,7 @@ public class OperatorNotation extends Language {
     /** Either a literal/ref operand from a single token, or a parens-wrapped sub-FrameMap. */
     private record Operand(Object target, List<TextSpan> spans) {}
 
-    private static Operand resolveLeftOperand(ParseContext ctx, int anchorIdx) {
+    private Operand resolveLeftOperand(ParseContext ctx, int anchorIdx) {
         if (anchorIdx <= 0) return null;
         TokenSpan immediate = ctx.tokens().get(anchorIdx - 1);
         if (isCloseGroup(immediate)) {
@@ -305,12 +301,12 @@ public class OperatorNotation extends Language {
             TokenSpan openTok = ctx.tokens().get(openIdx);
             return parenGroupOperand(ctx, openTok, immediate);
         }
-        Object target = tokenTarget(immediate);
+        Object target = recognizeOperand(immediate).orElse(null);
         if (target == null) return null;
         return new Operand(target, List.of(immediate.span()));
     }
 
-    private static Operand resolveRightOperand(ParseContext ctx, int anchorIdx) {
+    private Operand resolveRightOperand(ParseContext ctx, int anchorIdx) {
         if (anchorIdx >= ctx.tokens().size() - 1) return null;
         TokenSpan immediate = ctx.tokens().get(anchorIdx + 1);
         if (isOpenGroup(immediate)) {
@@ -319,7 +315,7 @@ public class OperatorNotation extends Language {
             TokenSpan closeTok = ctx.tokens().get(closeIdx);
             return parenGroupOperand(ctx, immediate, closeTok);
         }
-        Object target = tokenTarget(immediate);
+        Object target = recognizeOperand(immediate).orElse(null);
         if (target == null) return null;
         return new Operand(target, List.of(immediate.span()));
     }
@@ -339,73 +335,6 @@ public class OperatorNotation extends Language {
         String bracketed = text.substring(innerStart, innerEnd);
         FrameMap subFrame = ParseEngine.run(ctx.orchestrator(), bracketed, ParseParams.defaults());
         return new Operand(new FrameMapTarget(subFrame), List.of(groupSpan));
-    }
-
-    static boolean isOpenGroup(TokenSpan token) {
-        if (token == null) return false;
-        return token.postings().stream()
-                .anyMatch(p -> ItemRef.iid(GroupVocabulary.OpenGroup.KEY).equals(p.target()));
-    }
-
-    static boolean isCloseGroup(TokenSpan token) {
-        if (token == null) return false;
-        return token.postings().stream()
-                .anyMatch(p -> ItemRef.iid(GroupVocabulary.CloseGroup.KEY).equals(p.target()));
-    }
-
-    /**
-     * True if the token at {@code idx} sits inside an unmatched OpenGroup at the
-     * outer level — the paren depth at position {@code idx} is positive.
-     */
-    private static boolean isInsideParens(List<TokenSpan> tokens, int idx) {
-        int depth = 0;
-        for (int i = 0; i < idx; i++) {
-            TokenSpan t = tokens.get(i);
-            if (isOpenGroup(t)) depth++;
-            else if (isCloseGroup(t)) depth--;
-        }
-        return depth > 0;
-    }
-
-    static int findMatchingOpen(List<TokenSpan> tokens, int closeIdx) {
-        int depth = 1;
-        for (int i = closeIdx - 1; i >= 0; i--) {
-            TokenSpan t = tokens.get(i);
-            if (isCloseGroup(t)) depth++;
-            else if (isOpenGroup(t)) {
-                depth--;
-                if (depth == 0) return i;
-            }
-        }
-        return -1;
-    }
-
-    static int findMatchingClose(List<TokenSpan> tokens, int openIdx) {
-        int depth = 1;
-        for (int i = openIdx + 1; i < tokens.size(); i++) {
-            TokenSpan t = tokens.get(i);
-            if (isOpenGroup(t)) depth++;
-            else if (isCloseGroup(t)) {
-                depth--;
-                if (depth == 0) return i;
-            }
-        }
-        return -1;
-    }
-
-    /** Convert a token to a BindingTarget. Integer literals → Long; named tokens → IID. */
-    static Object tokenTarget(TokenSpan token) {
-        if (token.kind() == TokenLattice.Kind.LITERAL) {
-            try {
-                return (long) (Long.parseLong(token.surfaceText().trim()));
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        if (!token.postings().isEmpty()) {
-            return token.postings().get(0).target();
-        }
-        return null;
     }
 
     // ==================================================================================
@@ -504,23 +433,23 @@ public class OperatorNotation extends Language {
      * stored frame body is fetched via the librarian and recursed via
      * {@link #renderOperation}, with parens decided by {@link #needsParens}. Other
      * targets (literals, IID refs, legacy inline FrameTarget) fall through to
-     * {@link #renderLiteral}.
+     * {@link #renderOperandFallback}.
      */
     private String renderOperand(Object target, long outerPrecedence,
                                  ItemRef outerAssociativity, boolean isLeftOperand,
                                  ParseParams params) {
         if (!(target instanceof BindingTarget.RefTarget rt)) {
-            return renderLiteral(target);
+            return renderOperandFallback(target);
         }
         DatumRef cid = rt.asDatumId();
         Optional<Frame> innerFrame = librarian().fetchFrame(cid);
-        if (innerFrame.isEmpty()) return renderLiteral(target);
+        if (innerFrame.isEmpty()) return renderOperandFallback(target);
         Body inner = innerFrame.get().body();
-        if (!(inner.head() instanceof ItemRef ref)) return renderLiteral(target);
+        if (!(inner.head() instanceof ItemRef ref)) return renderOperandFallback(target);
 
         List<Object> innerTargets = operandTargetsByRole(inner);
         Optional<Rendered> innerOpt = renderOperation(ref.iid(), innerTargets, params);
-        if (innerOpt.isEmpty()) return renderLiteral(target);
+        if (innerOpt.isEmpty()) return renderOperandFallback(target);
 
         Rendered r = innerOpt.get();
         boolean wrap = needsParens(r.precedence(), outerPrecedence, outerAssociativity, isLeftOperand);
@@ -528,10 +457,14 @@ public class OperatorNotation extends Language {
     }
 
     /**
-     * Render a literal binding target as text. Numbers format via {@code toString},
-     * text passes through; other targets fall back to {@code toString()}.
+     * Bare-toString fallback for operand positions that couldn't be recursed into
+     * (literals, ItemRefs, legacy inline FrameTargets).  Strings pass through
+     * unquoted because they sit inside operator expressions where quotes would
+     * be wrong ({@code 5 + "hello"} would already have been wrapped by the
+     * caller if needed).  Distinct from {@link Language#renderLiteral(Object)},
+     * which produces round-trippable, locale-formatted output.
      */
-    private static String renderLiteral(Object target) {
+    private static String renderOperandFallback(Object target) {
         if (target == null) return null;
         if (target instanceof String s) return s;
         return target.toString();

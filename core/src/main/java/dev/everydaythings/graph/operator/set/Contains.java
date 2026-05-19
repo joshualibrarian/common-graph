@@ -18,6 +18,7 @@ import dev.everydaythings.graph.language.ThematicRole;
  */
 @Seed.Item(key = Contains.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Contains.KEY)
+@Seed.Cili("i34820")
 public class Contains extends Operator {
 
     public static final String KEY = "cg.predicate:contains";

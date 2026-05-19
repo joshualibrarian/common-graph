@@ -42,6 +42,7 @@ import java.util.Objects;
  */
 @Seed.Item(key = Color.KEY, head = Value.KEY)
 @Seed.Mints(key = Color.KEY)
+@Seed.Cili("i63025")
 public final class Color extends Value {
 
     public static final String KEY = "cg.archetype:color";

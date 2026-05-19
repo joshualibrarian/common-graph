@@ -21,6 +21,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
  * distinctions don't require an archetype-level split.
  */
 @Seed.Item(key = Group.KEY)
+@Seed.Cili("i35589")
 public class Group extends Actor {
 
     /** Canonical key for the Group archetype. */

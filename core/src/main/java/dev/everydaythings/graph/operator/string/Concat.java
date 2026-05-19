@@ -13,6 +13,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 /** String concatenation operator. Infix, left-associative, precedence 10. */
 @Seed.Item(key = Concat.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Concat.KEY)
+@Seed.Cili("i29044")
 public class Concat extends Operator {
 
     public static final String KEY = "cg.predicate:concat";

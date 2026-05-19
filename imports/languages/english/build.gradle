@@ -24,6 +24,9 @@ dependencies {
     api project(':core')
     api project(':languages:english')
 
+    // Shared importer infrastructure (LMF reader, common record types).
+    api project(':imports:languages')
+
     // ICU for ULocale (used by Language.locale() during import-time tests).
     api "com.ibm.icu:icu4j:${icu4jVersion}"
 

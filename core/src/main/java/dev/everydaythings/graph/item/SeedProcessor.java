@@ -14,6 +14,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.runtime.RuntimeVocabulary;
+import dev.everydaythings.graph.language.CiliId;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -564,7 +565,39 @@ public final class SeedProcessor {
         ItemRef seedIid = seedItem != null ? ItemRef.fromString(seedItem.key()) : null;
 
         List<DatumRef> endorsedCids = new ArrayList<>();
+        // Track field-level CILI declarations so we can detect double-declaration
+        // (both class-level and field-level on the same seed).
+        String fieldCili = null;
         for (Field field : cls.getDeclaredFields()) {
+            // @Seed.Cili field — value comes from the field's String content.
+            Seed.Cili ciliAnnotation = field.getAnnotation(Seed.Cili.class);
+            if (ciliAnnotation != null) {
+                if (!Modifier.isStatic(field.getModifiers()) || field.getType() != String.class) {
+                    throw new IllegalStateException(
+                            "@Seed.Cili field " + cls.getName() + "." + field.getName()
+                                    + " must be a static String");
+                }
+                if (!ciliAnnotation.value().isEmpty()) {
+                    throw new IllegalStateException(
+                            "@Seed.Cili on field " + cls.getName() + "." + field.getName()
+                                    + " must have empty value() — the field's content"
+                                    + " is the source; use class-level @Seed.Cili(\"...\")"
+                                    + " when you want to set the value on the annotation");
+                }
+                if (fieldCili != null) {
+                    throw new IllegalStateException(
+                            "Multiple @Seed.Cili fields on " + cls.getName()
+                                    + " — a seed has exactly one CILI id");
+                }
+                field.setAccessible(true);
+                try {
+                    fieldCili = (String) field.get(null);
+                } catch (IllegalAccessException e) {
+                    throw new IllegalStateException(
+                            "Cannot read @Seed.Cili field " + cls.getName() + "." + field.getName(), e);
+                }
+            }
+
             Seed.Frame[] frames = field.getAnnotationsByType(Seed.Frame.class);
             if (frames.length == 0) continue;
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -593,8 +626,8 @@ public final class SeedProcessor {
             }
         }
 
-        // Class-level shortcuts: @Seed.Gloss and @Seed.Lexeme expand to one or
-        // more endorsed Lexical-vocabulary frames each, no backing field needed.
+        // Class-level shortcuts: @Seed.Gloss, @Seed.Lexeme, @Seed.Cili expand to
+        // endorsed lexical-vocabulary frames, no backing field needed.
         if (seedIid != null) {
             for (Seed.Gloss gloss : cls.getAnnotationsByType(Seed.Gloss.class)) {
                 Body body = buildGlossBody(gloss, seedIid);
@@ -605,9 +638,53 @@ public final class SeedProcessor {
                     endorsedCids.add(librarian.persist(body));
                 }
             }
+            Seed.Cili classCili = cls.getAnnotation(Seed.Cili.class);
+            String ciliText = resolveCili(cls, classCili, fieldCili);
+            if (ciliText != null) {
+                endorsedCids.add(librarian.persist(buildCiliBody(ciliText, seedIid)));
+            }
         }
 
         return endorsedCids;
+    }
+
+    /**
+     * Reconcile class-level vs field-level {@code @Seed.Cili} declarations and
+     * return the single CILI id to use, or null if none.  Throws on:
+     * <ul>
+     *   <li>Class-level annotation present but {@code value} is empty.</li>
+     *   <li>Both class-level and field-level CILI declared (ambiguous).</li>
+     * </ul>
+     */
+    private static String resolveCili(Class<?> cls, Seed.Cili classCili, String fieldCili) {
+        if (classCili != null && !classCili.value().isEmpty()) {
+            if (fieldCili != null) {
+                throw new IllegalStateException(
+                        "Both class-level @Seed.Cili and field-level @Seed.Cili on "
+                                + cls.getName() + " — pick one");
+            }
+            return classCili.value();
+        }
+        if (classCili != null && classCili.value().isEmpty()) {
+            throw new IllegalStateException(
+                    "Class-level @Seed.Cili on " + cls.getName() + " has empty value() —"
+                            + " set the CILI id (e.g., @Seed.Cili(\"i24940\")) or use"
+                            + " a field-level annotation");
+        }
+        return fieldCili;
+    }
+
+    /**
+     * Build the Body for a CILI declaration.  Predicate is {@code cg.sememe:cili-id};
+     * bindings are the back-link THEME → seed and {@code VALUE → "iN"}.
+     */
+    private static Body buildCiliBody(String ciliText, ItemRef seedIid) {
+        List<Binding> bindings = List.of(
+                new Binding(ItemRef.iid(ThematicRole.Theme.KEY), seedIid),
+                new Binding(ItemRef.iid(ThematicRole.Value.KEY), ciliText));
+        return Body.of(
+                ItemRef.of(ItemRef.iid(CiliId.KEY)),
+                bindings);
     }
 
     /**

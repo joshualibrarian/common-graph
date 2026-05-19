@@ -18,6 +18,7 @@ import java.util.Map;
  * <p>Body shape: {@code Body[head=Temperature, Value=N, @<TemperatureUnit>=1]}.
  */
 @Seed.Item(key = Temperature.KEY, head = Quantity.KEY)
+@Seed.Cili("i63340")
 public final class Temperature extends Quantity {
 
     public static final String KEY = "cg.value:temperature";

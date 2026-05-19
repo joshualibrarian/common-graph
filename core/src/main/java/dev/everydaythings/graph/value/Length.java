@@ -25,6 +25,7 @@ import java.util.Map;
  * runtime unit-dimension validation lands later, alongside the EXPECTS rework.
  */
 @Seed.Item(key = Length.KEY, head = Quantity.KEY)
+@Seed.Cili("i63940")
 public final class Length extends Quantity {
 
     public static final String KEY = "cg.value:length";
