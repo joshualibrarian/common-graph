@@ -13,7 +13,8 @@ import dev.everydaythings.graph.identity.vault.Vault;
 import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.identity.AlgorithmCache;
-import dev.everydaythings.graph.identity.AlgorithmHandle;
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.identity.IdentityVocabulary;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.runtime.*;
@@ -464,44 +465,44 @@ public class Librarian extends Signer {
     // initial warm.
     // ==================================================================================
 
-    /** Look up an algorithm handle by COSE identifier (e.g., -8 for Ed25519). */
-    public AlgorithmHandle algorithmByCoseId(long coseId) {
-        AlgorithmHandle h = algorithms.byCoseId(coseId);
-        if (h == null && !algorithms.isWarmed()) {
+    /** Look up a signing algorithm by COSE identifier (e.g., -8 for Ed25519). */
+    public Signing algorithmByCoseId(long coseId) {
+        Signing a = algorithms.byCoseId(coseId);
+        if (a == null && !algorithms.isWarmed()) {
             algorithms.warm(this);
-            h = algorithms.byCoseId(coseId);
+            a = algorithms.byCoseId(coseId);
         }
-        return h;
+        return a;
     }
 
-    /** Look up an algorithm handle by multicodec varsig code. */
-    public AlgorithmHandle algorithmByVarsigCode(long varsigCode) {
-        AlgorithmHandle h = algorithms.byVarsigCode(varsigCode);
-        if (h == null && !algorithms.isWarmed()) {
+    /** Look up a signing algorithm by multicodec varsig code. */
+    public Signing algorithmByVarsigCode(long varsigCode) {
+        Signing a = algorithms.byVarsigCode(varsigCode);
+        if (a == null && !algorithms.isWarmed()) {
             algorithms.warm(this);
-            h = algorithms.byVarsigCode(varsigCode);
+            a = algorithms.byVarsigCode(varsigCode);
         }
-        return h;
+        return a;
     }
 
-    /** Look up an algorithm handle by multicodec multikey code. */
-    public AlgorithmHandle algorithmByMultikeyCode(long multikeyCode) {
-        AlgorithmHandle h = algorithms.byMultikeyCode(multikeyCode);
-        if (h == null && !algorithms.isWarmed()) {
+    /** Look up a signing algorithm by multicodec multikey code. */
+    public Signing algorithmByMultikeyCode(long multikeyCode) {
+        Signing a = algorithms.byMultikeyCode(multikeyCode);
+        if (a == null && !algorithms.isWarmed()) {
             algorithms.warm(this);
-            h = algorithms.byMultikeyCode(multikeyCode);
+            a = algorithms.byMultikeyCode(multikeyCode);
         }
-        return h;
+        return a;
     }
 
-    /** Look up an algorithm handle by its sememe IID. */
-    public AlgorithmHandle algorithmByIid(ItemRef sememeIid) {
-        AlgorithmHandle h = algorithms.byIid(sememeIid);
-        if (h == null && !algorithms.isWarmed()) {
+    /** Look up a signing algorithm by its sememe IID. */
+    public Signing algorithmByIid(ItemRef sememeIid) {
+        Signing a = algorithms.byIid(sememeIid);
+        if (a == null && !algorithms.isWarmed()) {
             algorithms.warm(this);
-            h = algorithms.byIid(sememeIid);
+            a = algorithms.byIid(sememeIid);
         }
-        return h;
+        return a;
     }
 
     // ==================================================================================

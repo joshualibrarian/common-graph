@@ -1,8 +1,6 @@
 package dev.everydaythings.graph.identity;
 
-import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
@@ -36,26 +34,11 @@ public final class AlgorithmVocabulary {
 
     private AlgorithmVocabulary() {}
 
-    // ==================================================================================
-    // Algorithm root archetype
-    // ==================================================================================
-
-    /** The root archetype for cryptographic algorithm sememes. */
-    @Seed.Item(key = Algorithm.KEY)
-    public static final class Algorithm {
-        public static final String KEY = "cg.archetype:algorithm";
-        private Algorithm() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the archetype of cryptographic algorithm sememes — signing, "
-                        + "key-agreement, and AEAD primitives";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "algorithm";
-    }
+    // The Algorithm archetype and concrete algorithm declarations now live
+    // alongside their runtime implementations in
+    // {@link dev.everydaythings.graph.identity.algorithm.Algorithm}.  This
+    // file retains only the metadata-role sememes used as binding roles on
+    // algorithm seed manifests, plus the cross-cutting family value sememes.
 
     // ==================================================================================
     // Metadata role sememes — used as binding roles on algorithm seed manifests
@@ -175,6 +158,24 @@ public final class AlgorithmVocabulary {
                         + "other ASN.1-encoded crypto formats";
     }
 
+    /**
+     * SubjectPublicKeyInfo DER prefix — the algorithm-specific byte sequence
+     * that wraps a raw public key into ASN.1 SPKI form acceptable to JCA's
+     * {@code X509EncodedKeySpec}.  Per-algorithm constant; lets the abstract
+     * decoder be uniform: prepend SPKI prefix to raw bytes, hand to JCA.
+     */
+    @Seed.Item(key = SpkiPrefix.KEY)
+    public static final class SpkiPrefix {
+        public static final String KEY = "cg.algorithm:spki-prefix";
+        private SpkiPrefix() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the SubjectPublicKeyInfo DER prefix for an algorithm — prepended to a "
+                        + "raw public key to produce an ASN.1 SPKI envelope JCA can decode";
+    }
+
     /** Cryptographic key family — points at {@code @okp}, {@code @ec}, or {@code @rsa}. */
     @Seed.Item(key = KeyFamily.KEY)
     public static final class KeyFamily {
@@ -247,16 +248,23 @@ public final class AlgorithmVocabulary {
                 "the JCA KeyAgreement algorithm name (e.g., \"XDH\" for X25519 ECDH)";
     }
 
-    /** KDF or key-wrap name — for key-management algorithms (e.g., "HKDF-SHA256", "OAEP-SHA256"). */
-    @Seed.Item(key = KdfOrWrap.KEY)
-    public static final class KdfOrWrap {
-        public static final String KEY = "cg.algorithm:kdf-or-wrap";
-        private KdfOrWrap() {}
+    /**
+     * Kdf — references another algorithm sememe (a {@link
+     * dev.everydaythings.graph.identity.algorithm.Kdf Kdf} subtype) naming the
+     * key-derivation function used by a key-agreement composite.  Use as a
+     * sememe reference, not a string — the role's value should be an
+     * {@code ItemRef} pointing at the KDF algorithm.
+     */
+    @Seed.Item(key = Kdf.KEY)
+    public static final class Kdf {
+        public static final String KEY = "cg.algorithm:kdf";
+        private Kdf() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "the KDF or key-wrap scheme used by a key-management algorithm";
+                "the key-derivation function used by a composite key-management algorithm "
+                        + "(reference to a KDF algorithm sememe like @cg.algorithm:hkdf-sha-256)";
     }
 
     /** JCA Cipher transformation — for AEAD algorithms (e.g., "AES/GCM/NoPadding"). */
@@ -307,6 +315,35 @@ public final class AlgorithmVocabulary {
                 "the AEAD authentication-tag length in bits";
     }
 
+    /**
+     * Multihash code — the IPFS multihash table byte (or varint) identifying a
+     * hash algorithm's output on the wire.  Used by {@link
+     * dev.everydaythings.graph.id.ContentRef} and friends to self-describe
+     * hash bytes.
+     */
+    @Seed.Item(key = MultihashCode.KEY)
+    public static final class MultihashCode {
+        public static final String KEY = "cg.algorithm:multihash-code";
+        private MultihashCode() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the multihash table code identifying a hash algorithm in the IPFS multihash table";
+    }
+
+    /** Digest length in bytes — for hash algorithms. */
+    @Seed.Item(key = DigestLength.KEY)
+    public static final class DigestLength {
+        public static final String KEY = "cg.algorithm:digest-length";
+        private DigestLength() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the length in bytes of digests produced by a hash algorithm";
+    }
+
     // ==================================================================================
     // Key-family value sememes
     // ==================================================================================
@@ -347,448 +384,4 @@ public final class AlgorithmVocabulary {
                 "the RSA family — variable-modulus keys";
     }
 
-    // ==================================================================================
-    // Signing algorithms
-    // ==================================================================================
-
-    /** Ed25519 — EdDSA signature scheme over the edwards25519 curve. */
-    @Seed.Item(key = Ed25519.KEY, head = Algorithm.KEY)
-    public static final class Ed25519 {
-        public static final String KEY = "cg.algorithm:ed25519";
-        private Ed25519() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.Signing.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -8;
-
-        @Seed.Property(role = VarsigCode.KEY)
-        public static final long VARSIG_CODE = 0xed;
-
-        @Seed.Property(role = MultikeyCode.KEY)
-        public static final long MULTIKEY_CODE = 0xed;
-
-        @Seed.Property(role = KeyFactory.KEY)
-        public static final String KEY_FACTORY = "Ed25519";
-
-        @Seed.Property(role = SignatureName.KEY)
-        public static final String SIGNATURE_NAME = "Ed25519";
-
-        @Seed.Property(role = KeyFamily.KEY)
-        public static final ItemRef KEY_FAMILY = ItemRef.iid(Okp.KEY);
-
-        @Seed.Property(role = RawKeyBytes.KEY)
-        public static final long RAW_KEY_BYTES = 32;
-
-        @Seed.Property(role = SigBytes.KEY)
-        public static final long SIG_BYTES = 64;
-
-        @Seed.Property(role = Asn1Oid.KEY)
-        public static final String ASN1_OID = "1.3.101.112";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "Ed25519 — EdDSA signature scheme over the edwards25519 curve";
-    }
-
-    /** ES256 — ECDSA with P-256 (secp256r1) and SHA-256. */
-    @Seed.Item(key = Es256.KEY, head = Algorithm.KEY)
-    public static final class Es256 {
-        public static final String KEY = "cg.algorithm:es256";
-        private Es256() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.Signing.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -7;
-
-        @Seed.Property(role = VarsigCode.KEY)
-        public static final long VARSIG_CODE = 0x1200;
-
-        @Seed.Property(role = MultikeyCode.KEY)
-        public static final long MULTIKEY_CODE = 0x1200;
-
-        @Seed.Property(role = KeyFactory.KEY)
-        public static final String KEY_FACTORY = "EC";
-
-        @Seed.Property(role = SignatureName.KEY)
-        public static final String SIGNATURE_NAME = "SHA256withECDSA";
-
-        @Seed.Property(role = KeyFamily.KEY)
-        public static final ItemRef KEY_FAMILY = ItemRef.iid(Ec.KEY);
-
-        @Seed.Property(role = CurveName.KEY)
-        public static final String CURVE_NAME = "secp256r1";
-
-        @Seed.Property(role = KeyBits.KEY)
-        public static final long KEY_BITS = 256;
-
-        @Seed.Property(role = RawKeyBytes.KEY)
-        public static final long RAW_KEY_BYTES = 33;
-
-        @Seed.Property(role = SigBytes.KEY)
-        public static final long SIG_BYTES = 64;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "ES256 — ECDSA with the P-256 (secp256r1) curve and SHA-256";
-    }
-
-    /** ES256K — ECDSA with secp256k1 (Bitcoin curve) and SHA-256. */
-    @Seed.Item(key = Es256k.KEY, head = Algorithm.KEY)
-    public static final class Es256k {
-        public static final String KEY = "cg.algorithm:es256k";
-        private Es256k() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.Signing.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -47;
-
-        @Seed.Property(role = VarsigCode.KEY)
-        public static final long VARSIG_CODE = 0xe7;
-
-        @Seed.Property(role = MultikeyCode.KEY)
-        public static final long MULTIKEY_CODE = 0xe7;
-
-        @Seed.Property(role = KeyFactory.KEY)
-        public static final String KEY_FACTORY = "EC";
-
-        @Seed.Property(role = SignatureName.KEY)
-        public static final String SIGNATURE_NAME = "SHA256withECDSA";
-
-        @Seed.Property(role = KeyFamily.KEY)
-        public static final ItemRef KEY_FAMILY = ItemRef.iid(Ec.KEY);
-
-        @Seed.Property(role = CurveName.KEY)
-        public static final String CURVE_NAME = "secp256k1";
-
-        @Seed.Property(role = KeyBits.KEY)
-        public static final long KEY_BITS = 256;
-
-        @Seed.Property(role = RawKeyBytes.KEY)
-        public static final long RAW_KEY_BYTES = 33;
-
-        @Seed.Property(role = SigBytes.KEY)
-        public static final long SIG_BYTES = 64;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "ES256K — ECDSA with the secp256k1 curve and SHA-256 (Bitcoin curve)";
-    }
-
-    /** PS256 — RSASSA-PSS with SHA-256 and MGF1, 4096-bit default. */
-    @Seed.Item(key = Ps256.KEY, head = Algorithm.KEY)
-    public static final class Ps256 {
-        public static final String KEY = "cg.algorithm:ps256";
-        private Ps256() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.Signing.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -37;
-
-        @Seed.Property(role = VarsigCode.KEY)
-        public static final long VARSIG_CODE = 0x1205;
-
-        @Seed.Property(role = MultikeyCode.KEY)
-        public static final long MULTIKEY_CODE = 0x1205;
-
-        @Seed.Property(role = KeyFactory.KEY)
-        public static final String KEY_FACTORY = "RSA";
-
-        @Seed.Property(role = SignatureName.KEY)
-        public static final String SIGNATURE_NAME = "RSASSA-PSS";
-
-        @Seed.Property(role = KeyFamily.KEY)
-        public static final ItemRef KEY_FAMILY = ItemRef.iid(Rsa.KEY);
-
-        @Seed.Property(role = KeyBits.KEY)
-        public static final long KEY_BITS = 4096;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "PS256 — RSASSA-PSS with SHA-256 and MGF1, 4096-bit default modulus";
-    }
-
-    // ==================================================================================
-    // Key-agreement algorithms
-    // ==================================================================================
-
-    /** ECDH-ES with HKDF-SHA-256 over X25519. */
-    @Seed.Item(key = EcdhEsHkdf256.KEY, head = Algorithm.KEY)
-    public static final class EcdhEsHkdf256 {
-        public static final String KEY = "cg.algorithm:ecdh-es-hkdf-256";
-        private EcdhEsHkdf256() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -25;
-
-        @Seed.Property(role = MultikeyCode.KEY)
-        public static final long MULTIKEY_CODE = 0xec;
-
-        @Seed.Property(role = KeyFactory.KEY)
-        public static final String KEY_FACTORY = "XDH";
-
-        @Seed.Property(role = KeyGenerator.KEY)
-        public static final String KEY_GENERATOR = "X25519";
-
-        @Seed.Property(role = AgreementName.KEY)
-        public static final String AGREEMENT_NAME = "XDH";
-
-        @Seed.Property(role = KdfOrWrap.KEY)
-        public static final String KDF_OR_WRAP = "HKDF-SHA256";
-
-        @Seed.Property(role = KeyFamily.KEY)
-        public static final ItemRef KEY_FAMILY = ItemRef.iid(Okp.KEY);
-
-        @Seed.Property(role = RawKeyBytes.KEY)
-        public static final long RAW_KEY_BYTES = 32;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "ECDH-ES with HKDF-SHA-256 over X25519 — key agreement for content-key derivation";
-    }
-
-    /** RSA-OAEP with SHA-256 — key transport via RSA wrapping. */
-    @Seed.Item(key = RsaOaep256.KEY, head = Algorithm.KEY)
-    public static final class RsaOaep256 {
-        public static final String KEY = "cg.algorithm:rsa-oaep-256";
-        private RsaOaep256() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -41;
-
-        @Seed.Property(role = MultikeyCode.KEY)
-        public static final long MULTIKEY_CODE = 0x1205;
-
-        @Seed.Property(role = KeyFactory.KEY)
-        public static final String KEY_FACTORY = "RSA";
-
-        @Seed.Property(role = KdfOrWrap.KEY)
-        public static final String KDF_OR_WRAP = "OAEP-SHA256";
-
-        @Seed.Property(role = KeyFamily.KEY)
-        public static final ItemRef KEY_FAMILY = ItemRef.iid(Rsa.KEY);
-
-        @Seed.Property(role = KeyBits.KEY)
-        public static final long KEY_BITS = 4096;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "RSA-OAEP with SHA-256 — key transport via RSA wrapping, 4096-bit default";
-    }
-
-    // ==================================================================================
-    // AEAD content-cipher algorithms
-    // ==================================================================================
-
-    /** AES-128-GCM — AES with 128-bit key in GCM mode. */
-    @Seed.Item(key = AesGcm128.KEY, head = Algorithm.KEY)
-    public static final class AesGcm128 {
-        public static final String KEY = "cg.algorithm:aes-gcm-128";
-        private AesGcm128() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.Encryption.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = 1;
-
-        @Seed.Property(role = Transformation.KEY)
-        public static final String TRANSFORMATION = "AES/GCM/NoPadding";
-
-        @Seed.Property(role = KeyBytes.KEY)
-        public static final long KEY_BYTES = 16;
-
-        @Seed.Property(role = NonceBytes.KEY)
-        public static final long NONCE_BYTES = 12;
-
-        @Seed.Property(role = TagBits.KEY)
-        public static final long TAG_BITS = 128;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "AES-128-GCM — AES with 128-bit key in Galois/Counter Mode";
-    }
-
-    /** AES-256-GCM — AES with 256-bit key in GCM mode. */
-    @Seed.Item(key = AesGcm256.KEY, head = Algorithm.KEY)
-    public static final class AesGcm256 {
-        public static final String KEY = "cg.algorithm:aes-gcm-256";
-        private AesGcm256() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.Encryption.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = 3;
-
-        @Seed.Property(role = Transformation.KEY)
-        public static final String TRANSFORMATION = "AES/GCM/NoPadding";
-
-        @Seed.Property(role = KeyBytes.KEY)
-        public static final long KEY_BYTES = 32;
-
-        @Seed.Property(role = NonceBytes.KEY)
-        public static final long NONCE_BYTES = 12;
-
-        @Seed.Property(role = TagBits.KEY)
-        public static final long TAG_BITS = 128;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "AES-256-GCM — AES with 256-bit key in Galois/Counter Mode";
-    }
-
-    /** ChaCha20-Poly1305 — ChaCha20 stream cipher with Poly1305 MAC. */
-    @Seed.Item(key = ChaCha20Poly1305.KEY, head = Algorithm.KEY)
-    public static final class ChaCha20Poly1305 {
-        public static final String KEY = "cg.algorithm:chacha20-poly1305";
-        private ChaCha20Poly1305() {}
-
-        @Seed.Property(role = Purpose.KEY)
-        public static final ItemRef PURPOSE = ItemRef.iid(IdentityVocabulary.Encryption.KEY);
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = 24;
-
-        @Seed.Property(role = Transformation.KEY)
-        public static final String TRANSFORMATION = "ChaCha20-Poly1305";
-
-        @Seed.Property(role = KeyBytes.KEY)
-        public static final long KEY_BYTES = 32;
-
-        @Seed.Property(role = NonceBytes.KEY)
-        public static final long NONCE_BYTES = 12;
-
-        @Seed.Property(role = TagBits.KEY)
-        public static final long TAG_BITS = 128;
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "ChaCha20-Poly1305 — ChaCha20 stream cipher with Poly1305 authentication";
-    }
-
-    // ==================================================================================
-    // Hash algorithms — cryptographic digests.  Keyless primitives; no purpose
-    // binding (the Purpose role describes key-bearing algorithms only).  Used
-    // as the digest component of cert signature suites ("ECDSA-SHA256",
-    // "RSA-PKCS1-SHA384") and anywhere a content hash needs naming.
-    // ==================================================================================
-
-    /** SHA-256 — 256-bit Secure Hash Algorithm 2 (NIST FIPS 180-4). */
-    //TODO: this is duplicated and must be merged with digest.Sha254, and others
-    @Seed.Item(key = Sha256.KEY, head = Algorithm.KEY)
-    public static final class Sha256 {
-        public static final String KEY = "cg.algorithm:sha-256";
-        private Sha256() {}
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -16;
-
-        @Seed.Property(role = DigestName.KEY)
-        public static final String DIGEST_NAME = "SHA-256";
-
-        @Seed.Property(role = Asn1Oid.KEY)
-        public static final String ASN1_OID = "2.16.840.1.101.3.4.2.1";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "SHA-256 — 256-bit Secure Hash Algorithm 2 (NIST FIPS 180-4)";
-    }
-
-    /** SHA-384 — 384-bit Secure Hash Algorithm 2 (NIST FIPS 180-4). */
-    @Seed.Item(key = Sha384.KEY, head = Algorithm.KEY)
-    public static final class Sha384 {
-        public static final String KEY = "cg.algorithm:sha-384";
-        private Sha384() {}
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -43;
-
-        @Seed.Property(role = DigestName.KEY)
-        public static final String DIGEST_NAME = "SHA-384";
-
-        @Seed.Property(role = Asn1Oid.KEY)
-        public static final String ASN1_OID = "2.16.840.1.101.3.4.2.2";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "SHA-384 — 384-bit Secure Hash Algorithm 2 (NIST FIPS 180-4)";
-    }
-
-    /** SHA-512 — 512-bit Secure Hash Algorithm 2 (NIST FIPS 180-4). */
-    @Seed.Item(key = Sha512.KEY, head = Algorithm.KEY)
-    public static final class Sha512 {
-        public static final String KEY = "cg.algorithm:sha-512";
-        private Sha512() {}
-
-        @Seed.Property(role = CoseId.KEY)
-        public static final long COSE_ID = -44;
-
-        @Seed.Property(role = DigestName.KEY)
-        public static final String DIGEST_NAME = "SHA-512";
-
-        @Seed.Property(role = Asn1Oid.KEY)
-        public static final String ASN1_OID = "2.16.840.1.101.3.4.2.3";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "SHA-512 — 512-bit Secure Hash Algorithm 2 (NIST FIPS 180-4)";
-    }
-
-    // ==================================================================================
-    // Ciphersuites — whole-suite sememes bundling a KEM + AEAD + KDF.
-    // Whole-suite (not piece-by-piece) to minimize misconfiguration surface.
-    // Used as a single {@code INSTRUMENT → @suite-iid} binding on ENCRYPT bodies.
-    // ==================================================================================
-
-    /**
-     * X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD.
-     *
-     * <p>The default ciphersuite for ENCRYPT bodies (see
-     * {@link EncryptionVocabulary.Encrypt}).  Used as
-     * {@code INSTRUMENT → @ItemRef.iid(X25519_AES256GCM_HKDF.KEY)} to name this suite.
-     *
-     * <p>Concretely: sender generates ephemeral X25519 keypair; for each
-     * recipient performs ECDH against the recipient's long-term encryption-track
-     * X25519 pubkey to derive a shared secret; runs HKDF-SHA256 to derive a key
-     * wrapping key (KEK); encrypts the data encryption key (DEK) with that KEK;
-     * encrypts the cleartext with the DEK using AES-256-GCM (which includes its
-     * own AEAD authentication tag).
-     */
-    @Seed.Item(key = X25519_AES256GCM_HKDF.KEY)
-    public static final class X25519_AES256GCM_HKDF {
-        public static final String KEY = "cg.algorithm:x25519-aes256gcm-hkdf-sha256";
-        private X25519_AES256GCM_HKDF() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "X25519 ECDH key agreement + HKDF-SHA256 key derivation + AES-256-GCM AEAD "
-                        + "ciphersuite for hybrid encryption with per-recipient key wrap";
-    }
 }

@@ -75,12 +75,12 @@ class DelegationTest {
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), ItemRef.fromString("parent")),
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("child")),
                         Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Signing.KEY)),
-                        Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Encryption.KEY))
+                        Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY))
                 )
         );
 
         assertThat(Signer.readPurposes(body))
-                .containsExactlyInAnyOrder(ItemRef.iid(IdentityVocabulary.Signing.KEY), ItemRef.iid(IdentityVocabulary.Encryption.KEY));
+                .containsExactlyInAnyOrder(ItemRef.iid(IdentityVocabulary.Signing.KEY), ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY));
     }
 
     @Test

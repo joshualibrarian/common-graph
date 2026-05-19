@@ -4,13 +4,15 @@ import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.identity.AlgorithmVocabulary;
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +54,7 @@ class DatumIntegrationTest {
         assertThat(rawPublicKey).hasSize(32);
 
         // Wrap it as a MultiKey using the Ed25519 multikey codec.
-        MultiKey signerKey = MultiKey.of((int) AlgorithmVocabulary.Ed25519.MULTIKEY_CODE, rawPublicKey);
+        MultiKey signerKey = MultiKey.of((int) Signing.Ed25519.MULTIKEY_CODE, rawPublicKey);
 
         // Build a body — "Tolkien authored the Hobbit"
         ItemRef tolkien = ItemRef.fromString("person.tolkien");
@@ -86,7 +88,7 @@ class DatumIntegrationTest {
         assertThat(rawSignature).hasSize(64);
 
         // Wrap raw signature as VarSig using the Ed25519 varsig codec.
-        VarSig varsig = VarSig.of((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE, rawSignature);
+        VarSig varsig = VarSig.of((int) Signing.Ed25519.VARSIG_CODE, rawSignature);
 
         // Build the real record with the actual signature
         Record record = Record.of(
@@ -109,13 +111,13 @@ class DatumIntegrationTest {
         verifier.initVerify(kp.getPublic());
         verifier.update(recoveredToSign);
         VarSig recoveredSig = record.varsig();
-        assertThat(recoveredSig.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE);
+        assertThat(recoveredSig.code()).isEqualTo((int) Signing.Ed25519.VARSIG_CODE);
         assertThat(verifier.verify(recoveredSig.rawSig())).isTrue();
 
         // Round-trip the multikey through wire form and confirm
         MultiKey roundTrippedKey = MultiKey.decode(signerKey.encoded());
         assertThat(roundTrippedKey).isEqualTo(signerKey);
-        assertThat(roundTrippedKey.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.MULTIKEY_CODE);
+        assertThat(roundTrippedKey.code()).isEqualTo((int) Signing.Ed25519.MULTIKEY_CODE);
     }
 
     @Test
@@ -183,15 +185,8 @@ class DatumIntegrationTest {
         assertThat(manifest.asManifest()).contains(manifest);
     }
 
-    /**
-     * Extract the raw 32-byte Ed25519 public key from the X.509 SubjectPublicKeyInfo
-     * encoding that JCA returns from {@code PublicKey.getEncoded()}.
-     *
-     * <p>The SPKI structure wraps the raw key in an ASN.1 OCTET STRING; BouncyCastle's
-     * helper extracts it cleanly.
-     */
+    /** Extract the raw 32-byte Ed25519 public key from a JCA PublicKey. */
     private static byte[] extractRawEd25519PublicKey(PublicKey pk) {
-        SubjectPublicKeyInfo spki = SubjectPublicKeyInfo.getInstance(pk.getEncoded());
-        return spki.getPublicKeyData().getBytes();
+        return Signing.Ed25519.builtin().publicKeyToRaw(pk);
     }
 }

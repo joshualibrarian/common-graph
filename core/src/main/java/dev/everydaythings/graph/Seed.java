@@ -1,6 +1,7 @@
 package dev.everydaythings.graph;
 
 
+import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 
@@ -566,5 +567,108 @@ public class Seed {
 
         /** Canonical key of the predicate whose frames this method handles. */
         String predicate();
+    }
+
+    /**
+     * Class-level shortcut for declaring an English gloss on the enclosing
+     * {@link Item @Seed.Item}.  Expands to a {@link Frame @Seed.Frame} whose
+     * predicate is {@code cg.predicate:gloss}, with a back-link THEME binding
+     * to the seed and a {@code VALUE[Language.English] → "<text>"} binding.
+     *
+     * <p>Equivalent long-form:
+     * <pre>{@code
+     * @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+     *             field = @Seed.Binding(role = ThematicRole.Value.KEY,
+     *                                   qualifiers = {Language.English.KEY}))
+     * static final String englishGloss = "the operation of summing two quantities";
+     * }</pre>
+     *
+     * <p>Short form:
+     * <pre>{@code
+     * @Seed.Gloss(english = "the operation of summing two quantities")
+     * public class Add { ... }
+     * }</pre>
+     *
+     * <p>For glosses in other languages, continue to use {@link Frame @Seed.Frame}
+     * with an explicit language qualifier until a similar shortcut is needed.
+     *
+     * <p>Repeatable so a single class may carry multiple glosses (different
+     * registers, dialects, etc.).
+     */
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(Gloss.List.class)
+    public static @interface Gloss {
+
+        /** English gloss text. */
+        String english();
+
+        /** Container for repeated {@code @Seed.Gloss} annotations on the same class. */
+        @Target(ElementType.TYPE)
+        @Retention(RetentionPolicy.RUNTIME)
+        @interface List {
+            Gloss[] value();
+        }
+    }
+
+    /**
+     * Class-level shortcut for declaring English lexemes on the enclosing
+     * {@link Item @Seed.Item}.  Expands to one {@link Frame @Seed.Frame} per
+     * supplied lemma, whose predicate is {@code cg.predicate:lexeme}, with
+     * back-link THEME → seed, and {@code VALUE[Language.English, <pos>, <feature>]
+     * → "<lemma>"} binding.
+     *
+     * <p>Equivalent long-form:
+     * <pre>{@code
+     * @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+     *             field = @Seed.Binding(role = ThematicRole.Value.KEY,
+     *                                   qualifiers = {Language.English.KEY,
+     *                                                 PartOfSpeech.Verb.KEY,
+     *                                                 GrammaticalFeature.Lemma.KEY}))
+     * static final String[] englishVerbLemmas = {"add", "sum"};
+     * }</pre>
+     *
+     * <p>Short form:
+     * <pre>{@code
+     * @Seed.Lexeme(english = {"add", "sum"}, pos = PartOfSpeech.Verb.KEY)
+     * public class Add { ... }
+     * }</pre>
+     *
+     * <p>{@link #feature} defaults to {@link GrammaticalFeature.Lemma} since that's
+     * the overwhelming majority of cases — only inflected forms (past tense,
+     * plural, etc.) need to override.
+     *
+     * <p>Multiple lemmas with the same POS go in one annotation as an array;
+     * different POS go in separate {@code @Seed.Lexeme} annotations (it's
+     * {@link Repeatable}).
+     */
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(Lexeme.List.class)
+    public static @interface Lexeme {
+
+        /**
+         * English lemma(s). Java's single-element array shorthand lets you write
+         * {@code english = "add"} for one lemma and {@code english = {"add", "sum"}}
+         * for several. Each element produces its own endorsed Lexeme frame.
+         */
+        String[] english();
+
+        /** Canonical key of the part-of-speech sememe. E.g., {@code PartOfSpeech.Verb.KEY}. */
+        String pos();
+
+        /**
+         * Canonical key of the grammatical feature. Defaults to
+         * {@link GrammaticalFeature.Lemma} — the canonical citation form.
+         * Override for inflected lexemes (past, plural, participle, etc.).
+         */
+        String feature() default GrammaticalFeature.Lemma.KEY;
+
+        /** Container for repeated {@code @Seed.Lexeme} annotations on the same class. */
+        @Target(ElementType.TYPE)
+        @Retention(RetentionPolicy.RUNTIME)
+        @interface List {
+            Lexeme[] value();
+        }
     }
 }

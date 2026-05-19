@@ -85,7 +85,7 @@ public interface Vault {
     /** The current public key for this purpose, if any. */
     default Optional<MultiKey> publicKey(ItemRef purpose) {
         if (ItemRef.iid(IdentityVocabulary.Signing.KEY).equals(purpose)) return signingPublicKey();
-        if (ItemRef.iid(IdentityVocabulary.Encryption.KEY).equals(purpose)) return encryptionPublicKey();
+        if (ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY).equals(purpose)) return keyAgreementPublicKey();
         return Optional.empty();
     }
 
@@ -96,7 +96,7 @@ public interface Vault {
      */
     default Optional<ContentRef> nextKeyDigest(ItemRef purpose) {
         if (ItemRef.iid(IdentityVocabulary.Signing.KEY).equals(purpose)) return signingNextKeyDigest();
-        if (ItemRef.iid(IdentityVocabulary.Encryption.KEY).equals(purpose)) return encryptionNextKeyDigest();
+        if (ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY).equals(purpose)) return keyAgreementNextKeyDigest();
         return Optional.empty();
     }
 
@@ -235,7 +235,7 @@ public interface Vault {
      * The signing-algorithm sememe IID in use, if this vault holds signing keys.
      * Returns the algorithm sememe's identity (e.g.,
      * {@code @cg.algorithm:ed25519}) — callers can resolve to a runtime
-     * {@link dev.everydaythings.graph.identity.AlgorithmHandle} via the
+     * {@link dev.everydaythings.graph.identity.algorithm.Signing} via the
      * librarian when verification machinery is needed.
      */
     Optional<ItemRef> signingAlgorithm();
@@ -256,31 +256,138 @@ public interface Vault {
     }
 
     // ==================================================================================
-    // Encryption track (Phase 2 — methods declared for forward extension; current
-    // InMemoryVault returns empty until encryption work begins)
+    // Key-agreement track (Phase 2 — methods declared for forward extension;
+    // current InMemoryVault returns empty until X25519-in-Vault work begins).
+    //
+    // Holds the long-term keypair (typically X25519) used to derive shared
+    // secrets with peers.  The keypair is NOT used to encrypt content directly
+    // — that's an AEAD step at the content layer with a derived symmetric key.
+    // The vault's role here is only the Diffie-Hellman half: combining its
+    // private key with a peer's public key to produce a shared secret.
     // ==================================================================================
 
     /**
-     * The encryption-algorithm sememe IID in use, if this vault holds
-     * encryption keys.  Returns the algorithm sememe's identity (e.g.,
-     * {@code @cg.algorithm:ecdh-es-hkdf-256}).
+     * The key-agreement-algorithm sememe IID in use, if this vault holds
+     * key-agreement keys.  Returns the algorithm sememe's identity (e.g.,
+     * {@code @cg.algorithm:x25519} or {@code @cg.algorithm:ecdh-es-hkdf-256}).
      */
-    default Optional<ItemRef> encryptionAlgorithm() {
+    default Optional<ItemRef> keyAgreementAlgorithm() {
         return Optional.empty();
     }
 
-    /** The current encryption public key, if this vault holds encryption keys. */
-    default Optional<MultiKey> encryptionPublicKey() {
+    /** The current key-agreement public key, if this vault holds one. */
+    default Optional<MultiKey> keyAgreementPublicKey() {
         return Optional.empty();
     }
 
-    /** The pre-rotation commitment for the encryption track. */
-    default Optional<ContentRef> encryptionNextKeyDigest() {
+    /** The pre-rotation commitment for the key-agreement track. */
+    default Optional<ContentRef> keyAgreementNextKeyDigest() {
         return Optional.empty();
     }
 
-    /** Whether this vault can currently encrypt / do key agreement. */
-    default boolean canEncrypt() {
-        return encryptionAlgorithm().isPresent() && !isLocked();
+    /** Whether this vault can currently perform key agreement. */
+    default boolean canKeyAgree() {
+        return keyAgreementAlgorithm().isPresent() && !isLocked();
+    }
+
+    /**
+     * Derive a shared secret by pairing this vault's key-agreement private key
+     * with the given peer's public key.  Returns the raw shared-secret bytes;
+     * callers feed them into a KDF (HKDF-SHA-256 etc.) to produce a content
+     * key.
+     *
+     * @throws IllegalStateException if this vault holds no key-agreement keys
+     * @throws VaultLockedException  if the vault is locked
+     */
+    default byte[] agree(java.security.PublicKey peerPublicKey) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + ".agree(...) not yet implemented");
+    }
+
+    // ==================================================================================
+    // Signed pre-key (for asynchronous Double-Ratchet session establishment via X3DH)
+    // ==================================================================================
+
+    /**
+     * The signer's published X25519 signed pre-key, if this vault holds one.
+     * Used by peers as input to X3DH when opening a Double-Ratchet session.
+     * The private side stays in the vault; the public side is published as a
+     * SignedPreKey frame.
+     */
+    default Optional<MultiKey> signedPreKeyPublicKey() {
+        return Optional.empty();
+    }
+
+    /**
+     * Build a self-signed SignedPreKey {@link Frame} ready to publish: body
+     * declaring the signer's current X25519 pre-key with thematic-role
+     * bindings (THEME=identity, INSTRUMENT[Multikey]=key, PURPOSE=KeyAgreement,
+     * TIME=now), record signed by the signing track.  Caller persists the
+     * frame.
+     */
+    default Frame signedPreKeyFrame() {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + ".signedPreKeyFrame() not yet implemented");
+    }
+
+    // ==================================================================================
+    // Double Ratchet sessions
+    //
+    // Session state lives in the vault, not in the graph.  Keyed by peer IID.
+    // Sessions are 1↔1 with each peer; group communication is composed at a
+    // layer above (pairwise fanout or hybrid key-wrap, see project docs).
+    // ==================================================================================
+
+    /**
+     * Open a Double-Ratchet session to the named peer as the initiator.
+     * Runs X3DH against the peer's identity key and signed pre-key, seeds the
+     * Double-Ratchet root key, and stores the session state in the vault
+     * keyed by {@code peerIid}.
+     *
+     * <p>The initiator's identity and ephemeral pubkeys are recorded as
+     * "bootstrap bindings" on outgoing messages so the recipient can run
+     * X3DH's responder path on the first message they receive.  The
+     * recipient does not need a prior {@code acceptSessionFrom} call — they
+     * just call {@link #decryptInSession} and the vault auto-bootstraps if
+     * the message carries INITIATOR_IDENTITY_KEY / INITIATOR_EPHEMERAL_KEY
+     * bindings and no session exists.
+     */
+    default void openSessionTo(ItemRef peerIid, MultiKey peerIkPub, MultiKey peerSpkPub) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + ".openSessionTo(...) not yet implemented");
+    }
+
+    /**
+     * Encrypt {@code plaintext} for the named peer using the established
+     * session.  Returns the AEAD ciphertext (to live in the
+     * {@code Opaque.Encrypted} body) plus the bindings list to put on the
+     * accompanying record.  See {@link
+     * dev.everydaythings.graph.identity.DoubleRatchet.EncryptedMessage}.
+     */
+    default dev.everydaythings.graph.identity.DoubleRatchet.EncryptedMessage encryptInSession(
+            ItemRef peerIid, byte[] plaintext) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + ".encryptInSession(...) not yet implemented");
+    }
+
+    /**
+     * Decrypt a session message from the named peer.  Takes the ciphertext
+     * (from the {@code Opaque.Encrypted} body) plus the bindings (from the
+     * accompanying record) and returns the plaintext.
+     */
+    default byte[] decryptInSession(ItemRef peerIid,
+                                    dev.everydaythings.graph.identity.DoubleRatchet.EncryptedMessage message) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + ".decryptInSession(...) not yet implemented");
+    }
+
+    /** Whether a session exists with the given peer. */
+    default boolean hasSessionWith(ItemRef peerIid) {
+        return false;
+    }
+
+    /** Discard the session with the given peer.  Idempotent. */
+    default void closeSession(ItemRef peerIid) {
+        // no-op default
     }
 }

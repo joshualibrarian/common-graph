@@ -80,16 +80,10 @@ public final class ThematicRole {
 
     /** The intended endpoint or aim of an action. */
     @Seed.Item(key = Goal.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "to", pos = PartOfSpeech.Preposition.KEY)
     public static final class Goal {
         public static final String KEY = "cg.role:goal";
         private Goal() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = Value.KEY,
-                      qualifiers = {Language.English.KEY,
-                                    PartOfSpeech.Preposition.KEY,
-                                    GrammaticalFeature.Lemma.KEY}))
-        static final String englishPreposition = "to";
     }
 
     /** The terminal location of motion. */
@@ -101,16 +95,10 @@ public final class ThematicRole {
 
     /** The originating location or origin of motion. */
     @Seed.Item(key = Source.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "from", pos = PartOfSpeech.Preposition.KEY)
     public static final class Source {
         public static final String KEY = "cg.role:source";
         private Source() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = Value.KEY,
-                      qualifiers = {Language.English.KEY,
-                                    PartOfSpeech.Preposition.KEY,
-                                    GrammaticalFeature.Lemma.KEY}))
-        static final String englishPreposition = "from";
     }
 
     /** The route or trajectory of motion. */
@@ -129,16 +117,10 @@ public final class ThematicRole {
 
     /** The participant receiving something in a transfer. */
     @Seed.Item(key = Recipient.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "for", pos = PartOfSpeech.Preposition.KEY)
     public static final class Recipient {
         public static final String KEY = "cg.role:recipient";
         private Recipient() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = Value.KEY,
-                      qualifiers = {Language.English.KEY,
-                                    PartOfSpeech.Preposition.KEY,
-                                    GrammaticalFeature.Lemma.KEY}))
-        static final String englishPreposition = "for";
     }
 
     /** The participant intended to benefit from an action. */
@@ -150,30 +132,18 @@ public final class ThematicRole {
 
     /** A co-participant in a reciprocal relation. */
     @Seed.Item(key = Partner.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "with", pos = PartOfSpeech.Preposition.KEY)
     public static final class Partner {
         public static final String KEY = "cg.role:partner";
         private Partner() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = Value.KEY,
-                      qualifiers = {Language.English.KEY,
-                                    PartOfSpeech.Preposition.KEY,
-                                    GrammaticalFeature.Lemma.KEY}))
-        static final String englishPreposition = "with";
     }
 
     /** The means by which an action is performed. */
     @Seed.Item(key = Instrument.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "with", pos = PartOfSpeech.Preposition.KEY)
     public static final class Instrument {
         public static final String KEY = "cg.role:instrument";
         private Instrument() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = Value.KEY,
-                      qualifiers = {Language.English.KEY,
-                                    PartOfSpeech.Preposition.KEY,
-                                    GrammaticalFeature.Lemma.KEY}))
-        static final String englishPreposition = "with";
     }
 
     /** The manner or way in which an action is performed. */

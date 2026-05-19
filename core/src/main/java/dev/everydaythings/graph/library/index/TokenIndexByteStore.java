@@ -3,6 +3,7 @@ package dev.everydaythings.graph.library.index;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.HashID;
@@ -39,6 +40,13 @@ import java.util.stream.Stream;
 public interface TokenIndexByteStore extends TokenIndexStore, ByteStore<TokenIndexStore.Column> {
 
     byte NULL_TERMINATOR = 0x00;
+
+    /**
+     * The encoder used to produce byte-stable compound-key fragments embedded
+     * in posting keys.  All replicas of a token index must agree on the
+     * encoder for keys to interoperate.
+     */
+    Encoding rawEncoder();
 
     // ==================================================================================
     // Write API
@@ -108,7 +116,7 @@ public interface TokenIndexByteStore extends TokenIndexStore, ByteStore<TokenInd
     private byte[] entryKey(String normalizedToken, DatumRef datumId, CompoundKey bindingKey) {
         byte[] tokenBytes = normalizedToken.getBytes(StandardCharsets.UTF_8);
         byte[] datumBytes = datumId.encodeBinary();
-        byte[] compoundKeyBytes = dev.everydaythings.graph.encoding.CgCbor.encode(bindingKey);
+        byte[] compoundKeyBytes = rawEncoder().encode(bindingKey);
         return KeyEncoder.cat(tokenBytes, new byte[]{NULL_TERMINATOR}, datumBytes, compoundKeyBytes);
     }
 
@@ -138,8 +146,7 @@ public interface TokenIndexByteStore extends TokenIndexStore, ByteStore<TokenInd
             if (afterDatum > key.length) return null;
 
             byte[] compoundKeyBytes = Arrays.copyOfRange(key, afterDatum, key.length);
-            CompoundKey bindingKey = dev.everydaythings.graph.encoding.CgCbor
-                    .decodeCompoundKey(compoundKeyBytes);
+            CompoundKey bindingKey = rawEncoder().decode(compoundKeyBytes, CompoundKey.class);
             return new ParsedKey(token, datum, bindingKey);
         } catch (Exception e) {
             return null;

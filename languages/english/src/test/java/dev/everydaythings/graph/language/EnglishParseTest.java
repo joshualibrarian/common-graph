@@ -3,6 +3,7 @@ package dev.everydaythings.graph.language;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.operator.math.Add;
+import dev.everydaythings.graph.operator.math.Subtract;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
@@ -64,6 +65,52 @@ class EnglishParseTest {
         assertThat(goal).as("GOAL binding present").isNotNull();
         assertThat(goal.target().value())
                 .as("GOAL = 3").isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("\"subtract 3 from 10\" → SUBTRACT{THEME=3, SOURCE=10}")
+    void parsesTransitiveVerbWithSourcePreposition() {
+        // Exercises a non-GOAL role marker: "from" → SOURCE.
+        FrameMap result = orchestrator.parse("subtract 3 from 10", englishParams);
+
+        assertThat(result.predicate()).as("predicate present").isNotNull();
+        assertThat(result.predicate().value().iid())
+                .as("predicate is SUBTRACT")
+                .isEqualTo(ItemRef.iid(Subtract.KEY));
+
+        BindingMap theme = bindingForRole(result, ThematicRole.Theme.KEY);
+        assertThat(theme).as("THEME binding present").isNotNull();
+        assertThat(theme.target().value())
+                .as("THEME = 3 (the quantity being removed)")
+                .isEqualTo(3L);
+
+        BindingMap source = bindingForRole(result, ThematicRole.Source.KEY);
+        assertThat(source).as("SOURCE binding present").isNotNull();
+        assertThat(source.target().value())
+                .as("SOURCE = 10 (the quantity removed from)")
+                .isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("\"5 + 3\" with English in stack → OperatorNotation wins (ADD{THEME=5, GOAL=3})")
+    void englishYieldsToOperatorNotationOnSymbolicInput() {
+        // English is in the language stack but its parse contributes empty for
+        // input that holds no English verb-lemma. OperatorNotation (anchored
+        // automatically via the "+" symbol resolving to Add) wins consensus.
+        FrameMap result = orchestrator.parse("5 + 3", englishParams);
+
+        assertThat(result.predicate()).as("predicate present").isNotNull();
+        assertThat(result.predicate().value().iid())
+                .as("OperatorNotation wins — predicate is ADD")
+                .isEqualTo(ItemRef.iid(Add.KEY));
+
+        BindingMap theme = bindingForRole(result, ThematicRole.Theme.KEY);
+        assertThat(theme).isNotNull();
+        assertThat(theme.target().value()).isEqualTo(5L);
+
+        BindingMap goal = bindingForRole(result, ThematicRole.Goal.KEY);
+        assertThat(goal).isNotNull();
+        assertThat(goal.target().value()).isEqualTo(3L);
     }
 
     private static BindingMap bindingForRole(FrameMap fm, String roleKey) {

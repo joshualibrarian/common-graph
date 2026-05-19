@@ -5,12 +5,23 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import javax.security.auth.x500.X500Principal;
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -149,19 +160,65 @@ class TlsTunnelTest {
         }
 
         @Test
-        @DisplayName("counterparty is empty pending the cert-as-record + trust resolution work")
-        void counterpartyProvisional() throws Exception {
+        @DisplayName("counterparty empty for one-sided TLS with an RSA self-signed cert (RSA not yet wired through MultiKey)")
+        void counterpartyEmptyForRsa() throws Exception {
+            // Netty's SelfSignedCertificate defaults to RSA, and MultiKey.fromJcaPublicKey
+            // only handles Ed25519 today.  So this exercise produces an empty
+            // counterparty on both sides:
+            //   - client side: server's RSA cert can't convert to MultiKey
+            //   - server side: client presented no cert (one-sided TLS)
             LoopbackTunnel.Pair pair = LoopbackTunnel.pair();
             TlsTunnel serverTls = TlsTunnel.server(pair.a(), serverContext);
             TlsTunnel clientTls = TlsTunnel.client(pair.b(), clientContext);
 
             clientTls.handshakeFuture().get(5, TimeUnit.SECONDS);
 
-            // Provisional: pending step 5 (cert sememe + trust resolution),
-            // counterparty() returns empty even after a successful handshake.
             assertThat(clientTls.counterparty()).isEmpty();
             assertThat(serverTls.counterparty()).isEmpty();
             assertThat(clientTls.isAuthenticated()).isFalse();
+            assertThat(serverTls.isAuthenticated()).isFalse();
+        }
+
+        @Test
+        @DisplayName("counterparty surfaces the peer's Ed25519 multikey after handshake with Ed25519 cert")
+        void counterpartyForEd25519() throws Exception {
+            // Mint an Ed25519 keypair + self-signed cert via BouncyCastle
+            // (Netty's SelfSignedCertificate doesn't support EdDSA).
+            KeyPair edKeyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+            X509Certificate edCert = mintEd25519SelfSignedCert(edKeyPair, "CN=test.cg");
+
+            SslContext edServerContext = SslContextBuilder
+                    .forServer(edKeyPair.getPrivate(), edCert).build();
+            SslContext edClientContext = SslContextBuilder.forClient()
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+
+            LoopbackTunnel.Pair pair = LoopbackTunnel.pair();
+            TlsTunnel serverTls = TlsTunnel.server(pair.a(), edServerContext);
+            TlsTunnel clientTls = TlsTunnel.client(pair.b(), edClientContext);
+
+            clientTls.handshakeFuture().get(5, TimeUnit.SECONDS);
+
+            // Client side: the server's cert pubkey is now visible as a MultiKey.
+            assertThat(clientTls.counterparty()).isPresent();
+            assertThat(clientTls.counterparty().orElseThrow().code())
+                    .as("Ed25519 multikey code 0xed")
+                    .isEqualTo(0xed);
+            assertThat(clientTls.isAuthenticated()).isTrue();
+
+            // Server side: client didn't present a cert (one-sided TLS).
+            assertThat(serverTls.counterparty()).isEmpty();
+        }
+
+        private static X509Certificate mintEd25519SelfSignedCert(KeyPair keyPair, String subjectDn) throws Exception {
+            X500Principal subject = new X500Principal(subjectDn);
+            Date notBefore = new Date();
+            Date notAfter = new Date(notBefore.getTime() + 365L * 24 * 60 * 60 * 1000);
+            X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                    subject, BigInteger.ONE, notBefore, notAfter, subject, keyPair.getPublic());
+            ContentSigner signer = new JcaContentSignerBuilder("Ed25519")
+                    .build(keyPair.getPrivate());
+            return new JcaX509CertificateConverter()
+                    .getCertificate(builder.build(signer));
         }
     }
 

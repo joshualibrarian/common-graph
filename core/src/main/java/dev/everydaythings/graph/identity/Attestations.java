@@ -8,6 +8,8 @@ import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.identity.vault.Vault;
 import dev.everydaythings.graph.language.ThematicRole;
 
@@ -27,9 +29,9 @@ import java.util.Optional;
  *
  * <p>X.509 only enters the picture when an Attestation Frame needs to be
  * presented to a PKI-shaped peer (TLS handshake, foreign cert exchange).
- * That's the {@link dev.everydaythings.graph.identity.cert.CertEmitter
+ * That's the {@link dev.everydaythings.graph.bridges.x509.CertEmitter
  * CertEmitter} direction; equally,
- * {@link dev.everydaythings.graph.identity.cert.CertIngester CertIngester}
+ * {@link dev.everydaythings.graph.bridges.x509.CertIngester CertIngester}
  * goes the other way — X.509 bytes from PKI back into an Attestation Frame.
  *
  * <p>The reader methods (subject, attester, subjectPubkey, ...) provide a
@@ -152,21 +154,25 @@ public final class Attestations {
 
     /**
      * The subject's pubkey, decoded from the INSTRUMENT binding's multikey
-     * bytes.  Resolves the algorithm handle via the built-in registry when
+     * bytes.  Resolves the algorithm via the built-in registry when
      * possible (so the resulting MultiKey can produce a JCA PublicKey
      * directly even without librarian context).
      */
     public static Optional<MultiKey> subjectPubkey(Body attestation) {
         return targetAt(attestation, ThematicRole.Instrument.KEY, byte[].class)
-                .map(Attestations::decodeWithBuiltinHandle);
+                .map(Attestations::decodeWithBuiltinAlgorithm);
     }
 
-    private static MultiKey decodeWithBuiltinHandle(byte[] bytes) {
+    private static MultiKey decodeWithBuiltinAlgorithm(byte[] bytes) {
         MultiKey mk = MultiKey.decode(bytes);
-        if (mk.handle() != null) return mk;
-        AlgorithmHandle handle = JcaAlgorithmHandle.builtinByMultikeyCode(mk.code());
-        if (handle == null) return mk;   // unknown codec; caller deals with no-handle MultiKey
-        return MultiKey.of(handle, mk.rawKey());
+        if (mk.algorithm() != null) return mk;
+        // Only Ed25519 has a built-in librarian-less form today.  Other
+        // algorithms reach this path with algorithm()==null; callers either
+        // resolve later through a librarian, or accept a no-algorithm MultiKey.
+        if (mk.code() == (int) Signing.Ed25519.MULTIKEY_CODE) {
+            return MultiKey.of(Signing.Ed25519.builtin(), mk.rawKey());
+        }
+        return mk;
     }
 
     /** The key's cryptographic purpose (signing, encryption, etc.). */

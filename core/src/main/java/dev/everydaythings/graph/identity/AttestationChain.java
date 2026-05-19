@@ -1,6 +1,10 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -11,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -101,17 +106,88 @@ public final class AttestationChain {
                 librarian.library().bodyCidsForReferenceBinding(themeRole, iid);
 
         // Frames whose body head is Attestation about this iid — pull each
-        // into the chain, then recurse on its AGENT.
+        // into the chain, verify, then recurse on its AGENT.
         Set<ItemRef> nextAttesters = new LinkedHashSet<>();
         for (DatumRef bodyId : candidateBodies) {
             librarian.library().fetchFrame(bodyId).ifPresent(frame -> {
                 if (!attestationHead.equals(frame.body().headRef())) return;
                 chain.add(frame);
+                if (verifyAttestation(librarian, frame)) {
+                    emitVerifiedAnchor(librarian, frame);
+                }
                 Attestations.attester(frame.body()).ifPresent(nextAttesters::add);
             });
         }
         for (ItemRef next : nextAttesters) {
             walkInto(librarian, next, remainingDepth - 1, chain, visited);
         }
+    }
+
+    // ==================================================================================
+    // Verification + anchor emission
+    //
+    // For each attestation visited, the walker attempts to verify it
+    // cryptographically.  If verification succeeds AND the local librarian
+    // holds a signing vault, a VERIFIED record (ACT = Verified) is emitted
+    // signed by the librarian.  Future walks can use these records as
+    // anchors (the walker stops descending past an attestation it has
+    // already verified — task #187).
+    //
+    // Today only self-attestations (AGENT == THEME) are verified: the
+    // subject's pubkey is right there in the INSTRUMENT binding.  Third-
+    // party attestations need the attester's pubkey, which lives in another
+    // attestation about the attester — verification of those falls out
+    // naturally once chain-walking is wired to propagate verified keys.
+    // For now, third-party attestations are walked but not VERIFIED-marked.
+    // ==================================================================================
+
+    /**
+     * Verify a single attestation frame.  Returns true when at least one of
+     * the frame's records carries a signature that checks against the
+     * subject's INSTRUMENT pubkey AND the attestation is self-shaped
+     * (AGENT == THEME).
+     */
+    private static boolean verifyAttestation(Librarian librarian, Frame frame) {
+        Body body = frame.body();
+        Optional<ItemRef> attester = Attestations.attester(body);
+        Optional<ItemRef> subject = Attestations.subject(body);
+        Optional<MultiKey> subjectPubkey = Attestations.subjectPubkey(body);
+
+        if (attester.isEmpty() || subject.isEmpty() || subjectPubkey.isEmpty()) return false;
+        // v1: only self-attestations.  Third-party attestation verification
+        // needs the attester's pubkey from another attestation.
+        if (!attester.get().equals(subject.get())) return false;
+
+        byte[] payload = HashTree.signingPayload(body);
+        MultiKey pubkey = subjectPubkey.get();
+        for (Record record : frame.records()) {
+            if (librarian.verify(pubkey, payload, record.varsig())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Emit a VERIFIED record (ACT = Verified) signed by the local librarian's
+     * vault, attached to the attestation body that was verified.  No-op if
+     * the librarian cannot sign.
+     *
+     * <p>Submission goes through the normal librarian path.  The body is
+     * already stored (we just walked to it), so submitting Frame(body,
+     * [newRecord]) effectively just appends the new record to the existing
+     * frame's record set — content-addressing dedupes the body bytes.
+     */
+    private static void emitVerifiedAnchor(Librarian librarian, Frame frame) {
+        if (!librarian.canSign()) return;
+        Body body = frame.body();
+        byte[] payload = HashTree.signingPayload(body);
+        Record verifiedRecord = Record.of(
+                DatumRef.of(body.datumId()),
+                List.of(Binding.ref(
+                        ItemRef.iid(RecordVocabulary.Act.KEY),
+                        ItemRef.iid(RecordVocabulary.Verified.KEY))),
+                librarian.sign(payload));
+        librarian.submit(Frame.of(body, List.of(verifiedRecord)));
     }
 }

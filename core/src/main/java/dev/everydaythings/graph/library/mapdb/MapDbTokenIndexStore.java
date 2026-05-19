@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.library.mapdb;
 
+import dev.everydaythings.graph.encoding.CgCbor;
+import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.library.index.TokenIndexByteStore;
 import dev.everydaythings.graph.library.index.TokenIndexStore;
 import lombok.Getter;
@@ -21,13 +23,22 @@ public final class MapDbTokenIndexStore
     @Getter
     private final Path path;
 
-    private MapDbTokenIndexStore(MapDbStore.Opened<TokenIndexStore.Column> opened, Path path) {
+    private final Encoding encoder;
+
+    private MapDbTokenIndexStore(MapDbStore.Opened<TokenIndexStore.Column> opened, Path path,
+                                 Encoding encoder) {
         this.opened = Objects.requireNonNull(opened, "opened");
         this.path = path;
+        this.encoder = Objects.requireNonNull(encoder, "encoder");
     }
 
-    /** Open or create at {@code path/token-index.mapdb}. */
+    /** Open or create at {@code path/token-index.mapdb} with default {@link CgCbor} encoder. */
     public static MapDbTokenIndexStore atPath(Path path) {
+        return atPath(path, CgCbor.codec());
+    }
+
+    /** Open or create at {@code path/token-index.mapdb} with the given encoder. */
+    public static MapDbTokenIndexStore atPath(Path path, Encoding encoder) {
         Objects.requireNonNull(path, "path");
         try {
             java.nio.file.Files.createDirectories(path);
@@ -35,11 +46,21 @@ public final class MapDbTokenIndexStore
             throw new RuntimeException("Failed to create " + path, e);
         }
         Path file = path.resolve("token-index.mapdb");
-        return new MapDbTokenIndexStore(MapDbStore.file(file, TokenIndexStore.Column.class), file);
+        return new MapDbTokenIndexStore(MapDbStore.file(file, TokenIndexStore.Column.class), file, encoder);
     }
 
-    /** In-memory MapDB TokenIndexStore. */
+    /** In-memory MapDB TokenIndexStore with default {@link CgCbor} encoder. */
     public static MapDbTokenIndexStore inMemory() {
-        return new MapDbTokenIndexStore(MapDbStore.memory(TokenIndexStore.Column.class), null);
+        return inMemory(CgCbor.codec());
+    }
+
+    /** In-memory MapDB TokenIndexStore with the given encoder. */
+    public static MapDbTokenIndexStore inMemory(Encoding encoder) {
+        return new MapDbTokenIndexStore(MapDbStore.memory(TokenIndexStore.Column.class), null, encoder);
+    }
+
+    @Override
+    public Encoding rawEncoder() {
+        return encoder;
     }
 }

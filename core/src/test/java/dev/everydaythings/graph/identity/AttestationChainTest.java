@@ -1,6 +1,9 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.datum.Record;
+import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.vault.InMemoryVault;
 import dev.everydaythings.graph.identity.vault.Vault;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -175,6 +179,101 @@ class AttestationChainTest {
                     AttestationChain.walk(librarian, ItemRef.iid("cg.test:x"), -1))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("maxDepth");
+        }
+    }
+
+    @Nested
+    @DisplayName("Verified-anchor emission")
+    class VerifiedAnchorEmission {
+
+        @Test
+        @DisplayName("walking a self-attestation emits a VERIFIED record signed by the librarian")
+        void selfAttestationGetsAnchored() {
+            Librarian librarian = Librarian.inMemory();
+            Vault aliceVault = InMemoryVault.generate();
+            Frame attestation = Attestations.selfSign(aliceVault,
+                    Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS));
+            librarian.submit(attestation);
+
+            // Walk — should emit a VERIFIED record signed by the librarian.
+            AttestationChain.walk(librarian, aliceVault.identity());
+
+            // Refetch the frame and inspect its records.  Should now include one
+            // additional record carrying (ACT, Verified) — the librarian's anchor.
+            Frame anchored = librarian.library()
+                    .fetchFrame(attestation.body().datumId()).orElseThrow();
+
+            Optional<Record> verifiedRecord = anchored.records().stream()
+                    .filter(r -> hasActBinding(r, RecordVocabulary.Verified.KEY))
+                    .findFirst();
+            assertThat(verifiedRecord)
+                    .as("librarian emitted a VERIFIED anchor record on the attestation body")
+                    .isPresent();
+        }
+
+        @Test
+        @DisplayName("third-party attestations are walked but not anchored (v1)")
+        void thirdPartyNotAnchoredYet() {
+            Librarian librarian = Librarian.inMemory();
+            Vault aliceVault = InMemoryVault.generate();
+            Vault bobVault = InMemoryVault.generate();
+            Frame attestation = Attestations.attest(
+                    bobVault, aliceVault.identity(),
+                    aliceVault.signingPublicKey().orElseThrow(),
+                    ItemRef.iid(IdentityVocabulary.Signing.KEY),
+                    Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS));
+            librarian.submit(attestation);
+
+            AttestationChain.walk(librarian, aliceVault.identity());
+
+            // Verification requires the attester's pubkey from elsewhere; v1
+            // skips third-party attestations.  No VERIFIED record emitted.
+            Frame fetched = librarian.library()
+                    .fetchFrame(attestation.body().datumId()).orElseThrow();
+            boolean hasVerified = fetched.records().stream()
+                    .anyMatch(r -> hasActBinding(r, RecordVocabulary.Verified.KEY));
+            assertThat(hasVerified)
+                    .as("third-party attestations are not anchored in v1")
+                    .isFalse();
+        }
+
+        @Test
+        @DisplayName("re-walking an anchored attestation is idempotent (no duplicate records)")
+        void anchorEmissionIsIdempotent() {
+            Librarian librarian = Librarian.inMemory();
+            Vault aliceVault = InMemoryVault.generate();
+            Frame attestation = Attestations.selfSign(aliceVault,
+                    Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS));
+            librarian.submit(attestation);
+
+            AttestationChain.walk(librarian, aliceVault.identity());
+            AttestationChain.walk(librarian, aliceVault.identity());
+            AttestationChain.walk(librarian, aliceVault.identity());
+
+            Frame anchored = librarian.library()
+                    .fetchFrame(attestation.body().datumId()).orElseThrow();
+            long verifiedRecords = anchored.records().stream()
+                    .filter(r -> hasActBinding(r, RecordVocabulary.Verified.KEY))
+                    .count();
+            // Ed25519 is deterministic so all three emissions produce identical
+            // bytes; content-addressing dedupes them.
+            assertThat(verifiedRecords)
+                    .as("re-walks dedupe to a single anchor record")
+                    .isEqualTo(1L);
+        }
+
+        /** Match a record carrying a single (ACT, <actKey>) binding. */
+        private static boolean hasActBinding(Record record, String actKey) {
+            ItemRef actRole = ItemRef.iid(RecordVocabulary.Act.KEY);
+            ItemRef expectedAct = ItemRef.iid(actKey);
+            for (var entry : record.entries()) {
+                if (entry instanceof Binding b
+                        && actRole.equals(b.role())
+                        && expectedAct.equals(b.target())) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 

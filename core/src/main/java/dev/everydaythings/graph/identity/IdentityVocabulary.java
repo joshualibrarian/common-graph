@@ -63,32 +63,12 @@ public final class IdentityVocabulary {
         static final String englishVerbLemma = "sign";
     }
 
-    /** The encryption-key track — X25519-class keys used for confidentiality. */
-    @Seed.Item(key = Encryption.KEY)
-    public static final class Encryption {
-        public static final String KEY = "cg.purpose:encryption";
-        private Encryption() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the cryptographic encryption-key track of an identity (e.g., X25519)";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "encryption";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "encrypt";
-    }
-
     /**
-     * The key-agreement / key-management track — primitives like X25519 ECDH or
-     * RSA-OAEP whose purpose is to derive or wrap a content-encryption key, not
-     * to encrypt content directly.  Distinct from {@link Encryption} (AEAD
-     * ciphers that encrypt content) because the cryptographic shape and the
-     * way they fit in a protocol differ.
+     * The key-agreement track — primitives like X25519 ECDH or RSA-OAEP whose
+     * purpose is to derive or wrap a content-encryption key, not to encrypt
+     * content directly.  Long-term keypair lives on this Vault track; the
+     * derived symmetric key is consumed by an AEAD content cipher (no
+     * separate Vault track for AEAD — the symmetric key is ephemeral).
      */
     @Seed.Item(key = KeyAgreement.KEY)
     public static final class KeyAgreement {
@@ -393,6 +373,54 @@ public final class IdentityVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "delegator";
+    }
+
+    // ==================================================================================
+    // Pre-keys for asynchronous session opening
+    // ==================================================================================
+
+    /**
+     * SIGNED_PRE_KEY — a signer's published X25519 pre-key for use in
+     * asynchronous initial-key-agreement (X3DH).  Lets a sender open a
+     * Double-Ratchet session to this signer without the signer being online.
+     *
+     * <p>A declaration predicate, structurally equivalent to {@link Inception}
+     * but without chain semantics.  Same thematic-role pattern, fewer
+     * bindings:
+     *
+     * <pre>
+     * SIGNED_PRE_KEY
+     *     THEME → @signer                                # whose pre-key
+     *     INSTRUMENT [MULTIKEY] → x25519-multikey-bytes  # the pre-key itself
+     *     PURPOSE → @key-agreement                       # which track
+     *     ATTRIBUTE [VALIDITY_UNTIL] → instant           # expiry (optional)
+     *     TIME → instant                                 # when published
+     * </pre>
+     *
+     * <p>The record on this frame is signed by the signer's signing-track
+     * key, attesting ownership of the pre-key (the binding between the
+     * signer and the X25519 pubkey is what the signature commits to).
+     *
+     * <p>Pre-keys are periodically rotated.  Consumers fetch the most recent
+     * unexpired SignedPreKey for a peer when opening a new session.  Once a
+     * session is established the pre-key falls out of the picture — DR
+     * continues from the root key seeded by X3DH.
+     */
+    @Seed.Item(key = SignedPreKey.KEY)
+    public static final class SignedPreKey {
+        public static final String KEY = "cg.predicate:signed-pre-key";
+        private SignedPreKey() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "a signer's published X25519 pre-key, signed under the signer's "
+                        + "signing key, used in X3DH initial-key-agreement to open a "
+                        + "Double-Ratchet session asynchronously";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "signed pre-key";
     }
 
 }

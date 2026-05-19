@@ -17,4 +17,11 @@ plugins {
 
 dependencies {
     api project(':core')
+
+    // Noise XX handshake + transport is implemented directly on top of
+    // :core's algorithm primitives (KeyAgreement.X25519, Aead.AesGcm256,
+    // Hash.Sha256, Kdf.HkdfSha256) plus Vault.agree for the static-key
+    // ECDH steps.  No external Noise library — keeps the static
+    // X25519 private key inside the Vault, as required by the
+    // private-keys-in-vault invariant.
 }

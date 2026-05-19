@@ -128,9 +128,18 @@ public class Item {
      * <p>Used during hydration (loading from storage), after commit (the librarian
      * advances the channel head and re-binds), and for explicit version switching
      * (analogous to {@code git checkout}).
+     *
+     * <p>Also re-runs {@link BodyBinder#bind} so any {@code @Seed.Property}
+     * instance fields declared on this class (and its superclasses) get
+     * populated from the manifest's matching bindings.  This is the universal
+     * hydration path for typed values carried by the manifest body — works
+     * uniformly for every Item subclass that declares such fields.
      */
     public void bindManifest(Manifest manifest) {
         this.current = manifest;
+        if (manifest != null && manifest.body() != null) {
+            BodyBinder.bind(this, manifest.body());
+        }
     }
 
     /**

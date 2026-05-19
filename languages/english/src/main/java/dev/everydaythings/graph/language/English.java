@@ -367,4 +367,68 @@ public class English extends Language {
         if (target instanceof String s) return s;
         return target.toString();
     }
+
+    // ==================================================================================
+    // Roadmap — natural extensions, ordered by leverage.  Each is a data-layer
+    // change (lexicon) or a focused code-layer change; none require rethinking
+    // the lexeme-on-its-semantic-home architecture.
+    // ==================================================================================
+    //
+    // PARSE
+    //   * Subject-fronted clauses ("Tolkien wrote The Hobbit") — currently parse
+    //     assumes the verb is at position 0.  Generalize: a token sequence before
+    //     the verb is the AGENT (or EXPERIENCER for psych-verbs).  Requires proper
+    //     nouns to surface as NAMEs.
+    //   * Polysemy resolution — when a token has multiple postings (e.g., "with"
+    //     marks INSTRUMENT and PARTNER), pick by verb's expected roles (declared
+    //     elsewhere; VerbNet's subcategorization frames are the right source).
+    //   * Multi-word lexemes ("divided by", "in front of") — needs TokenLattice
+    //     to surface multi-word spans; once it does, the parser walks them like
+    //     single-token prepositions.
+    //   * Imperative vs declarative — "add 5 to 3" is imperative (no subject);
+    //     "5 added to 3" is passive (THEME first, verb participle, "to"-PP for
+    //     GOAL).  Both yield the same frame; the parser needs to recognize both
+    //     surface shapes.
+    //
+    // RENDER
+    //   * Recursive sub-frame rendering — {@link #renderTarget} currently falls
+    //     to {@code toString()} for anything but Long/String.  For a RefTarget
+    //     pointing at a sub-frame, fetch the frame and call {@code render} on it
+    //     (mirroring {@link dev.everydaythings.graph.operator.OperatorNotation}'s
+    //     recursion).  For an ItemRef pointing at a named entity, walk its
+    //     identifier predicates (NAME/TITLE) and emit the surface form.
+    //   * Register-aware verb-lemma selection — Add has lemmas "add" and "sum";
+    //     today the first one wins by canonical-hash order.  Use {@link ParseParams#register}
+    //     to pick (TECHNICAL→"sum", NEUTRAL→"add", CASUAL→whatever).  Same idea
+    //     for preposition variants ("to" vs "on" vs "into" on Goal).
+    //   * Articles ("the", "a/an") — proper nouns render bare; definite nouns
+    //     get "the"; indefinite first-mention gets "a"/"an" (with vowel-onset
+    //     "an" agreement).  Salience-aware: {@link ParseParams#salientReferents}
+    //     drives the choice.
+    //
+    // LEXICON
+    //   * Multiplicative/divisional prepositions — "multiply X by Y" needs "by"
+    //     as an Instrument lexeme (alongside "with").  "divide X by Y" same.
+    //     "X times Y" is a coordinator pattern, not preposition — coordination
+    //     is its own work item.
+    //   * Verb morphology — past, present-participle, third-person-singular.
+    //     Most verbs follow regular rules (add-ed, add-ing, add-s); irregulars
+    //     come from UniMorph.  Render emits past for narrated frames ("Tolkien
+    //     wrote..."); parse normalizes inflected forms back to lemmas.  Blocked
+    //     on importer work (task #99) for the data.
+    //   * Identifier predicates — NAME / TITLE / SERIAL_NUMBER / ALIAS render as
+    //     bare lemma; parse anchors to the named item.  Lives partly in :core
+    //     (the predicates) and partly in :languages:english (the English
+    //     rendering rules — capitalization conventions, "The"-prefixed titles).
+    //
+    // ARCHITECTURE
+    //   * Sub-Languages — English-US vs English-GB ("color"/"colour", date
+    //     formats, currency, "trousers"/"pants").  Each extends English,
+    //     overrides {@link #locale()}, and declares regional overrides.
+    //   * Confidence calibration — current parse confidence is hand-picked
+    //     (0.85 predicate, 0.80 bindings).  Once we have multiple Languages
+    //     contributing on the same input, the relative weights matter; they
+    //     should reflect how well the surface form fits English grammar
+    //     specifically (verb-lemma exact match, all expected-PPs present, no
+    //     stray tokens).
 }

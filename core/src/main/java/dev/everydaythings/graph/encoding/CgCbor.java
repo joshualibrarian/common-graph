@@ -314,6 +314,17 @@ public final class CgCbor {
         @Override public byte formatCode() { return (byte) Encoding.CgCborV1.FORMAT_CODE; }
         @Override public byte[] encode(Object value) { return CgCbor.encode(value); }
         @Override public Object decode(byte[] bytes) { return CgCbor.decode(bytes); }
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> T decode(byte[] bytes, Class<T> type) {
+            // CompoundKey's wire shape is an untagged 2-element array, which
+            // collides with Body's transitional-untagged fallback under the
+            // polymorphic decode.  Dispatch by class here.
+            if (type == CompoundKey.class) {
+                return (T) CgCbor.decodeCompoundKey(bytes);
+            }
+            return Encoding.super.decode(bytes, type);
+        }
         @Override public String encodeText(Object value) { return CgCbor.encodeText(value); }
         @Override public Object decodeText(String text) { return CgCbor.decodeText(text); }
         @Override public Node walk(Object value) { return CanonWalker.walk(value); }

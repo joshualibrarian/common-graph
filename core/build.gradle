@@ -70,9 +70,9 @@ dependencies {
     // -------------------------------------------------------------------------
     // Cryptography
     // -------------------------------------------------------------------------
-    implementation "org.bouncycastle:bcprov-jdk18on:${bouncycastleVersion}"
-    implementation "org.bouncycastle:bcpg-jdk18on:${bouncycastleVersion}"
-    implementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastleVersion}"
+    // BouncyCastle (X.509 generation/parsing, PGP) lives in :bridges:x509 —
+    // :core doesn't need it.  Signing operations here run through the JDK's
+    // built-in JCA providers (Ed25519, EC, RSA all native since JDK 15+).
 
     // -------------------------------------------------------------------------
     // Platform & Directories

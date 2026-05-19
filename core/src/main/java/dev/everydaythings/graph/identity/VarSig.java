@@ -1,5 +1,7 @@
 package dev.everydaythings.graph.identity;
 
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.value.Varint;
 
@@ -14,7 +16,7 @@ import java.util.Objects;
  * <p>Wire form: {@code <unsigned-varint codec> <raw-signature-bytes>}.
  *
  * <p>The codec identifies the signature algorithm.  A varsig can be constructed
- * from an {@link AlgorithmHandle} (which knows its codec) or from a raw codec
+ * from an {@link Signing} (which knows its codec) or from a raw codec
  * code plus signature bytes.
  *
  * <p>Records in the Datum architecture carry their signature as a varsig blob in their
@@ -26,20 +28,20 @@ public final class VarSig {
     private final int code;
     private final byte[] rawSig;
     private final byte[] encoded;  // cached full varsig bytes
-    private final AlgorithmHandle handle;  // optional — set when decoded with a librarian
+    private final Signing algorithm;  // optional — set when decoded with a librarian
 
-    private VarSig(int code, byte[] rawSig, byte[] encoded, AlgorithmHandle handle) {
+    private VarSig(int code, byte[] rawSig, byte[] encoded, Signing algorithm) {
         this.code = code;
         this.rawSig = rawSig;
         this.encoded = encoded;
-        this.handle = handle;
+        this.algorithm = algorithm;
     }
 
     /**
      * Construct from a raw codec code and signature bytes.  No validation
      * against a registered algorithm is performed here — pass through a
-     * librarian (via {@link #decode(byte[], Librarian)}) to resolve a handle
-     * and enable verification.
+     * librarian (via {@link #decode(byte[], Librarian)}) to resolve an
+     * algorithm and enable verification.
      */
     public static VarSig of(int code, byte[] rawSig) {
         Objects.requireNonNull(rawSig, "rawSig");
@@ -48,9 +50,9 @@ public final class VarSig {
 
     /**
      * Decode a varsig from its full encoded form.  Does not resolve the
-     * algorithm handle; the resulting {@link VarSig} carries the codec but
-     * {@link #handle()} returns {@code null}.  Use
-     * {@link #decode(byte[], Librarian)} when handle resolution is wanted.
+     * algorithm; the resulting {@link VarSig} carries the codec but
+     * {@link #algorithm()} returns {@code null}.  Use
+     * {@link #decode(byte[], Librarian)} when algorithm resolution is wanted.
      */
     public static VarSig decode(byte[] bytes) {
         Objects.requireNonNull(bytes, "bytes");
@@ -63,7 +65,7 @@ public final class VarSig {
     }
 
     /**
-     * Decode a varsig and resolve its algorithm handle via the librarian.
+     * Decode a varsig and resolve its algorithm via the librarian.
      * The resulting {@link VarSig} can {@link #verify(byte[], MultiKey)}
      * with zero further lookups.
      */
@@ -76,29 +78,29 @@ public final class VarSig {
         Varint.Read codecRead = Varint.readUnsignedVarint(bytes, 0);
         int code = (int) codecRead.value();
         byte[] rawSig = Arrays.copyOfRange(bytes, codecRead.next(), bytes.length);
-        AlgorithmHandle handle = librarian.algorithmByVarsigCode(code);
-        return build(code, rawSig, handle);
+        Signing algorithm = librarian.algorithmByVarsigCode(code);
+        return build(code, rawSig, algorithm);
     }
 
     /**
-     * Construct from an already-resolved {@link AlgorithmHandle} and raw
-     * signature bytes.  The codec is taken from the handle.
+     * Construct from an already-resolved {@link Signing} and raw
+     * signature bytes.  The codec is taken from the algorithm.
      */
-    public static VarSig of(AlgorithmHandle handle, byte[] rawSig) {
-        Objects.requireNonNull(handle, "handle");
+    public static VarSig of(Signing algorithm, byte[] rawSig) {
+        Objects.requireNonNull(algorithm, "algorithm");
         Objects.requireNonNull(rawSig, "rawSig");
-        return build((int) handle.varsigCode(), rawSig, handle);
+        return build((int) algorithm.varsigCode(), rawSig, algorithm);
     }
 
     private static VarSig build(int code, byte[] rawSig) {
         return build(code, rawSig, null);
     }
 
-    private static VarSig build(int code, byte[] rawSig, AlgorithmHandle handle) {
+    private static VarSig build(int code, byte[] rawSig, Signing algorithm) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Varint.writeUnsignedVarint(out, code);
         out.writeBytes(rawSig);
-        return new VarSig(code, rawSig.clone(), out.toByteArray(), handle);
+        return new VarSig(code, rawSig.clone(), out.toByteArray(), algorithm);
     }
 
     /** The varsig codec code identifying the signature algorithm. */
@@ -117,34 +119,34 @@ public final class VarSig {
     }
 
     /**
-     * The resolved algorithm handle, or {@code null} when this VarSig was
+     * The resolved signing algorithm, or {@code null} when this VarSig was
      * decoded without librarian context (via {@link #decode(byte[])} or
      * constructed via the bare {@link #of(int, byte[])} factory).
      */
-    public AlgorithmHandle handle() {
-        return handle;
+    public Signing algorithm() {
+        return algorithm;
     }
 
     /**
      * Verify this signature against a message and a public key, using the
-     * handle that was resolved at decode time.  Zero further lookups.
+     * algorithm that was resolved at decode time.  Zero further lookups.
      *
-     * @throws IllegalStateException if this VarSig has no resolved handle
+     * @throws IllegalStateException if this VarSig has no resolved algorithm
      *                               (decoded without a librarian)
      */
     public boolean verify(byte[] message, MultiKey publicKey) {
-        if (handle == null) {
+        if (algorithm == null) {
             throw new IllegalStateException(
-                    "VarSig has no resolved algorithm handle — decode with a librarian to verify");
+                    "VarSig has no resolved algorithm — decode with a librarian to verify");
         }
         Objects.requireNonNull(publicKey, "publicKey");
-        AlgorithmHandle keyHandle = publicKey.handle();
-        if (keyHandle == null) {
+        Signing keyAlgorithm = publicKey.signingAlgorithm();
+        if (keyAlgorithm == null) {
             throw new IllegalStateException(
-                    "MultiKey has no resolved algorithm handle — decode with a librarian to verify");
+                    "MultiKey has no resolved algorithm — decode with a librarian to verify");
         }
-        PublicKey jcaKey = keyHandle.decodePublicKey(publicKey.rawKey());
-        return handle.verify(message, rawSig, jcaKey);
+        PublicKey jcaKey = keyAlgorithm.decodePublicKey(publicKey.rawKey());
+        return algorithm.verify(message, rawSig, jcaKey);
     }
 
     @Override

@@ -1,7 +1,12 @@
 package dev.everydaythings.graph.identity;
 
 
+import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
+import dev.everydaythings.graph.identity.EncryptionVocabulary.Decrypt;
+import dev.everydaythings.graph.identity.EncryptionVocabulary.Encrypt;
 import dev.everydaythings.graph.identity.IdentityVocabulary.Inception;
 import dev.everydaythings.graph.identity.vault.DelegationConditions;
 import dev.everydaythings.graph.identity.vault.InMemoryVault;
@@ -9,11 +14,13 @@ import dev.everydaythings.graph.identity.vault.Vault;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
+import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ContentRef;
 import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.id.HashID;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.identity.EncryptionVocabulary.Multikey;
@@ -67,11 +74,11 @@ public class Signer extends Item {
     public static final ItemRef ARCHETYPE = ItemRef.fromString(KEY);
 
     /**
-     * Default signing-algorithm sememe IID for in-memory Signers.  Points at the
-     * {@link AlgorithmVocabulary.Ed25519} sememe — the algorithm
+     * Default signing-algorithm sememe IID for in-memory Signers.  Points at
+     * the {@link Signing.Ed25519} sememe — the algorithm
      * {@link InMemoryVault} currently knows how to generate against.
      */
-    public static final ItemRef DEFAULT_ALGORITHM = ItemRef.iid(AlgorithmVocabulary.Ed25519.KEY);
+    public static final ItemRef DEFAULT_ALGORITHM = ItemRef.iid(Signing.Ed25519.KEY);
 
     /** The vault holding this Signer's private signing material; null for identity-only. */
     private final Vault vault;
@@ -256,6 +263,67 @@ public class Signer extends Item {
         return Optional.of(frame);
     }
 
+    /**
+     * Publish a SignedPreKey frame.  Builds and signs via the vault, then
+     * persists body + record through the librarian.  Returns the frame.
+     *
+     * <p>Other Signers fetch this when opening a Double-Ratchet session to
+     * this Signer for the first time (X3DH).
+     */
+    public Optional<Frame> publishSignedPreKey() {
+        if (vault == null || librarian == null) return Optional.empty();
+        Frame frame = vault.signedPreKeyFrame();
+        persistFrame(frame);
+        return Optional.of(frame);
+    }
+
+    /**
+     * Fetch the most-recent SignedPreKey published by the named peer (queried
+     * against the local graph via {@code FRAME_BY_TARGET} on THEME=peerIid).
+     * Returns the decoded {@link MultiKey} (X25519 pubkey) if one is present.
+     *
+     * <p>First pass: picks the latest by TIME binding without consulting any
+     * VALIDITY_UNTIL bound.  Validity-window filtering arrives with SPK
+     * rotation.
+     */
+    public Optional<MultiKey> fetchPeerSignedPreKey(ItemRef peerIid) {
+        if (librarian == null) return Optional.empty();
+        List<DatumRef> candidates = librarian.library()
+                .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), peerIid);
+
+        Frame chosen = null;
+        Instant chosenTime = Instant.MIN;
+        for (DatumRef cid : candidates) {
+            Frame frame = librarian.fetchFrame(cid).orElse(null);
+            if (frame == null) continue;
+            if (!isSignedPreKeyFor(frame, peerIid)) continue;
+            Instant frameTime = readTime(frame.body()).orElse(Instant.MIN);
+            if (frameTime.isAfter(chosenTime)) {
+                chosen = frame;
+                chosenTime = frameTime;
+            }
+        }
+        if (chosen == null) return Optional.empty();
+        return extractInstrumentMultikey(chosen.body());
+    }
+
+    private static boolean isSignedPreKeyFor(Frame frame, ItemRef peerIid) {
+        if (!(frame.body().head() instanceof ItemRef ref)) return false;
+        if (!ItemRef.iid(IdentityVocabulary.SignedPreKey.KEY).equals(ref.iid())) return false;
+        return readTheme(frame.body()).filter(peerIid::equals).isPresent();
+    }
+
+    private static Optional<MultiKey> extractInstrumentMultikey(Body body) {
+        for (Binding b : body.bindings()) {
+            if (!ItemRef.iid(ThematicRole.Instrument.KEY).equals(b.role())) continue;
+            if (!hasQualifier(b, ItemRef.iid(Multikey.KEY))) continue;
+            if (b.target() instanceof byte[] keyBytes) {
+                return Optional.of(MultiKey.decode(keyBytes));
+            }
+        }
+        return Optional.empty();
+    }
+
     private void persistFrame(Frame frame) {
         librarian.persist(frame.body());
         for (Record r : frame.records()) {
@@ -408,9 +476,9 @@ public class Signer extends Item {
      *
      * <p>Works without a librarian by relying on whichever of the record's
      * {@link VarSig} or a committed {@link MultiKey} carries a resolved
-     * {@link AlgorithmHandle} — at minimum, vault-produced INCEPTIONs attach
-     * the Ed25519 handle to the VarSig at signing time.  When the VarSig has
-     * no handle (e.g., loaded from disk via {@link VarSig#decode(byte[])}),
+     * {@link Signing} — at minimum, vault-produced INCEPTIONs attach
+     * the Ed25519 algorithm to the VarSig at signing time.  When the VarSig has
+     * no algorithm (e.g., loaded from disk via {@link VarSig#decode(byte[])}),
      * verification fails closed.
      */
     public static boolean isSelfAttested(Frame frame) {
@@ -420,7 +488,7 @@ public class Signer extends Item {
         for (Record record : frame.records()) {
             VarSig sig = record.varsig();
             for (MultiKey key : keys) {
-                if (verifyWithResolvedHandle(key, signedBytes, sig)) return true;
+                if (verifyWithResolvedAlgorithm(key, signedBytes, sig)) return true;
             }
         }
         return false;
@@ -428,28 +496,28 @@ public class Signer extends Item {
 
     /**
      * Static verify helper used by {@link #isSelfAttested}.  Resolves the
-     * algorithm handle via (in order): the {@link VarSig}'s resolved handle,
-     * the {@link MultiKey}'s, or the static built-in registry exposed by
-     * {@link JcaAlgorithmHandle}.  Returns false when no handle can be found
-     * for either codec.
+     * algorithm via (in order): the {@link VarSig}'s resolved algorithm,
+     * the {@link MultiKey}'s, or the static built-in registry on
+     * {@link Signing}.  Returns false when no algorithm can be
+     * resolved for either codec.
      */
-    private static boolean verifyWithResolvedHandle(MultiKey publicKey, byte[] message, VarSig varsig) {
-        AlgorithmHandle sigHandle = varsig.handle();
-        if (sigHandle == null) {
-            sigHandle = JcaAlgorithmHandle.builtinByVarsigCode(varsig.code());
+    private static boolean verifyWithResolvedAlgorithm(MultiKey publicKey, byte[] message, VarSig varsig) {
+        Signing sigAlg = varsig.algorithm();
+        if (sigAlg == null) {
+            sigAlg = Signing.builtinByVarsigCode(varsig.code());
         }
-        if (sigHandle == null) return false;
-        AlgorithmHandle keyHandle = publicKey.handle();
-        if (keyHandle == null && sigHandle.multikeyCode() == publicKey.code()) {
-            keyHandle = sigHandle;
+        if (sigAlg == null) return false;
+        Signing keyAlg = publicKey.signingAlgorithm();
+        if (keyAlg == null && sigAlg.multikeyCode() == publicKey.code()) {
+            keyAlg = sigAlg;
         }
-        if (keyHandle == null) {
-            keyHandle = JcaAlgorithmHandle.builtinByMultikeyCode(publicKey.code());
+        if (keyAlg == null) {
+            keyAlg = Signing.builtinByMultikeyCode(publicKey.code());
         }
-        if (keyHandle == null) return false;
+        if (keyAlg == null) return false;
         try {
-            java.security.PublicKey jcaKey = keyHandle.decodePublicKey(publicKey.rawKey());
-            return sigHandle.verify(message, varsig.rawSig(), jcaKey);
+            java.security.PublicKey jcaKey = keyAlg.decodePublicKey(publicKey.rawKey());
+            return sigAlg.verify(message, varsig.rawSig(), jcaKey);
         } catch (Exception e) {
             return false;
         }
@@ -530,14 +598,15 @@ public class Signer extends Item {
     /**
      * Verify a signature against a public key and message bytes.
      *
-     * <p>Resolution order for the algorithm handle:
+     * <p>Resolution order for the signing algorithm:
      * <ol>
-     *   <li>{@code varsig.handle()} — the signature's own resolved handle (set
-     *       at decode time via {@link VarSig#decode(byte[], Librarian)} or
+     *   <li>{@code varsig.algorithm()} — the signature's own resolved algorithm
+     *       (set at decode time via {@link VarSig#decode(byte[], Librarian)} or
      *       attached at construction).</li>
-     *   <li>{@code publicKey.handle()} — fallback to the key's resolved handle.</li>
+     *   <li>{@code publicKey.algorithm()} — fallback to the key's resolved
+     *       algorithm.</li>
      *   <li>{@code this.librarian} — if either side is bare, ask the bound
-     *       librarian to look up an {@link AlgorithmHandle} by the varsig
+     *       librarian to look up an {@link Signing} by the varsig
      *       codec.  Identity-only Signers without a librarian return
      *       {@code false}.</li>
      * </ol>
@@ -545,35 +614,223 @@ public class Signer extends Item {
      * @return true if the signature is valid; false otherwise (including all error cases)
      */
     public boolean verify(MultiKey publicKey, byte[] message, VarSig varsig) {
-        AlgorithmHandle sigHandle = varsig.handle();
-        if (sigHandle == null && librarian != null) {
-            sigHandle = librarian.algorithmByVarsigCode(varsig.code());
+        Signing sigAlg = varsig.algorithm();
+        if (sigAlg == null && librarian != null) {
+            sigAlg = librarian.algorithmByVarsigCode(varsig.code());
         }
-        if (sigHandle == null) {
-            sigHandle = JcaAlgorithmHandle.builtinByVarsigCode(varsig.code());
+        if (sigAlg == null) {
+            sigAlg = Signing.builtinByVarsigCode(varsig.code());
         }
-        if (sigHandle == null) return false;
+        if (sigAlg == null) return false;
 
-        AlgorithmHandle keyHandle = publicKey.handle();
-        if (keyHandle == null && librarian != null) {
-            keyHandle = librarian.algorithmByMultikeyCode(publicKey.code());
+        Signing keyAlg = publicKey.signingAlgorithm();
+        if (keyAlg == null && librarian != null) {
+            keyAlg = librarian.algorithmByMultikeyCode(publicKey.code());
         }
-        // If only the sig handle is around and it happens to match the key's
+        // If only the sig algorithm is around and it happens to match the key's
         // codec, reuse it to decode the key.  Common case: Ed25519 sig + Ed25519
-        // key, both pointing at the same handle.
-        if (keyHandle == null && sigHandle.multikeyCode() == publicKey.code()) {
-            keyHandle = sigHandle;
+        // key, both pointing at the same algorithm.
+        if (keyAlg == null && sigAlg.multikeyCode() == publicKey.code()) {
+            keyAlg = sigAlg;
         }
-        if (keyHandle == null) {
-            keyHandle = JcaAlgorithmHandle.builtinByMultikeyCode(publicKey.code());
+        if (keyAlg == null) {
+            keyAlg = Signing.builtinByMultikeyCode(publicKey.code());
         }
-        if (keyHandle == null) return false;
+        if (keyAlg == null) return false;
 
         try {
-            java.security.PublicKey jcaKey = keyHandle.decodePublicKey(publicKey.rawKey());
-            return sigHandle.verify(message, varsig.rawSig(), jcaKey);
+            java.security.PublicKey jcaKey = keyAlg.decodePublicKey(publicKey.rawKey());
+            return sigAlg.verify(message, varsig.rawSig(), jcaKey);
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // ==================================================================================
+    // Encrypt / Decrypt command handlers
+    //
+    // Dispatched by the runtime when a frame whose body's predicate is
+    // EncryptionVocabulary.Encrypt or .Decrypt arrives.  The handlers
+    // orchestrate session lookup (or opening), encryption/decryption via
+    // the vault, and result-frame assembly.
+    // ==================================================================================
+
+    /**
+     * Handle an Encrypt command frame.  Reads BENEFICIARY → peer-iid,
+     * THEME → plaintext bytes, opens a Double-Ratchet session against the
+     * peer's published SignedPreKey if no session exists, encrypts via the
+     * vault, and returns a Frame whose body is the {@code Opaque.Encrypted}
+     * ciphertext and whose record signs the original request body.
+     *
+     * <p>The request frame's body must have:
+     * <ul>
+     *   <li>{@code BENEFICIARY → @peer-iid} (where the peer's SignedPreKey
+     *       is published in the local graph)</li>
+     *   <li>{@code THEME → byte[]} (the plaintext to encrypt — bytes inline
+     *       for first cut; ref-resolution comes later)</li>
+     * </ul>
+     */
+    @Seed.Handler(predicate = Encrypt.KEY)
+    public Frame handleEncrypt(Frame request) {
+        if (vault == null) throw new IllegalStateException("Signer has no vault");
+
+        Body body = request.body();
+        ItemRef peerIid = readBeneficiary(body)
+                .orElseThrow(() -> new IllegalArgumentException("Encrypt request lacks BENEFICIARY"));
+        byte[] plaintext = readThemeBytes(body)
+                .orElseThrow(() -> new IllegalArgumentException("Encrypt request lacks THEME bytes"));
+
+        if (!vault.hasSessionWith(peerIid)) {
+            MultiKey peerSpk = fetchPeerSignedPreKey(peerIid)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "No SignedPreKey published for peer " + peerIid));
+            // Fetch peer's identity (key-agreement) pubkey from the local graph.
+            // For now require it via the current published Inception on the
+            // key-agreement track; future work resolves this through the
+            // standard identity-resolution path.
+            MultiKey peerIk = fetchPeerKeyAgreementKey(peerIid)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "No key-agreement pubkey published for peer " + peerIid));
+            vault.openSessionTo(peerIid, peerIk, peerSpk);
+        }
+
+        DoubleRatchet.EncryptedMessage em = vault.encryptInSession(peerIid, plaintext);
+
+        // Record's head is the REQUEST body's CID — the record signs the
+        // request body, committing the agent to "I executed this command."
+        byte[] payload = HashTree.signingPayload(body);
+        VarSig sig = vault.sign(payload);
+        Record record = Record.of(DatumRef.of(body.datumId()), em.recordBindings(), sig);
+
+        // The wrappedHash on the Opaque.Encrypted preserves the plaintext's
+        // structural identity through the encryption.  For raw-bytes
+        // plaintext, just hash the bytes.
+        byte[] wrappedHash = sha256(plaintext);
+        Opaque.Encrypted opaque = new Opaque.Encrypted(
+                wrappedHash, em.ciphertext(), List.of((HashID) DatumRef.of(record.datumId())));
+
+        // Result body: Encrypt-predicate with THEME pointing at the Opaque
+        // ciphertext.  The metadata record carries the DR header bindings.
+        Body resultBody = Body.of(
+                ItemRef.of(ItemRef.iid(Encrypt.KEY)),
+                List.of(new Binding(
+                        ItemRef.iid(ThematicRole.Theme.KEY),
+                        List.of(),
+                        opaque)));
+
+        return Frame.of(resultBody, List.of(record));
+    }
+
+    /**
+     * Handle a Decrypt command frame.  Reads THEME → encrypted Frame ref,
+     * fetches the Frame, identifies the sender (via the record's head
+     * pointing at the original Encrypt request body), and decrypts via the
+     * vault (auto-bootstrapping a responder session if this is the first
+     * message from the peer).  Returns the plaintext bytes; no body is
+     * republished.
+     */
+    @Seed.Handler(predicate = Decrypt.KEY)
+    public byte[] handleDecrypt(Frame request) {
+        if (vault == null) throw new IllegalStateException("Signer has no vault");
+
+        Body body = request.body();
+        Frame encryptedFrame = readThemeFrame(body)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Decrypt request THEME does not reference a fetchable frame"));
+
+        Opaque.Encrypted opaque = extractEncryptedOpaque(encryptedFrame.body())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Decrypt THEME frame's body has no Opaque.Encrypted binding"));
+
+        // The metadata record is referenced by the Opaque.Encrypted's
+        // recordRefs (its head points at the original Encrypt request body,
+        // not at the Opaque.Encrypted body — so the standard records list
+        // doesn't carry it via the body-CID index).
+        Record metadataRecord = opaque.recordRefs().stream()
+                .filter(h -> h instanceof DatumRef)
+                .map(h -> (DatumRef) h)
+                .map(dr -> librarian.library().fetchRecord(dr).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Decrypt THEME frame's Opaque.Encrypted has no resolvable metadata record"));
+
+        // The record's head points at the sender's original Encrypt request
+        // body.  Fetch it to learn who the sender (AGENT) is.
+        ItemRef senderIid = lookupSenderFromEncryptRecord(metadataRecord)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Cannot resolve sender from Encrypt record's head"));
+
+        DoubleRatchet.EncryptedMessage em = new DoubleRatchet.EncryptedMessage(
+                opaque.ciphertext(), metadataRecord.bindings());
+        return vault.decryptInSession(senderIid, em);
+    }
+
+    // ==================================================================================
+    // Internal helpers for Encrypt/Decrypt handlers
+    // ==================================================================================
+
+    private static Optional<ItemRef> readBeneficiary(Body body) {
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Beneficiary.KEY)))
+                .map(b -> b.target() instanceof ItemRef ir && !ir.isPinned() ? ir : null)
+                .filter(java.util.Objects::nonNull);
+    }
+
+    private static Optional<byte[]> readThemeBytes(Body body) {
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .map(b -> b.target() instanceof byte[] bytes ? bytes : null)
+                .filter(java.util.Objects::nonNull);
+    }
+
+    private Optional<Frame> readThemeFrame(Body body) {
+        if (librarian == null) return Optional.empty();
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .flatMap(b -> {
+                    Object target = b.target();
+                    if (target instanceof DatumRef dr) return librarian.fetchFrame(dr);
+                    return Optional.empty();
+                });
+    }
+
+    /**
+     * Extract the {@link Opaque.Encrypted} from a Frame body whose THEME
+     * binding holds it as target.  Matches the body shape produced by the
+     * Encrypt handler.
+     */
+    private static Optional<Opaque.Encrypted> extractEncryptedOpaque(Body body) {
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .map(b -> b.target() instanceof Opaque.Encrypted oe ? oe : null)
+                .filter(java.util.Objects::nonNull);
+    }
+
+    /**
+     * Fetch a peer's key-agreement public key via their published INCEPTION
+     * frame on the key-agreement track.  Walks the local graph.
+     */
+    public Optional<MultiKey> fetchPeerKeyAgreementKey(ItemRef peerIid) {
+        List<MultiKey> keys = currentKeys(peerIid,
+                ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY));
+        return keys.isEmpty() ? Optional.empty() : Optional.of(keys.get(0));
+    }
+
+    /**
+     * From a record on an encrypted frame, find the sender's Signer IID by
+     * fetching the request body the record's head references and reading
+     * its AGENT binding.
+     */
+    private Optional<ItemRef> lookupSenderFromEncryptRecord(Record record) {
+        if (librarian == null) return Optional.empty();
+        HashID head = record.head();
+        if (!(head instanceof DatumRef dr)) return Optional.empty();
+        return librarian.fetchFrame(dr)
+                .flatMap(f -> readAgent(f.body()));
+    }
+
+    private static byte[] sha256(byte[] input) {
+        try {
+            return java.security.MessageDigest.getInstance("SHA-256").digest(input);
+        } catch (Exception e) {
+            throw new RuntimeException("SHA-256 unavailable", e);
         }
     }
 }
