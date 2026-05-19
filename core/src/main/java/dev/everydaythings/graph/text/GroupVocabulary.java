@@ -7,7 +7,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.language.LexicalVocabulary;
 
 /**
- * Sememes for textual grouping markers — {@code (} and {@code )}.
+ * Sememes for textual grouping markers — {@code (}, {@code )}, and {@code ,}.
  *
  * <p><b>Text-layer, not frame-layer.</b> Parens appear in the input string to
  * disambiguate operator precedence at the surface form, but they don't surface
@@ -72,5 +72,28 @@ public final class GroupVocabulary {
                         qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the close-group marker — closes a parenthesized sub-expression in surface text";
+    }
+
+    /**
+     * The comma sememe — the {@code ,} marker. Separates items in a group
+     * (function-call arguments, list elements, tuple components, ...). Like
+     * {@link OpenGroup} and {@link CloseGroup}, a thin recognition marker
+     * with no role in the resulting frame — the comma's job is to delimit;
+     * each surrounding Language reads delimited chunks as its own structure
+     * (args for FunctionNotation, elements for a list-literal notation, etc.).
+     */
+    @Seed.Item(key = Comma.KEY)
+    public static final class Comma {
+        public static final String KEY = "cg.notation:comma";
+        private Comma() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY)
+        static final String symbol = ",";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+                field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                        qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the comma marker — separates items in a group (function args, list elements, etc.)";
     }
 }

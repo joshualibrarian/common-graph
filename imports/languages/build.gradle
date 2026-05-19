@@ -1,0 +1,29 @@
+// =============================================================================
+// :imports:languages — Per-language vocabulary-import tooling.
+//
+// Container module for per-language importers.  Each sub-module reads
+// language-specific source data (OEWN LMF, UniMorph, VerbNet, ...) and
+// produces signed CG frames carrying that language's bulk vocabulary.
+//
+//   :imports:languages:english  — OEWN + UniMorph + VerbNet for English.
+//   :imports:languages:german   — equivalent sources for German.  (planned)
+//
+// Lifecycle: each import sub-module is a developer tool that runs locally
+// to produce a published, signed dataset.  Once the dataset is on the live
+// graph, apps fetch the vocabulary frames on demand; the import sub-module
+// is retired.  Estimated lifespan per language: months to ~year.
+//
+// Shared importer infrastructure (LanguageImporter abstract base, LMF /
+// WordNet / VerbNet / UniMorph readers) lands here at this level once
+// reused across two language sub-modules.
+//
+// One-way dependency: :imports:languages:* → :core.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}

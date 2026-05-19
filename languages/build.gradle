@@ -1,0 +1,36 @@
+// =============================================================================
+// :languages — Natural-language code modules.
+//
+// Container module for per-language sub-modules.  Each language contributes
+// its Language class (parse, render, morphology, grammar rules) — the
+// behavioral code that stays in apps that want to speak that language.
+//
+//   :languages:english   — English: parse, render, irregular morphology, agreement.
+//   :languages:german    — German: V2, separable verbs, case agreement.    (planned)
+//   :languages:japanese  — Japanese: topic-comment, classifiers.           (planned)
+//
+// Each language gets two distinct modules:
+//
+//   :languages:<L>            — the CODE: Language class, grammar rules.
+//   :imports:languages:<L>    — developer tooling that generates that
+//                               language's bulk vocabulary (synsets, lexemes,
+//                               glosses) from external sources (OEWN, UniMorph,
+//                               VerbNet) into signed frames for publication.
+//
+// Apps depend on :languages:<L>.  :imports:languages:<L> is a one-time
+// developer tool that retires once its output is signed and published to
+// the live graph.
+//
+// One-way dependency: :languages:* → :core.  :core never depends on
+// anything here; operator notation and other notations that every prompt
+// uses stay in :core, since they're foundational regardless of which
+// natural language is installed.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}

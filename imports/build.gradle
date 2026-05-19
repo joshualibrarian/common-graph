@@ -29,6 +29,15 @@ plugins {
     id 'java-library'
 }
 
+// Distinct group prevents Gradle's group:name conflict resolution from
+// collapsing leaf-name collisions (e.g., :imports:languages:english vs
+// :languages:english).  Set on the root :imports project and propagated
+// to all sub-modules by the subprojects { } block below.
+group = 'dev.everydaythings.imports'
+subprojects {
+    group = 'dev.everydaythings.imports'
+}
+
 dependencies {
     api project(':core')
 }

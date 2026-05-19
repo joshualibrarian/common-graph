@@ -1,0 +1,27 @@
+// =============================================================================
+// :languages:english — English language: parse, render, morphology, grammar.
+//
+// The behavioral half of English support.  Bulk vocabulary (synsets, lexemes,
+// glosses from OEWN, irregular morphology from UniMorph, verb-class data from
+// VerbNet) is generated separately by :imports:languages:english and lives in
+// the graph as published frames; this module ships only the code that operates
+// over that vocabulary.
+//
+// Depends on :core for Item, Language, Frame, FrameMap, the Lexeme/Gloss
+// vocabulary, OperatorNotation (for cross-Language render stacking), and
+// ParseEngine.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+
+    // ICU for ULocale (referenced in Language.locale() override).
+    api "com.ibm.icu:icu4j:${icu4jVersion}"
+
+    // Shared test infrastructure from :core (abstract test bases, fixtures).
+    testImplementation testFixtures(project(':core'))
+}

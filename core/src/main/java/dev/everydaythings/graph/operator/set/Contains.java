@@ -1,8 +1,10 @@
 package dev.everydaythings.graph.operator.set;
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.Operator;
+import dev.everydaythings.graph.operator.OperatorNotation;
 
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
@@ -14,26 +16,28 @@ import dev.everydaythings.graph.language.ThematicRole;
  * The containment operator — inverse of {@link In}. {@code container contains element}
  * is the same as {@code element in container}. Infix, non-associative, precedence 5.
  */
-@Seed.Item(key = Contains.KEY,
-        head = Operator.KEY,
-        bindings = {@Seed.Binding(role = Operator.Arity.KEY, integer = 2)})
+@Seed.Item(key = Contains.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Contains.KEY)
 public class Contains extends Operator {
 
     public static final String KEY = "cg.predicate:contains";
 
+    /** Arity — binary operator. */
+    @Seed.Property(role = Operator.Arity.KEY)
+    static final long arity = 2;
+
     /** Returns Bool. */
     @Seed.Property(role = SchemaVocabulary.Returns.KEY)
-    static final SchemaRef returnType = SchemaRef.iid(Bool.KEY);
+    static final SchemaRef returns = SchemaRef.iid(Bool.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "containment — true when the left collection contains the right operand";
 
-    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    /** OperatorNotation lexeme — symbol with Infix qualifier plus Precedence and Associativity. */
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
-                  qualifiers = {Operator.Infix.KEY}),
+                  qualifiers = {OperatorNotation.KEY, Operator.Infix.KEY}),
           bindings = {
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
                           qualifiers = {Operator.Precedence.KEY},
@@ -52,22 +56,19 @@ public class Contains extends Operator {
     public Contains(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     @Override
-    public Object execute(Object... operands) {
-        if (operands.length != 2) {
-            throw new IllegalArgumentException(
-                    "expects 2 operands, got " + operands.length);
-        }
-        Object left = operands[0];
-        Object right = operands[1];
-        if (left instanceof java.util.Collection<?> c) return c.contains(right);
-        if (left instanceof Object[] arr) {
+    protected Object evaluate(Frame frame) {
+        Object container = operandAt(frame, ThematicRole.Theme.KEY);
+        Object element   = operandAt(frame, ThematicRole.Goal.KEY);
+        if (container == null) return null;
+        if (container instanceof java.util.Collection<?> c) return c.contains(element);
+        if (container instanceof Object[] arr) {
             for (Object item : arr) {
-                if (right == null ? item == null : right.equals(item)) return true;
+                if (element == null ? item == null : element.equals(item)) return true;
             }
             return false;
         }
-        if (left instanceof String s && right instanceof String sub) return s.contains(sub);
+        if (container instanceof String s && element instanceof String sub) return s.contains(sub);
         throw new IllegalArgumentException(
-                "Contains.execute: left operand must be a collection or string, got " + left);
+                "Contains: left operand must be a collection or string, got " + container);
     }
 }

@@ -4,6 +4,7 @@ import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.operator.BinaryArithmetic;
 import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.operator.OperatorNotation;
 
@@ -26,7 +27,7 @@ import dev.everydaythings.graph.value.Numeric;
  */
 @Seed.Item(key = Add.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Add.KEY)
-public class Add extends Operator {
+public class Add extends BinaryArithmetic {
 
     /** Canonical key for the addition predicate. */
     public static final String KEY = "cg.predicate:add";
@@ -66,6 +67,12 @@ public class Add extends Operator {
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String[] englishVerbLemmas = {"add", "sum"};
 
+    /** FunctionNotation lexeme — calling ADD as a function: {@code sum(5, 3)}. */
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {dev.everydaythings.graph.operator.FunctionNotation.KEY}))
+    static final String functionName = "sum";
+
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "addition";
@@ -78,22 +85,6 @@ public class Add extends Operator {
         super(iid, librarian);
     }
 
-    @Override
-    public Object execute(Object... operands) {
-        if (operands.length != 2) {
-            throw new IllegalArgumentException(
-                    "Add expects 2 operands, got " + operands.length);
-        }
-        Object left = operands[0];
-        Object right = operands[1];
-        if (left instanceof Number l && right instanceof Number r) {
-            if (left instanceof Double || right instanceof Double
-                    || left instanceof Float || right instanceof Float) {
-                return l.doubleValue() + r.doubleValue();
-            }
-            return l.longValue() + r.longValue();
-        }
-        throw new IllegalArgumentException(
-                "Add.execute: unsupported operand types " + left + " + " + right);
-    }
+    @Override protected double applyDouble(double l, double r) { return l + r; }
+    @Override protected long   applyLong(long l, long r)       { return l + r; }
 }

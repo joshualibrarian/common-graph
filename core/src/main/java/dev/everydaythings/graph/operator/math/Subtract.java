@@ -5,7 +5,9 @@ import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
 import dev.everydaythings.graph.value.Numeric;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.operator.BinaryArithmetic;
 import dev.everydaythings.graph.operator.Operator;
+import dev.everydaythings.graph.operator.OperatorNotation;
 
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -16,26 +18,28 @@ import dev.everydaythings.graph.language.ThematicRole;
  * addition reversed: THEME is what's removed; SOURCE is where it's removed from.
  * "Subtract 3 from 10" → {@code SUBTRACT { THEME → 3, SOURCE → 10 }} → evaluates to 7.
  */
-@Seed.Item(key = Subtract.KEY,
-        head = Operator.KEY,
-        bindings = {@Seed.Binding(role = Operator.Arity.KEY, integer = 2)})
+@Seed.Item(key = Subtract.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Subtract.KEY)
-public class Subtract extends Operator {
+public class Subtract extends BinaryArithmetic {
 
     public static final String KEY = "cg.predicate:subtract";
 
+    /** Arity — binary operator. */
+    @Seed.Property(role = Operator.Arity.KEY)
+    static final long arity = 2;
+
     /** Returns a Numeric — the result of the operation. */
     @Seed.Property(role = SchemaVocabulary.Returns.KEY)
-    static final SchemaRef returnType = SchemaRef.iid(Numeric.KEY);
+    static final SchemaRef returns = SchemaRef.iid(Numeric.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "the operation of removing one quantity from another";
 
-    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    /** OperatorNotation lexeme — symbol with Infix qualifier plus Precedence and Associativity. */
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
-                  qualifiers = {Operator.Infix.KEY}),
+                  qualifiers = {OperatorNotation.KEY, Operator.Infix.KEY}),
           bindings = {
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
                           qualifiers = {Operator.Precedence.KEY},
@@ -57,22 +61,6 @@ public class Subtract extends Operator {
     public Subtract(ItemRef iid) { super(iid); }
     public Subtract(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
-    @Override
-    public Object execute(Object... operands) {
-        if (operands.length != 2) {
-            throw new IllegalArgumentException(
-                    "expects 2 operands, got " + operands.length);
-        }
-        Object left = operands[0];
-        Object right = operands[1];
-        if (left instanceof Number l && right instanceof Number r) {
-            if (left instanceof Double || right instanceof Double
-                    || left instanceof Float || right instanceof Float) {
-                return l.doubleValue() - r.doubleValue();
-            }
-            return l.longValue() - r.longValue();
-        }
-        throw new IllegalArgumentException(
-                "Subtract.execute: unsupported operand types " + left + " - " + right);
-    }
+    @Override protected double applyDouble(double l, double r) { return l - r; }
+    @Override protected long   applyLong(long l, long r)       { return l - r; }
 }

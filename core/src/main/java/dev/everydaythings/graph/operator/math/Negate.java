@@ -1,8 +1,10 @@
 package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.Operator;
+import dev.everydaythings.graph.operator.OperatorNotation;
 
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
@@ -14,26 +16,28 @@ import dev.everydaythings.graph.language.ThematicRole;
  * The unary negation operator. Prefix, right-associative, precedence 25 (above
  * binary arithmetic). Surface form: {@code -5} = applies Negate to 5.
  */
-@Seed.Item(key = Negate.KEY,
-        head = Operator.KEY,
-        bindings = {@Seed.Binding(role = Operator.Arity.KEY, integer = 1)})
+@Seed.Item(key = Negate.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Negate.KEY)
 public class Negate extends Operator {
 
     public static final String KEY = "cg.predicate:negate";
 
+    /** Arity — unary operator. */
+    @Seed.Property(role = Operator.Arity.KEY)
+    static final long arity = 1;
+
     /** Returns a Numeric — the result of the operation. */
     @Seed.Property(role = SchemaVocabulary.Returns.KEY)
-    static final SchemaRef returnType = SchemaRef.iid(Numeric.KEY);
+    static final SchemaRef returns = SchemaRef.iid(Numeric.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "unary negation — flips the sign of a quantity";
 
-    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    /** OperatorNotation lexeme — symbol with Prefix qualifier plus Precedence and Associativity. */
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
-                  qualifiers = {Operator.Prefix.KEY}),
+                  qualifiers = {OperatorNotation.KEY, Operator.Prefix.KEY}),
           bindings = {
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
                           qualifiers = {Operator.Precedence.KEY},
@@ -56,19 +60,12 @@ public class Negate extends Operator {
     public Negate(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     @Override
-    public Object execute(Object... operands) {
-        if (operands.length != 1) {
-            throw new IllegalArgumentException(
-                    "expects 1 operand, got " + operands.length);
+    protected Object evaluate(Frame frame) {
+        Number operand = numberAt(frame, ThematicRole.Theme.KEY);
+        if (operand == null) return null;
+        if (operand instanceof Double || operand instanceof Float) {
+            return -operand.doubleValue();
         }
-        Object operand = operands[0];
-        if (operand instanceof Number n) {
-            if (operand instanceof Double || operand instanceof Float) {
-                return -n.doubleValue();
-            }
-            return -n.longValue();
-        }
-        throw new IllegalArgumentException(
-                "Negate.execute: unsupported operand type " + operand);
+        return -operand.longValue();
     }
 }

@@ -1,0 +1,34 @@
+// =============================================================================
+// :imports:languages:english — Developer tool that generates English vocabulary.
+//
+// Walks Open English WordNet (OEWN) LMF XML, UniMorph irregular morphology
+// data, and VerbNet verb-class XML; produces signed frames carrying English's
+// bulk vocabulary (synsets, lexemes, glosses, irregular forms, thematic-role
+// schemas).  Output is intended to be signed with developer keys and
+// published into the live graph, after which this module retires.
+//
+// Three-pass import: synsets → lexemes → inflected forms.  Each item carries
+// a source-prefix binding ({@code "oewn"}) so re-imports are idempotent and
+// clashes detectable.
+//
+// Depends on :languages:english for the English Language class (so freshly
+// imported lexemes can be smoke-tested through real parse/render) and on
+// :core for the foundational item model.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+    api project(':languages:english')
+
+    // ICU for ULocale (used by Language.locale() during import-time tests).
+    api "com.ibm.icu:icu4j:${icu4jVersion}"
+
+    testImplementation testFixtures(project(':core'))
+
+    // Semantic Web — for RDF / ontology validation against the imported graph.
+    testImplementation "org.apache.jena:jena-arq:${jenaVersion}"
+}

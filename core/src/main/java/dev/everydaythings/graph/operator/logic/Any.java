@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.operator.logic;
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
 import dev.everydaythings.graph.language.*;
@@ -20,17 +21,19 @@ import dev.everydaythings.graph.value.Bool;
  * but in the system it's a 0-ary operator returning Bool.  The matcher-ness
  * falls out of partial application; no special return type needed.
  */
-@Seed.Item(key = Any.KEY,
-        head = Operator.KEY,
-        bindings = {@Seed.Binding(role = Operator.Arity.KEY, integer = 0)})
+@Seed.Item(key = Any.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Any.KEY)
 public class Any extends Operator {
 
     public static final String KEY = "cg.predicate:any";
 
+    /** Arity — zero-ary. */
+    @Seed.Property(role = Operator.Arity.KEY)
+    static final long arity = 0;
+
     /** Returns Bool — the operator yields true (and partial-applies to a matcher). */
     @Seed.Property(role = SchemaVocabulary.Returns.KEY)
-    static final SchemaRef returnType = SchemaRef.iid(Bool.KEY);
+    static final SchemaRef returns = SchemaRef.iid(Bool.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
@@ -47,7 +50,7 @@ public class Any extends Operator {
     public Any(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     @Override
-    public Object execute(Object... operands) {
+    protected Object evaluate(Frame frame) {
         return Boolean.TRUE;
     }
 }
