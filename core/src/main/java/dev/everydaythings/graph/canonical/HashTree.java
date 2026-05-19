@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.canonical;
 
-import dev.everydaythings.graph.encoding.Digest;
+import dev.everydaythings.graph.identity.algorithm.Hash;
 import io.ipfs.multihash.Multihash;
 import lombok.experimental.UtilityClass;
 
@@ -81,9 +81,9 @@ public final class HashTree {
      */
     public static byte[] hash(Node node, Multihash.Type algo) {
         return switch (node) {
-            case Node.Leaf l    -> Digest.compute(algo, prefix(KIND_LEAF, l.rawBytes()));
-            case Node.Array a   -> Digest.compute(algo, prefix(KIND_ARRAY, concatHashes(a.elements(), algo)));
-            case Node.Map m     -> Digest.compute(algo, prefix(KIND_MAP, concatEntryHashes(m.entries(), algo)));
+            case Node.Leaf l    -> Hash.compute(algo, prefix(KIND_LEAF, l.rawBytes()));
+            case Node.Array a   -> Hash.compute(algo, prefix(KIND_ARRAY, concatHashes(a.elements(), algo)));
+            case Node.Map m     -> Hash.compute(algo, prefix(KIND_MAP, concatEntryHashes(m.entries(), algo)));
             case Node.Hashed h  -> h.hash().clone();
         };
     }
@@ -128,7 +128,7 @@ public final class HashTree {
         java.io.ByteArrayOutputStream payload = new java.io.ByteArrayOutputStream();
         payload.writeBytes(hash(e.key(), algo));
         payload.writeBytes(hash(e.value(), algo));
-        return Digest.compute(algo, prefix(KIND_ENTRY, payload.toByteArray()));
+        return Hash.compute(algo, prefix(KIND_ENTRY, payload.toByteArray()));
     }
 
     private static byte[] prefix(byte kind, byte[] payload) {

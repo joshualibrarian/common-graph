@@ -2,10 +2,11 @@ package dev.everydaythings.graph.identity.vault;
 
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.identity.AlgorithmHandle;
-import dev.everydaythings.graph.identity.AlgorithmVocabulary;
-import dev.everydaythings.graph.identity.JcaAlgorithmHandle;
 import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.KeyAgreement;
+import dev.everydaythings.graph.identity.algorithm.PublicKeyAlgorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
@@ -27,12 +28,6 @@ import dev.everydaythings.graph.CoreVocabulary.Sequence;
 import dev.everydaythings.graph.language.ThematicRole;
 
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.interfaces.EdECPublicKey;
-import java.security.spec.EdECPoint;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,35 +51,31 @@ import java.util.Optional;
  * <p>In-memory vaults are always unlocked — there's no encrypted-at-rest
  * material to gate behind a credential.  {@link #lock()} is a no-op.
  *
- * <p>Phase 1 supports Ed25519 only.  The JCA hooks and raw-key encoding paths
- * are hard-coded against the {@link AlgorithmVocabulary.Ed25519} sememe; when
- * other algorithms or encryption-track keys become relevant, this class will
- * be extended or other {@link Vault} implementations will appear alongside it.
+ * <p>Vault operations dispatch through the {@link Signing} (and, when added,
+ * {@link dev.everydaythings.graph.identity.algorithm.KeyAgreement}) algorithm
+ * instances held in each purpose's state.  No hardcoded knowledge of any
+ * specific algorithm lives in this class — adding a new signing algorithm or
+ * a new key-agreement track is a matter of selecting the right algorithm at
+ * construction.
  */
 public final class InMemoryVault implements Vault {
 
-    /** Sememe IID for the Ed25519 algorithm — the only algorithm this vault supports. */
-    private static final ItemRef ED25519 = ItemRef.iid(AlgorithmVocabulary.Ed25519.KEY);
-
     /**
-     * Static Ed25519 handle used for VarSig / MultiKey construction.  Built off
-     * the {@link AlgorithmVocabulary.Ed25519} constants, so it works without a
-     * librarian present — important for tests and bare {@code Signer.inMemory()}
-     * usage.
-     */
-    private static final AlgorithmHandle ED25519_HANDLE = JcaAlgorithmHandle.ofEd25519();
-
-    /**
-     * Per-purpose state: keypairs (current + pre-rotation next) plus KEL position.
+     * Per-purpose state: the algorithm instance, keypairs (current +
+     * pre-rotation next), and KEL position.  All operations (sign, mint a
+     * new keypair, encode the public key) dispatch through {@link #algorithm}.
      */
     private static final class PurposeState {
-        final ItemRef algorithm;
+        final ItemRef algorithmId;
+        final PublicKeyAlgorithm algorithm;
         KeyPair currentKeyPair;
         KeyPair nextKeyPair;
         DatumRef chainHead;     // null = un-incepted
         long sequence;         // 0 before INCEPTION; 1 after; +1 per ROTATION
 
-        PurposeState(ItemRef algorithm, KeyPair currentKeyPair, KeyPair nextKeyPair) {
+        PurposeState(ItemRef algorithmId, PublicKeyAlgorithm algorithm,
+                     KeyPair currentKeyPair, KeyPair nextKeyPair) {
+            this.algorithmId = algorithmId;
             this.algorithm = algorithm;
             this.currentKeyPair = currentKeyPair;
             this.nextKeyPair = nextKeyPair;
@@ -95,10 +86,13 @@ public final class InMemoryVault implements Vault {
 
     private final Map<ItemRef, PurposeState> purposes;
     private final ItemRef identity;  // stable across rotations — derived from initial signing pubkey
+    private final KeyPair signedPreKey;  // X25519 SPK for X3DH session opening
+    private final Map<ItemRef, dev.everydaythings.graph.identity.DoubleRatchet> sessions = new java.util.HashMap<>();
 
-    private InMemoryVault(Map<ItemRef, PurposeState> purposes, ItemRef identity) {
+    private InMemoryVault(Map<ItemRef, PurposeState> purposes, ItemRef identity, KeyPair signedPreKey) {
         this.purposes = purposes;
         this.identity = identity;
+        this.signedPreKey = signedPreKey;
     }
 
     // ==================================================================================
@@ -106,23 +100,41 @@ public final class InMemoryVault implements Vault {
     // ==================================================================================
 
     /**
-     * Generate a fresh InMemoryVault with two newly-generated Ed25519 keypairs
-     * (current and pre-rotation next) on the signing purpose.
+     * Generate a fresh InMemoryVault with two key tracks: Ed25519 on the
+     * signing purpose and X25519 on the key-agreement purpose.  Each track
+     * gets its own current + pre-rotation-next keypair.
      *
-     * <p>InMemoryVault is currently Ed25519-only.  When other algorithms come
-     * online they will arrive in dedicated vault implementations rather than
-     * by parameterizing this factory.
+     * <p>Defaults are deliberately fixed for the in-memory implementation:
+     * Ed25519 for signing, X25519 for key agreement.  Other algorithms arrive
+     * in dedicated vault implementations rather than by parameterizing this
+     * factory.
      */
     public static InMemoryVault generate() {
-        KeyPair current = generateEd25519KeyPair();
-        KeyPair next = generateEd25519KeyPair();
-        PurposeState signing = new PurposeState(ED25519, current, next);
+        Signing ed25519 = Signing.Ed25519.builtin();
+        KeyPair signingCurrent = ed25519.generateKeyPair();
+        KeyPair signingNext = ed25519.generateKeyPair();
+        PurposeState signing = new PurposeState(
+                ItemRef.iid(Signing.Ed25519.KEY), ed25519, signingCurrent, signingNext);
+
+        KeyAgreement x25519 = KeyAgreement.X25519.builtin();
+        KeyPair kaCurrent = x25519.generateKeyPair();
+        KeyPair kaNext = x25519.generateKeyPair();
+        PurposeState keyAgreement = new PurposeState(
+                ItemRef.iid(KeyAgreement.X25519.KEY), x25519, kaCurrent, kaNext);
+
         Map<ItemRef, PurposeState> purposes = new HashMap<>();
         purposes.put(ItemRef.iid(IdentityVocabulary.Signing.KEY), signing);
+        purposes.put(ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY), keyAgreement);
+
+        // Signed pre-key: a separate X25519 keypair used in X3DH for opening
+        // Double-Ratchet sessions asynchronously.  Independent of the
+        // key-agreement KEL track; published as a SignedPreKey frame.
+        KeyPair spk = x25519.generateKeyPair();
+
         ItemRef identity = ItemRef.fromMultikeyBytes(
-                MultiKey.of(ED25519_HANDLE, rawEd25519PublicKey(current.getPublic()))
+                MultiKey.of(ed25519, ed25519.publicKeyToRaw(signingCurrent.getPublic()))
                         .encoded());
-        return new InMemoryVault(purposes, identity);
+        return new InMemoryVault(purposes, identity, spk);
     }
 
     // ==================================================================================
@@ -173,6 +185,9 @@ public final class InMemoryVault implements Vault {
             throw new IllegalStateException(
                     "Purpose " + purpose + " has already been incepted (sequence=" + state.sequence + ")");
         }
+        PurposeState signingState = signingState();
+        Signing signingAlg = signingAlgorithm(signingState);
+
         MultiKey currentKey = currentPublicKey(state);
         ContentRef nextDigest = ContentRef.of(nextPublicKey(state).encoded());
 
@@ -193,7 +208,11 @@ public final class InMemoryVault implements Vault {
                 Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Inception.KEY)), bindings);
-        VarSig sig = signWith(state.currentKeyPair, HashTree.signingPayload(body));
+        // Always signed by the signing track's current key.  For signing-track
+        // inception this is self-attestation (the body declares the same key
+        // that signs it); for non-signing tracks it is the signing identity
+        // authorizing the new track.
+        VarSig sig = signWith(signingAlg, signingState.currentKeyPair, HashTree.signingPayload(body));
         Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         state.chainHead = body.datumId();
@@ -210,14 +229,17 @@ public final class InMemoryVault implements Vault {
             throw new IllegalStateException(
                     "Purpose " + purpose + " has not been incepted; cannot rotate");
         }
+        PurposeState signingState = signingState();
+        Signing signingAlg = signingAlgorithm(signingState);
+
         KeyPair oldCurrent = state.currentKeyPair;
         KeyPair newCurrent = state.nextKeyPair;
-        KeyPair newNext = generateEd25519KeyPair();
+        KeyPair newNext = state.algorithm.generateKeyPair();
 
-        MultiKey newCurrentPublic = MultiKey.of(ED25519_HANDLE,
-                rawEd25519PublicKey(newCurrent.getPublic()));
-        MultiKey newNextPublic = MultiKey.of(ED25519_HANDLE,
-                rawEd25519PublicKey(newNext.getPublic()));
+        MultiKey newCurrentPublic = MultiKey.of(state.algorithm,
+                state.algorithm.publicKeyToRaw(newCurrent.getPublic()));
+        MultiKey newNextPublic = MultiKey.of(state.algorithm,
+                state.algorithm.publicKeyToRaw(newNext.getPublic()));
         ContentRef newNextDigest = ContentRef.of(newNextPublic.encoded());
 
         long newSequence = state.sequence + 1L;
@@ -248,19 +270,31 @@ public final class InMemoryVault implements Vault {
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Rotation.KEY)), bindings);
         byte[] payload = HashTree.signingPayload(body);
-        VarSig sigOld = signWith(oldCurrent, payload);
-        VarSig sigNew = signWith(newCurrent, payload);
-
         DatumRef bodyRef = DatumRef.of(body.datumId());
-        Record recordOld = Record.of(bodyRef, List.of(), sigOld);
-        Record recordNew = Record.of(bodyRef, List.of(), sigNew);
+
+        List<Record> records;
+        if (state == signingState) {
+            // Signing-track rotation: dual signature by old and new signing
+            // keys (the previous commitment proven satisfied, the new key
+            // proven controlled).
+            VarSig sigOld = signWith(signingAlg, oldCurrent, payload);
+            VarSig sigNew = signWith(signingAlg, newCurrent, payload);
+            records = List.of(
+                    Record.of(bodyRef, List.of(), sigOld),
+                    Record.of(bodyRef, List.of(), sigNew));
+        } else {
+            // Non-signing-track rotation: signed once by the signing key,
+            // which is itself unchanged by this event.
+            VarSig sig = signWith(signingAlg, signingState.currentKeyPair, payload);
+            records = List.of(Record.of(bodyRef, List.of(), sig));
+        }
 
         state.currentKeyPair = newCurrent;
         state.nextKeyPair = newNext;
         state.chainHead = body.datumId();
         state.sequence = newSequence;
 
-        return Frame.of(body, List.of(recordOld, recordNew));
+        return Frame.of(body, records);
     }
 
     @Override
@@ -285,7 +319,7 @@ public final class InMemoryVault implements Vault {
                 Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Delegation.KEY)), bindings);
-        VarSig sig = signWith(signingState.currentKeyPair, HashTree.signingPayload(body));
+        VarSig sig = signWith(signingAlgorithm(signingState), signingState.currentKeyPair, HashTree.signingPayload(body));
         Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         return Frame.of(body, List.of(record));
@@ -308,7 +342,7 @@ public final class InMemoryVault implements Vault {
                 Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Revocation.KEY)), bindings);
-        VarSig sig = signWith(signingState.currentKeyPair, HashTree.signingPayload(body));
+        VarSig sig = signWith(signingAlgorithm(signingState), signingState.currentKeyPair, HashTree.signingPayload(body));
         Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
 
         return Frame.of(body, List.of(record));
@@ -320,14 +354,14 @@ public final class InMemoryVault implements Vault {
 
     @Override
     public VarSig sign(byte[] message) {
-        PurposeState state = requirePurpose(ItemRef.iid(IdentityVocabulary.Signing.KEY));
-        return signWith(state.currentKeyPair, message);
+        PurposeState state = signingState();
+        return signWith(signingAlgorithm(state), state.currentKeyPair, message);
     }
 
     @Override
     public VarSig sign(byte[] message, ItemRef purpose) {
         PurposeState state = requirePurpose(purpose);
-        return signWith(state.currentKeyPair, message);
+        return signWith(signingAlgorithm(state), state.currentKeyPair, message);
     }
 
     // ==================================================================================
@@ -337,7 +371,7 @@ public final class InMemoryVault implements Vault {
     @Override
     public Optional<ItemRef> signingAlgorithm() {
         PurposeState state = purposes.get(ItemRef.iid(IdentityVocabulary.Signing.KEY));
-        return state == null ? Optional.empty() : Optional.of(state.algorithm);
+        return state == null ? Optional.empty() : Optional.of(state.algorithmId);
     }
 
     @Override
@@ -348,6 +382,178 @@ public final class InMemoryVault implements Vault {
     @Override
     public Optional<ContentRef> signingNextKeyDigest() {
         return nextKeyDigest(ItemRef.iid(IdentityVocabulary.Signing.KEY));
+    }
+
+    // ==================================================================================
+    // Vault interface — key-agreement track
+    // ==================================================================================
+
+    @Override
+    public Optional<ItemRef> keyAgreementAlgorithm() {
+        PurposeState state = purposes.get(ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY));
+        return state == null ? Optional.empty() : Optional.of(state.algorithmId);
+    }
+
+    @Override
+    public Optional<MultiKey> keyAgreementPublicKey() {
+        return publicKey(ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY));
+    }
+
+    @Override
+    public Optional<ContentRef> keyAgreementNextKeyDigest() {
+        return nextKeyDigest(ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY));
+    }
+
+    @Override
+    public byte[] agree(java.security.PublicKey peerPublicKey) {
+        Objects.requireNonNull(peerPublicKey, "peerPublicKey");
+        PurposeState state = requirePurpose(ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY));
+        if (!(state.algorithm instanceof KeyAgreement ka)) {
+            throw new IllegalStateException(
+                    "Key-agreement purpose has non-key-agreement algorithm: " + state.algorithmId);
+        }
+        return ka.agree(state.currentKeyPair.getPrivate(), peerPublicKey);
+    }
+
+    // ==================================================================================
+    // Signed pre-key + Double-Ratchet sessions
+    // ==================================================================================
+
+    @Override
+    public Optional<MultiKey> signedPreKeyPublicKey() {
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        return Optional.of(MultiKey.of(x, x.publicKeyToRaw(signedPreKey.getPublic())));
+    }
+
+    @Override
+    public Frame signedPreKeyFrame() {
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        MultiKey spkPub = MultiKey.of(x, x.publicKeyToRaw(signedPreKey.getPublic()));
+
+        List<Binding> bindings = new ArrayList<>();
+        bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity));
+        bindings.add(new Binding(
+                ItemRef.iid(ThematicRole.Instrument.KEY),
+                List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
+                spkPub.encoded()));
+        bindings.add(Binding.ref(
+                ItemRef.iid(ThematicRole.Purpose.KEY),
+                ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY)));
+        bindings.add(new Binding(
+                ItemRef.iid(ThematicRole.Time.KEY),
+                List.of(),
+                Instant.now()));
+
+        Body body = Body.of(
+                ItemRef.of(ItemRef.iid(IdentityVocabulary.SignedPreKey.KEY)),
+                bindings);
+        PurposeState signingState = signingState();
+        VarSig sig = signWith(signingAlgorithm(signingState),
+                signingState.currentKeyPair,
+                HashTree.signingPayload(body));
+        Record record = Record.of(DatumRef.of(body.datumId()), List.of(), sig);
+        return Frame.of(body, List.of(record));
+    }
+
+    @Override
+    public void openSessionTo(ItemRef peerIid, MultiKey peerIkPub, MultiKey peerSpkPub) {
+        Objects.requireNonNull(peerIid, "peerIid");
+        Objects.requireNonNull(peerIkPub, "peerIkPub");
+        Objects.requireNonNull(peerSpkPub, "peerSpkPub");
+
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        KeyPair ephemeral = x.generateKeyPair();
+        java.security.PublicKey peerIkJca  = x.decodePublicKey(peerIkPub.rawKey());
+        java.security.PublicKey peerSpkJca = x.decodePublicKey(peerSpkPub.rawKey());
+
+        byte[] sk = dev.everydaythings.graph.identity.X3dh.initiator(
+                this, ephemeral, peerIkJca, peerSpkJca);
+
+        // Bootstrap bindings: included on every outgoing message until the
+        // peer responds, so the peer can run X3DH responder asynchronously.
+        MultiKey ourIk = keyAgreementPublicKey().orElseThrow();
+        byte[] ourEkPub = x.publicKeyToRaw(ephemeral.getPublic());
+        java.util.List<dev.everydaythings.graph.datum.Binding> bootstrap = java.util.List.of(
+                new dev.everydaythings.graph.datum.Binding(
+                        ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorIdentityKey.KEY),
+                        ourIk.rawKey()),
+                new dev.everydaythings.graph.datum.Binding(
+                        ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorEphemeralKey.KEY),
+                        ourEkPub));
+
+        dev.everydaythings.graph.identity.DoubleRatchet dr =
+                dev.everydaythings.graph.identity.DoubleRatchet.initInitiator(
+                        sk, peerSpkPub.rawKey(), bootstrap);
+        sessions.put(peerIid, dr);
+    }
+
+    @Override
+    public dev.everydaythings.graph.identity.DoubleRatchet.EncryptedMessage encryptInSession(
+            ItemRef peerIid, byte[] plaintext) {
+        return requireSession(peerIid).encrypt(plaintext, java.util.List.of());
+    }
+
+    @Override
+    public byte[] decryptInSession(ItemRef peerIid,
+                                   dev.everydaythings.graph.identity.DoubleRatchet.EncryptedMessage message) {
+        dev.everydaythings.graph.identity.DoubleRatchet dr = sessions.get(peerIid);
+        if (dr == null) {
+            dr = bootstrapResponderSession(peerIid, message.recordBindings());
+            sessions.put(peerIid, dr);
+        }
+        return dr.decrypt(message);
+    }
+
+    /**
+     * Construct a responder-side DR session from the bootstrap bindings on a
+     * first message: extracts INITIATOR_IDENTITY_KEY and
+     * INITIATOR_EPHEMERAL_KEY, runs X3DH's responder path with our signed
+     * pre-key, and initializes a fresh DR state.
+     */
+    private dev.everydaythings.graph.identity.DoubleRatchet bootstrapResponderSession(
+            ItemRef peerIid, java.util.List<dev.everydaythings.graph.datum.Binding> bindings) {
+        byte[] initiatorIkRaw = null;
+        byte[] initiatorEkRaw = null;
+        ItemRef ikRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorIdentityKey.KEY);
+        ItemRef ekRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorEphemeralKey.KEY);
+        for (dev.everydaythings.graph.datum.Binding b : bindings) {
+            Object role = b.role();
+            if (!(role instanceof ItemRef ir)) continue;
+            if (ir.equals(ikRole) && b.target() instanceof byte[] bytes) {
+                initiatorIkRaw = bytes;
+            } else if (ir.equals(ekRole) && b.target() instanceof byte[] bytes) {
+                initiatorEkRaw = bytes;
+            }
+        }
+        if (initiatorIkRaw == null || initiatorEkRaw == null) {
+            throw new IllegalStateException(
+                    "No session with peer " + peerIid
+                    + " and message lacks INITIATOR_IDENTITY_KEY/INITIATOR_EPHEMERAL_KEY bootstrap bindings");
+        }
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        java.security.PublicKey peerIkJca = x.decodePublicKey(initiatorIkRaw);
+        java.security.PublicKey peerEkJca = x.decodePublicKey(initiatorEkRaw);
+        byte[] sk = dev.everydaythings.graph.identity.X3dh.responder(
+                this, signedPreKey, peerIkJca, peerEkJca);
+        return dev.everydaythings.graph.identity.DoubleRatchet.initResponder(sk, signedPreKey);
+    }
+
+    @Override
+    public boolean hasSessionWith(ItemRef peerIid) {
+        return sessions.containsKey(peerIid);
+    }
+
+    @Override
+    public void closeSession(ItemRef peerIid) {
+        sessions.remove(peerIid);
+    }
+
+    private dev.everydaythings.graph.identity.DoubleRatchet requireSession(ItemRef peerIid) {
+        dev.everydaythings.graph.identity.DoubleRatchet dr = sessions.get(peerIid);
+        if (dr == null) {
+            throw new IllegalStateException("No session with peer " + peerIid);
+        }
+        return dr;
     }
 
     // ==================================================================================
@@ -364,58 +570,39 @@ public final class InMemoryVault implements Vault {
         return state;
     }
 
-    private static MultiKey currentPublicKey(PurposeState state) {
-        return MultiKey.of(ED25519_HANDLE, rawEd25519PublicKey(state.currentKeyPair.getPublic()));
-    }
-
-    private static MultiKey nextPublicKey(PurposeState state) {
-        return MultiKey.of(ED25519_HANDLE, rawEd25519PublicKey(state.nextKeyPair.getPublic()));
-    }
-
-    /** Sign a message with an explicit keypair (rotation needs both old + new). */
-    private static VarSig signWith(KeyPair keyPair, byte[] message) {
-        try {
-            Signature sig = Signature.getInstance(AlgorithmVocabulary.Ed25519.SIGNATURE_NAME);
-            sig.initSign(keyPair.getPrivate());
-            sig.update(message);
-            return VarSig.of(ED25519_HANDLE, sig.sign());
-        } catch (Exception e) {
-            throw new RuntimeException("Signing failed", e);
-        }
-    }
-
-    // ==================================================================================
-    // Ed25519-specific helpers
-    // ==================================================================================
-
-    private static KeyPair generateEd25519KeyPair() {
-        try {
-            KeyPairGenerator gen = KeyPairGenerator.getInstance(AlgorithmVocabulary.Ed25519.KEY_FACTORY);
-            return gen.generateKeyPair();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Ed25519 unavailable in this JCA provider", e);
-        }
+    /** Convenience accessor for the signing purpose's state. */
+    private PurposeState signingState() {
+        return requirePurpose(ItemRef.iid(IdentityVocabulary.Signing.KEY));
     }
 
     /**
-     * Extract the 32-byte raw form of an Ed25519 public key — little-endian
-     * y-coordinate with the x-coordinate sign bit packed into bit 7 of the
-     * last byte.  Matches RFC 8032 and the multikey 0xed encoding.
+     * Extract the signing-algorithm runtime instance from a {@link PurposeState}
+     * that's expected to be the signing track.  Throws if the state's
+     * algorithm is not a {@link Signing}.
      */
-    private static byte[] rawEd25519PublicKey(PublicKey pub) {
-        if (!(pub instanceof EdECPublicKey edPub)) {
-            throw new IllegalStateException("Expected Ed25519 public key, got " + pub.getClass());
-        }
-        EdECPoint point = edPub.getPoint();
-        byte[] yBE = point.getY().toByteArray();
-        byte[] raw = new byte[32];
-        int copyLen = Math.min(yBE.length, 32);
-        for (int i = 0; i < copyLen; i++) {
-            raw[i] = yBE[yBE.length - 1 - i];
-        }
-        if (point.isXOdd()) {
-            raw[31] |= (byte) 0x80;
-        }
-        return raw;
+    private static Signing signingAlgorithm(PurposeState state) {
+        if (state.algorithm instanceof Signing s) return s;
+        throw new IllegalStateException(
+                "Purpose " + state.algorithmId + " is not a signing algorithm");
+    }
+
+    private static MultiKey currentPublicKey(PurposeState state) {
+        return MultiKey.of(state.algorithm,
+                state.algorithm.publicKeyToRaw(state.currentKeyPair.getPublic()));
+    }
+
+    private static MultiKey nextPublicKey(PurposeState state) {
+        return MultiKey.of(state.algorithm,
+                state.algorithm.publicKeyToRaw(state.nextKeyPair.getPublic()));
+    }
+
+    /**
+     * Sign a message with an explicit keypair (rotation needs both old + new).
+     * Always produces a {@link Signing}-based signature; the caller chooses
+     * which keypair to use.
+     */
+    private static VarSig signWith(Signing algorithm, KeyPair keyPair, byte[] message) {
+        byte[] sig = algorithm.sign(message, keyPair.getPrivate());
+        return VarSig.of(algorithm, sig);
     }
 }

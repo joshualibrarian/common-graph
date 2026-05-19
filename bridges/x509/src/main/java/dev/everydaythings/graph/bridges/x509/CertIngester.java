@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.identity.cert;
+package dev.everydaythings.graph.bridges.x509;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.datum.Binding;
@@ -10,8 +10,9 @@ import dev.everydaythings.graph.id.DatumRef;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.identity.AlgorithmVocabulary;
 import dev.everydaythings.graph.identity.IdentityVocabulary;
-import dev.everydaythings.graph.identity.JcaAlgorithmHandle;
 import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.identity.vault.Vault;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -21,14 +22,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.EdECPublicKey;
-import java.security.spec.EdECPoint;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -244,39 +242,11 @@ public final class CertIngester {
     // ==================================================================================
 
     private static MultiKey subjectMultiKey(PublicKey pubKey) {
-        String algorithm = pubKey.getAlgorithm();
-        if ("Ed25519".equals(algorithm) || "EdDSA".equals(algorithm)) {
-            if (!(pubKey instanceof EdECPublicKey ed)) {
-                throw new UnsupportedKeyAlgorithmException(
-                        "Expected EdECPublicKey for Ed25519, got " + pubKey.getClass().getName());
-            }
-            byte[] raw = rawEd25519PublicKey(ed);
-            return MultiKey.of(JcaAlgorithmHandle.ofEd25519(), raw);
+        try {
+            return Signing.toMultiKey(pubKey);
+        } catch (IllegalArgumentException e) {
+            throw new UnsupportedKeyAlgorithmException(e.getMessage());
         }
-        throw new UnsupportedKeyAlgorithmException(
-                "Public-key algorithm not yet supported by CertIngester: " + algorithm);
-    }
-
-    /**
-     * Extract the 32-byte raw form of an Ed25519 public key — little-endian
-     * y-coordinate with the x-coordinate sign bit packed into bit 7 of the
-     * last byte.  Matches RFC 8032 and the multikey 0xed encoding.  Same
-     * encoding as {@code InMemoryVault.rawEd25519PublicKey}; kept here to
-     * avoid making that method public for a single caller.
-     */
-    private static byte[] rawEd25519PublicKey(EdECPublicKey ed) {
-        EdECPoint point = ed.getPoint();
-        BigInteger y = point.getY();
-        byte[] yBE = y.toByteArray();
-        byte[] raw = new byte[32];
-        int copyLen = Math.min(yBE.length, 32);
-        for (int i = 0; i < copyLen; i++) {
-            raw[i] = yBE[yBE.length - 1 - i];
-        }
-        if (point.isXOdd()) {
-            raw[31] |= (byte) 0x80;
-        }
-        return raw;
     }
 
     /**
@@ -295,7 +265,7 @@ public final class CertIngester {
                 return ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY);
             }
             if (keyUsage.length > 2 && keyUsage[2]) {
-                return ItemRef.iid(IdentityVocabulary.Encryption.KEY);
+                return ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY);
             }
         }
         // No KeyUsage extension, or only digitalSignature set — default Signing.

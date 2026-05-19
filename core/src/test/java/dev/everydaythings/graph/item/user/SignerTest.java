@@ -1,6 +1,8 @@
 package dev.everydaythings.graph.item.user;
 
 import dev.everydaythings.graph.identity.AlgorithmVocabulary;
+import dev.everydaythings.graph.identity.algorithm.Algorithm;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.identity.MultiKey;
 import dev.everydaythings.graph.identity.VarSig;
 import dev.everydaythings.graph.identity.Signer;
@@ -72,7 +74,7 @@ class SignerTest {
         void inMemoryHasSigningCapability() {
             Signer s = Signer.inMemory();
             assertThat(s.canSign()).isTrue();
-            assertThat(s.signingAlgorithm()).contains(ItemRef.iid(AlgorithmVocabulary.Ed25519.KEY));
+            assertThat(s.signingAlgorithm()).contains(ItemRef.iid(Signing.Ed25519.KEY));
             assertThat(s.signingPublicKey()).isPresent();
         }
 
@@ -81,7 +83,7 @@ class SignerTest {
         void publicKeyShape() {
             Signer s = Signer.inMemory();
             MultiKey pk = s.signingPublicKey().orElseThrow();
-            assertThat(pk.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.MULTIKEY_CODE);
+            assertThat(pk.code()).isEqualTo((int) Signing.Ed25519.MULTIKEY_CODE);
             assertThat(pk.rawKey()).hasSize(32);
         }
 
@@ -90,7 +92,7 @@ class SignerTest {
         void signProducesVarsig() {
             Signer s = Signer.inMemory();
             VarSig sig = s.sign("hello world".getBytes());
-            assertThat(sig.code()).isEqualTo((int) AlgorithmVocabulary.Ed25519.VARSIG_CODE);
+            assertThat(sig.code()).isEqualTo((int) Signing.Ed25519.VARSIG_CODE);
             assertThat(sig.rawSig()).hasSize(64);
         }
 

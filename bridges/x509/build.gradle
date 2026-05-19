@@ -1,0 +1,25 @@
+// =============================================================================
+// :bridges:x509 — X.509 certificate ingress/egress.
+//
+// CertIngester (X.509 bytes → CG Attestation Frame) and CertEmitter
+// (Attestation Frame → X.509 bytes via BouncyCastle).  X.509 is a foreign
+// PKI format CG can move identity-binding statements through when talking to
+// PKI-shaped peers; it isn't a CG primitive.
+//
+// Keeps BouncyCastle (~7MB) out of :core, where most code doesn't need it.
+// Live TLS handshakes don't pass through here — they consume raw cert objects
+// from the SSLSession directly.  This module is for offline cert minting and
+// parsing (cert exchange protocols, KERI bridge, foreign PKI interop).
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+
+    // X.509 generation + PEM parsing.
+    implementation "org.bouncycastle:bcprov-jdk18on:${bouncycastleVersion}"
+    implementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastleVersion}"
+}

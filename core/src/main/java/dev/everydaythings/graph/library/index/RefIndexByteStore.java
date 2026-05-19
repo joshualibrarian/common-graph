@@ -5,6 +5,7 @@ import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
+import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.CompoundKey.Qualifier;
@@ -31,6 +32,13 @@ import java.util.Optional;
 public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStore.Column> {
 
     byte[] EMPTY_VALUE = new byte[0];
+
+    /**
+     * The encoder used to produce byte-stable key fragments (binding
+     * qualifiers, etc.).  All replicas of an index must agree on the encoder
+     * for keys to interoperate.
+     */
+    Encoding rawEncoder();
 
     // ==================================================================================
     // Write API
@@ -71,15 +79,17 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
     }
 
     private void indexBindings(Datum datum, HashID id) {
+        Encoding enc = rawEncoder();
         for (Binding b : datum.bindings()) {
-            composeForwardKey(b, id).ifPresent(key ->
+            composeForwardKey(b, id, enc).ifPresent(key ->
                     db(RefIndexStore.Column.FORWARD_BINDINGS).key(key).put(EMPTY_VALUE));
         }
     }
 
     private void unindexBindings(Datum datum, HashID id) {
+        Encoding enc = rawEncoder();
         for (Binding b : datum.bindings()) {
-            composeForwardKey(b, id).ifPresent(key ->
+            composeForwardKey(b, id, enc).ifPresent(key ->
                     db(RefIndexStore.Column.FORWARD_BINDINGS).key(key).delete());
         }
     }
@@ -142,7 +152,7 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
     // Key encoding helpers
     // ==================================================================================
 
-    private static Optional<byte[]> composeForwardKey(Binding binding, HashID datumId) {
+    private static Optional<byte[]> composeForwardKey(Binding binding, HashID datumId, Encoding enc) {
         Optional<byte[]> targetBytes = extractReferenceMultihash(binding.target());
         if (targetBytes.isEmpty()) return Optional.empty();
         int qualCount = binding.qualifiers().size();
@@ -151,7 +161,7 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
                     "Binding has more than 255 qualifiers; key layout assumes 1-byte count");
         }
         byte[] roleBytes = binding.role().encodeBinary();
-        byte[] qualBytes = encodeQualifiers(binding.qualifiers());
+        byte[] qualBytes = encodeQualifiers(binding.qualifiers(), enc);
         byte[] cidBytes = datumId.encodeBinary();
         return Optional.of(concatAll(roleBytes, new byte[]{(byte) qualCount}, qualBytes,
                 targetBytes.get(), cidBytes));
@@ -164,12 +174,12 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
         return Optional.empty();
     }
 
-    private static byte[] encodeQualifiers(List<Qualifier> qualifiers) {
+    private static byte[] encodeQualifiers(List<Qualifier> qualifiers, Encoding enc) {
         if (qualifiers.isEmpty()) return new byte[0];
         List<byte[]> parts = new ArrayList<>(qualifiers.size());
         int total = 0;
         for (Qualifier q : qualifiers) {
-            byte[] qBytes = dev.everydaythings.graph.encoding.CgCbor.encode(q);
+            byte[] qBytes = enc.encode(q);
             parts.add(qBytes);
             total += qBytes.length;
         }

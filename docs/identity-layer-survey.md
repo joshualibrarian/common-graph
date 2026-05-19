@@ -19,13 +19,13 @@ Clean, multi-purpose, well-designed.  Worth keeping the interface as-is.
 - `Vault.signingAlgorithm() → Optional<ItemRef>` — algorithm sememe IID.  Resolves through the librarian's AlgorithmCache to an AlgorithmHandle (which carries JCA names).
 - `Vault.signingPublicKey() → Optional<MultiKey>` — exposed pubkey, codec-tagged.
 - `Vault.publicKey(purpose) → Optional<MultiKey>` — per-purpose form.
-- `Vault.canSign() / canEncrypt()` — readiness predicates.
+- `Vault.canSign() / canKeyAgree()` — readiness predicates.
 - `Vault.isLocked()` and `Vault.lock()` — encryption-at-rest hook (no-op for InMemoryVault, real for future encrypted-file / OS-keychain / HSM vaults).
 - Event-emitting methods (`incept`, `rotate`, `delegate`, `revoke`) all produce signed Frames.
 
 ### InMemoryVault (`identity/vault/InMemoryVault.java`, 421 lines)
 
-Phase-1 implementation.  Ed25519 only on the signing purpose.  Encryption track returns empty.  Uses standard JCA internally (`Signature.getInstance("Ed25519")`, `KeyPairGenerator.getInstance("Ed25519")`), proving the JCA path works end-to-end.  Per-purpose `PurposeState` holds current keypair + pre-rotation next keypair + chain head + sequence.  Generates fresh current + next keypairs at construction.
+Phase-1 implementation.  Ed25519 only on the signing purpose.  Key-agreement track returns empty.  Uses standard JCA internally (`Signature.getInstance("Ed25519")`, `KeyPairGenerator.getInstance("Ed25519")`), proving the JCA path works end-to-end.  Per-purpose `PurposeState` holds current keypair + pre-rotation next keypair + chain head + sequence.  Generates fresh current + next keypairs at construction.
 
 ### MultiKey + AlgorithmHandle (`identity/MultiKey.java`, 158 lines; `identity/AlgorithmHandle.java`, 66 lines; `identity/JcaAlgorithmHandle.java`, 168 lines)
 
@@ -185,7 +185,7 @@ KERI is now just another application of the foundation: HTTP (already done) over
 
 These don't block starting Phase A but should be settled before they bite:
 
-- **Encryption-purpose key derivation.**  X25519 from a fresh keypair, or derived from the same Ed25519 seed?  The latter means one identity has both signing and encryption capabilities without minting separate keys, but the cryptographic provenance gets subtler.  Probably: separate keys, kept in the same Vault under different purposes, related by being incepted/rotated together.
+- **Key-agreement-purpose key derivation.**  X25519 from a fresh keypair, or derived from the same Ed25519 seed?  The latter means one identity has both signing and key-agreement capabilities without minting separate keys, but the cryptographic provenance gets subtler.  Probably: separate keys, kept in the same Vault under different purposes, related by being incepted/rotated together.
 - **Cert validity periods for AID certs.**  KERI's pre-rotation makes "cert expiry" weird — a CG identity's signing key can rotate, but the AID doesn't.  Probably: cert validity = current keypair's tenure, regenerate cert on each rotation.  Trust resolver checks the current cert against the AID's KEL.
 - **Multi-cert per identity.**  An AID might want one cert for HTTPS server (with hostnames in SAN) and another for client mTLS (with AID URN in SAN).  The cert sememe supports this naturally; just multiple cert records pointing at the same subject pubkey.
 

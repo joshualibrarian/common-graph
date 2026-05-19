@@ -310,35 +310,38 @@ public abstract class Operator extends Item {
     }
 
     /** Fixity sememes recognized as operator-form markers on a Lexeme's VALUE binding. */
-    private static final java.util.Set<ItemRef> RECOGNIZED_FIXITIES = java.util.Set.of(
+    static final java.util.Set<ItemRef> RECOGNIZED_FIXITIES = java.util.Set.of(
             ItemRef.iid(Infix.KEY),
             ItemRef.iid(Prefix.KEY),
             ItemRef.iid(Postfix.KEY));
 
     /**
      * Scan a Lexeme frame's bindings for a VALUE binding whose qualifiers include any
-     * recognized fixity sememe; on match, extract fixity + precedence + associativity.
-     * Other qualifiers on the same binding (e.g., {@code OperatorNotation.KEY} as the
-     * language tag) are ignored — we match by presence of a fixity qualifier, not by
-     * exact compound-key equality.
+     * recognized fixity sememe; on match, extract the operator form (symbol + fixity
+     * + precedence + associativity).  Other qualifiers on the same binding (e.g.,
+     * {@code OperatorNotation.KEY} as the language tag) are ignored — we match by
+     * presence of a fixity qualifier, not by exact compound-key equality.
+     *
+     * <p>Package-private so OperatorNotation can reuse it for render-side lookup.
      */
-    private static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
+    static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
         ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
         return lexemeFrame.bindings()
                 .filter(b -> valueRole.equals(b.role()))
                 .map(b -> {
                     ItemRef fixity = fixityQualifier(b);
                     if (fixity == null) return null;
+                    String symbol = readTextLiteral(b.target());
                     long precedence = readPrecedence(lexemeFrame).orElse(0L);
                     ItemRef associativity = readAssociativity(lexemeFrame).orElse(ItemRef.iid(Left.KEY));
-                    return new OperatorForm(fixity, precedence, associativity);
+                    return new OperatorForm(symbol, fixity, precedence, associativity);
                 })
                 .filter(java.util.Objects::nonNull)
                 .findFirst();
     }
 
     /** Return the fixity sememe from a binding's qualifiers, or null if none present. */
-    private static ItemRef fixityQualifier(Binding binding) {
+    static ItemRef fixityQualifier(Binding binding) {
         for (CompoundKey.Qualifier q : binding.qualifiers()) {
             if (q instanceof CompoundKey.Sememe s && RECOGNIZED_FIXITIES.contains(s.id())) {
                 return s.id();
@@ -347,8 +350,13 @@ public abstract class Operator extends Item {
         return null;
     }
 
+    /** Pull a text-literal value out of a binding target, or null if not a String. */
+    static String readTextLiteral(Object target) {
+        return target instanceof String s ? s : null;
+    }
+
     /** Read the integer precedence from an operator-form Lexeme's ATTRIBUTE[Precedence] binding. */
-    private static Optional<Long> readPrecedence(Frame lexemeFrame) {
+    static Optional<Long> readPrecedence(Frame lexemeFrame) {
         CompoundKey attributePrecedence = CompoundKey.of(
                 ItemRef.iid(ThematicRole.Attribute.KEY), ItemRef.iid(Precedence.KEY));
         return lexemeFrame.binding(attributePrecedence)
@@ -358,7 +366,7 @@ public abstract class Operator extends Item {
     }
 
     /** Read the associativity sememe IID from an operator-form Lexeme's ATTRIBUTE[Associativity] binding. */
-    private static Optional<ItemRef> readAssociativity(Frame lexemeFrame) {
+    static Optional<ItemRef> readAssociativity(Frame lexemeFrame) {
         CompoundKey attributeAssociativity = CompoundKey.of(
                 ItemRef.iid(ThematicRole.Attribute.KEY), ItemRef.iid(Associativity.KEY));
         return lexemeFrame.binding(attributeAssociativity)
@@ -511,8 +519,14 @@ public abstract class Operator extends Item {
         return null;
     }
 
-    /** Internal carrier for parsed operator-form metadata: fixity, precedence, associativity. */
-    private record OperatorForm(ItemRef fixity, long precedence, ItemRef associativity) {}
+    /**
+     * Carrier for parsed operator-form metadata extracted from a Lexeme frame:
+     * symbol surface text (nullable when the Lexeme's VALUE isn't a String
+     * literal — common for parse-side use where the symbol isn't needed),
+     * fixity sememe (Infix / Prefix / Postfix), integer precedence, and
+     * associativity sememe.  Shared with OperatorNotation for render-side use.
+     */
+    record OperatorForm(String symbol, ItemRef fixity, long precedence, ItemRef associativity) {}
 
     // ==================================================================================
     // Operator-adjacent meta sememes — universal notation features riding on operator

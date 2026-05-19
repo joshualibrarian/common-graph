@@ -28,4 +28,9 @@ dependencies {
     implementation "io.netty:netty-transport:${nettyVersion}"
     implementation "io.netty:netty-codec:${nettyVersion}"
     implementation "io.netty:netty-handler:${nettyVersion}"
+
+    // Tests need BouncyCastle to mint Ed25519 self-signed certs (Netty's
+    // SelfSignedCertificate is RSA-only).  Used only in test fixtures.
+    testImplementation "org.bouncycastle:bcprov-jdk18on:${bouncycastleVersion}"
+    testImplementation "org.bouncycastle:bcpkix-jdk18on:${bouncycastleVersion}"
 }

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.bridges.tls;
 
 import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.identity.algorithm.Signing;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -12,6 +13,8 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import lombok.extern.log4j.Log4j2;
 
+import javax.net.ssl.SSLPeerUnverifiedException;
+import java.security.cert.Certificate;
 import java.util.ArrayDeque;
 import java.util.Objects;
 import java.util.Optional;
@@ -101,6 +104,7 @@ public final class TlsTunnel implements Tunnel {
     private final Object lock = new Object();
     private volatile Consumer<byte[]> receiver;
     private volatile boolean closed = false;
+    private volatile MultiKey peerKey;  // populated on handshake completion
 
     // ==================================================================================
     // Factories
@@ -186,9 +190,12 @@ public final class TlsTunnel implements Tunnel {
 
         this.embedded = new EmbeddedChannel(sslHandler, plaintextHandler);
 
-        // Mirror SslHandler's handshake completion into our future.
+        // Mirror SslHandler's handshake completion into our future.  On
+        // success, extract the peer's leaf cert public key as a MultiKey
+        // so {@link #counterparty()} can return it.
         sslHandler.handshakeFuture().addListener(f -> {
             if (f.isSuccess()) {
+                this.peerKey = extractPeerKey(sslHandler);
                 handshakeFuture.complete(null);
             } else {
                 handshakeFuture.completeExceptionally(f.cause());
@@ -298,14 +305,21 @@ public final class TlsTunnel implements Tunnel {
     // ==================================================================================
 
     /**
-     * Provisional: always returns empty.  Wiring up the conversion from the
-     * SSLSession's peer cert public key to a {@link MultiKey} lands together
-     * with the cert sememe + trust resolution work
-     * (see {@code docs/network-stack.md} migration step 5).
+     * The peer's authenticated public key, taken from the leaf of the TLS
+     * peer-certificate chain after a successful handshake.  Present when
+     * (a) the handshake completed, AND (b) the peer presented a certificate
+     * (always true for servers; true for clients only when mutual TLS was
+     * negotiated), AND (c) the cert's public key is in a key family this
+     * codebase knows how to multikey-encode (today: Ed25519 only).
+     *
+     * <p>Returns empty for one-sided TLS where this side is the server and
+     * the client presented no cert, or when the cert's algorithm isn't
+     * supported by {@link MultiKey#fromJcaPublicKey}.  Identity resolution
+     * (MultiKey → IID via attestation graph) happens above this layer.
      */
     @Override
     public Optional<MultiKey> counterparty() {
-        return Optional.empty();
+        return Optional.ofNullable(peerKey);
     }
 
     @Override
@@ -316,6 +330,28 @@ public final class TlsTunnel implements Tunnel {
     @Override
     public boolean isAuthenticated() {
         return counterparty().isPresent();
+    }
+
+    /**
+     * After a successful handshake, pull the peer's leaf certificate from the
+     * SSLSession and convert its public key to a MultiKey.  Returns null in
+     * the unauthenticated-peer case (one-sided TLS, client side), or when the
+     * peer's cert algorithm isn't yet wired through
+     * {@link MultiKey#fromJcaPublicKey}.
+     */
+    private static MultiKey extractPeerKey(SslHandler sslHandler) {
+        try {
+            Certificate[] chain = sslHandler.engine().getSession().getPeerCertificates();
+            if (chain == null || chain.length == 0) return null;
+            return Signing.toMultiKey(chain[0].getPublicKey());
+        } catch (SSLPeerUnverifiedException e) {
+            // Peer didn't present a cert — common for one-sided TLS clients.
+            return null;
+        } catch (IllegalArgumentException e) {
+            // Cert algorithm not yet supported by Signing.toMultiKey.
+            // Leaves counterparty() empty; isAuthenticated() returns false.
+            return null;
+        }
     }
 
     // ==================================================================================

@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.identity.cert;
+package dev.everydaythings.graph.bridges.x509;
 
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.id.ItemRef;

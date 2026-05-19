@@ -103,6 +103,25 @@ public interface Encoding {
     }
 
     /**
+     * Decode bytes to a typed value of the requested class.  Default behavior
+     * is "decode polymorphically and cast"; codecs override when a particular
+     * type's wire shape is not self-describing under polymorphic decode (e.g.,
+     * an untagged array form that would otherwise collide with another type).
+     *
+     * @throws IllegalArgumentException if the decoded value is not assignable
+     *         to {@code type}, or if the codec cannot produce {@code type}.
+     */
+    default <T> T decode(byte[] bytes, Class<T> type) {
+        Object value = decode(bytes);
+        if (value == null || !type.isInstance(value)) {
+            throw new IllegalArgumentException(
+                    "Decoded value of type " + (value == null ? "null" : value.getClass().getName())
+                            + " is not assignable to " + type.getName());
+        }
+        return type.cast(value);
+    }
+
+    /**
      * Encode an object into a text form under this encoding (typically a
      * multibase-wrapped form of the binary encoding).
      */
