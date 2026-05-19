@@ -358,4 +358,24 @@ public final class EncryptionVocabulary {
                         + "initiator consumed in X3DH; present only on bootstrap messages "
                         + "where OTPK was used";
     }
+
+    /**
+     * INITIATOR_SIGNED_PRE_KEY — present on a Double-Ratchet bootstrap
+     * message naming which of the responder's signed pre-keys the initiator
+     * used as the SPK input to X3DH.  Always present on bootstrap messages.
+     *
+     * <p>With SPK rotation, the responder may hold multiple SPK keypairs at
+     * once (current + retained-for-in-flight).  This binding tells the
+     * responder which private key to look up.  If the named SPK has been
+     * destroyed past its retention window, decryption fails.
+     */
+    @Seed.Item(key = InitiatorSignedPreKey.KEY)
+    @Seed.Gloss(english =
+            "the responder's signed pre-key (X25519 pubkey bytes) that the initiator used "
+                    + "as the SPK input to X3DH; always present on bootstrap messages so the "
+                    + "responder can find the matching private key among retained SPKs")
+    public static final class InitiatorSignedPreKey {
+        public static final String KEY = "cg.role:initiator-signed-pre-key";
+        private InitiatorSignedPreKey() {}
+    }
 }

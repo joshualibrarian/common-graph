@@ -331,6 +331,38 @@ public interface Vault {
     }
 
     /**
+     * Rotate the signed pre-key: generate a fresh X25519 keypair and make
+     * it the new current SPK.  Prior SPKs remain retained in the vault so
+     * in-flight first-messages that used them can still be decrypted, until
+     * {@link #destroyOldSignedPreKeys} is called.  Returns the pubkey of the
+     * newly-current SPK (or empty if the vault doesn't support rotation).
+     */
+    default Optional<MultiKey> rotateSignedPreKey() {
+        return Optional.empty();
+    }
+
+    /**
+     * Destroy all signed pre-keys older than the current one.  After this
+     * call, only the most recently rotated SPK can be used to bootstrap
+     * incoming sessions; older bootstrap messages fail to decrypt because
+     * their SPK's private side is gone.  No-op when fewer than two SPKs
+     * are retained.
+     */
+    default void destroyOldSignedPreKeys() {
+        // no-op default
+    }
+
+    /**
+     * Look up a retained SPK keypair by its raw pubkey bytes.  Used by the
+     * responder side of X3DH to find the right private key when the
+     * initiator's bootstrap binding names which SPK they used.  Does NOT
+     * destroy the keypair — SPKs are reusable until rotated out.
+     */
+    default Optional<java.security.KeyPair> consumeSignedPreKey(byte[] rawPubKey) {
+        return Optional.empty();
+    }
+
+    /**
      * The signer's currently-available one-time pre-key pubkey, if one
      * exists.  Single-use: returns empty after the OTPK has been consumed
      * (until a fresh batch is generated).

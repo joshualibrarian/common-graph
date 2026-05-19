@@ -32,6 +32,13 @@ dependencies {
     api 'com.github.multiformats:java-multihash:v1.3.6'
 
     // -------------------------------------------------------------------------
+    // BouncyCastle — JCA provider for hash algorithms the JDK doesn't carry
+    // (Blake3, Blake2b, Blake2s).  Registered on demand by Hash.installBouncyCastle();
+    // JDK-native algorithms (SHA2, SHA3) keep using the JDK provider.
+    // -------------------------------------------------------------------------
+    implementation "org.bouncycastle:bcprov-jdk18on:${bouncycastleVersion}"
+
+    // -------------------------------------------------------------------------
     // GraalVM Polyglot — runtime engine for sandboxed item-implementations.
     // Available as compile dependency; runtime initialization detects whether
     // a GraalVM-capable JVM is hosting and degrades gracefully on plain HotSpot.

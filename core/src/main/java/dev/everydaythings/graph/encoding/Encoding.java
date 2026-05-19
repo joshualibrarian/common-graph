@@ -439,4 +439,71 @@ public interface Encoding {
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Plain UTF-8 text";
     }
+
+    /**
+     * CESR JSON-mode — KERI's "Composable Event Streaming Representation" in
+     * its textual (qb64) form: a JSON object carrying a {@code v} version-string
+     * header followed by CESR-textual signature attachments (quad-base64 codes
+     * plus payloads).
+     *
+     * <p>This is the wire format for KERI inception, rotation, delegation,
+     * revocation, and interaction events when interoperating over JSON-friendly
+     * channels.  Codec implementation lives in the {@code :bridges:keri} module.
+     */
+    @Seed.Item(key = CesrJson.KEY, head = Encoding.KEY)
+    final class CesrJson {
+        public static final String KEY = "cg.encoding:cesr-json";
+
+        @Seed.Frame(predicate = FormatCode.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY))
+        public static final long FORMAT_CODE = 0x20L;
+
+        @Seed.Frame(predicate = MimeType.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY))
+        public static final String MIME_TYPE = "application/cesr+json";
+
+        private CesrJson() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "KERI's CESR encoding in JSON-with-textual-attachments mode — "
+                        + "JSON event bodies followed by quad-base64 (qb64) "
+                        + "signature attachments";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "CESR JSON";
+    }
+
+    /**
+     * CESR binary mode — KERI's "Composable Event Streaming Representation" in
+     * its compact binary form (qb2): events and attachments fully concatenated
+     * as length-prefixed binary frames.  Roughly 4x smaller than {@link CesrJson}
+     * on the wire.  Codec implementation lives in the {@code :bridges:keri}
+     * module (deferred to v2 of the bridge).
+     */
+    @Seed.Item(key = CesrBinary.KEY, head = Encoding.KEY)
+    final class CesrBinary {
+        public static final String KEY = "cg.encoding:cesr-binary";
+
+        @Seed.Frame(predicate = FormatCode.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY))
+        public static final long FORMAT_CODE = 0x21L;
+
+        @Seed.Frame(predicate = MimeType.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY))
+        public static final String MIME_TYPE = "application/cesr";
+
+        private CesrBinary() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "KERI's CESR encoding in compact binary (qb2) mode";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "CESR binary";
+    }
 }

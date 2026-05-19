@@ -186,10 +186,23 @@ public class Seed {
         String predicate();
 
         /**
-         * The back-link binding from the generated frame to the enclosing seed item.
-         * Target is always the enclosing seed's IID (regardless of any value fields on
-         * the {@link Binding}). Default role is {@link ThematicRole.Theme}; set
-         * {@code role = ""} to suppress this binding entirely.
+         * Optional canonical key of the item this frame is <i>about</i>.  When
+         * empty (the default), the frame's theme is the enclosing
+         * {@link Item}'s IID — the usual "this class declares facts about
+         * itself" pattern.  When set, the frame's theme is the named item's
+         * IID instead — used when one module asserts frames about items
+         * declared elsewhere (e.g., a bridge attaching wire-format metadata
+         * to a core algorithm).  Pairs with {@link #clazz} to control the
+         * role of the resulting theme binding.
+         */
+        String theme() default "";
+
+        /**
+         * The back-link binding from the generated frame to its theme — the
+         * enclosing seed's IID by default, or the {@link #theme} item's IID
+         * when that attribute is set.  Default role is
+         * {@link ThematicRole.Theme}; set {@code role = ""} to suppress this
+         * binding entirely.
          */
         Binding clazz() default @Binding(role = ThematicRole.Theme.KEY);
 

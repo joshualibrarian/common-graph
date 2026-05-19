@@ -86,18 +86,27 @@ public final class InMemoryVault implements Vault {
 
     private final Map<ItemRef, PurposeState> purposes;
     private final ItemRef identity;  // stable across rotations — derived from initial signing pubkey
-    private final KeyPair signedPreKey;  // X25519 SPK for X3DH session opening
+    // Retained signed pre-keys.  Newest first; index 0 is the "current" SPK
+    // used for new outgoing sessions.  Older entries are kept for in-flight
+    // incoming first-messages until destroyOldSignedPreKeys() is called.
+    private final java.util.List<KeyPair> signedPreKeys = new java.util.ArrayList<>();
     private final Map<ItemRef, dev.everydaythings.graph.identity.DoubleRatchet> sessions = new java.util.HashMap<>();
-    // Unconsumed one-time pre-keys.  Keyed by raw pubkey bytes (compared by
-    // content via Arrays.equals).  First pass: a single OTPK at construction;
-    // future work batches many.  Consumed OTPKs are removed (private side
-    // destroyed) on first use.
+    // Unconsumed one-time pre-keys.  Single-use; private side destroyed on
+    // first consumption.
     private final java.util.List<KeyPair> oneTimePreKeys = new java.util.ArrayList<>();
 
-    private InMemoryVault(Map<ItemRef, PurposeState> purposes, ItemRef identity, KeyPair signedPreKey) {
+    private InMemoryVault(Map<ItemRef, PurposeState> purposes, ItemRef identity, KeyPair initialSpk) {
         this.purposes = purposes;
         this.identity = identity;
-        this.signedPreKey = signedPreKey;
+        this.signedPreKeys.add(initialSpk);
+    }
+
+    /** The current (newest) SPK keypair.  Throws if the vault has no SPKs. */
+    private KeyPair currentSpk() {
+        if (signedPreKeys.isEmpty()) {
+            throw new IllegalStateException("Vault has no signed pre-key");
+        }
+        return signedPreKeys.get(0);
     }
 
     // ==================================================================================
@@ -433,15 +442,46 @@ public final class InMemoryVault implements Vault {
 
     @Override
     public Optional<MultiKey> signedPreKeyPublicKey() {
+        if (signedPreKeys.isEmpty()) return Optional.empty();
         KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
-        return Optional.of(MultiKey.of(x, x.publicKeyToRaw(signedPreKey.getPublic())));
+        return Optional.of(MultiKey.of(x, x.publicKeyToRaw(currentSpk().getPublic())));
     }
 
     @Override
     public Frame signedPreKeyFrame() {
         return preKeyFrame(
                 ItemRef.iid(IdentityVocabulary.SignedPreKey.KEY),
-                signedPreKey.getPublic());
+                currentSpk().getPublic());
+    }
+
+    @Override
+    public Optional<MultiKey> rotateSignedPreKey() {
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        KeyPair fresh = x.generateKeyPair();
+        signedPreKeys.add(0, fresh);   // newest first
+        return Optional.of(MultiKey.of(x, x.publicKeyToRaw(fresh.getPublic())));
+    }
+
+    @Override
+    public void destroyOldSignedPreKeys() {
+        if (signedPreKeys.size() <= 1) return;
+        // Drop everything but the current (index 0).  Their private sides
+        // are released when their KeyPair references are no longer reachable.
+        KeyPair current = signedPreKeys.get(0);
+        signedPreKeys.clear();
+        signedPreKeys.add(current);
+    }
+
+    @Override
+    public Optional<KeyPair> consumeSignedPreKey(byte[] rawPubKey) {
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        for (KeyPair kp : signedPreKeys) {
+            byte[] ourRaw = x.publicKeyToRaw(kp.getPublic());
+            if (java.util.Arrays.equals(ourRaw, rawPubKey)) {
+                return Optional.of(kp);   // SPKs are reusable until rotated out
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -535,6 +575,11 @@ public final class InMemoryVault implements Vault {
         bootstrap.add(new dev.everydaythings.graph.datum.Binding(
                 ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorEphemeralKey.KEY),
                 ourEkPub));
+        // Name which of the peer's SPKs we used — needed so the responder
+        // can find the matching private key among its retained SPKs.
+        bootstrap.add(new dev.everydaythings.graph.datum.Binding(
+                ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorSignedPreKey.KEY),
+                peerSpkPub.rawKey()));
         if (peerOtpkPub != null) {
             bootstrap.add(new dev.everydaythings.graph.datum.Binding(
                     ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.ConsumedPreKey.KEY),
@@ -574,9 +619,11 @@ public final class InMemoryVault implements Vault {
             ItemRef peerIid, java.util.List<dev.everydaythings.graph.datum.Binding> bindings) {
         byte[] initiatorIkRaw = null;
         byte[] initiatorEkRaw = null;
+        byte[] usedSpkRaw = null;
         byte[] consumedOtpkRaw = null;
         ItemRef ikRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorIdentityKey.KEY);
         ItemRef ekRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorEphemeralKey.KEY);
+        ItemRef spkRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorSignedPreKey.KEY);
         ItemRef otpkRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.ConsumedPreKey.KEY);
         for (dev.everydaythings.graph.datum.Binding b : bindings) {
             Object role = b.role();
@@ -585,6 +632,8 @@ public final class InMemoryVault implements Vault {
                 initiatorIkRaw = bytes;
             } else if (ir.equals(ekRole) && b.target() instanceof byte[] bytes) {
                 initiatorEkRaw = bytes;
+            } else if (ir.equals(spkRole) && b.target() instanceof byte[] bytes) {
+                usedSpkRaw = bytes;
             } else if (ir.equals(otpkRole) && b.target() instanceof byte[] bytes) {
                 consumedOtpkRaw = bytes;
             }
@@ -598,6 +647,19 @@ public final class InMemoryVault implements Vault {
         java.security.PublicKey peerIkJca = x.decodePublicKey(initiatorIkRaw);
         java.security.PublicKey peerEkJca = x.decodePublicKey(initiatorEkRaw);
 
+        // Find the SPK the initiator used.  With rotation, the vault may
+        // hold several; pick the matching one.  Fall back to current (for
+        // bootstrap messages that pre-date the SPK-binding requirement, none
+        // exist in this codebase but the fallback keeps responder-side
+        // robust).
+        KeyPair spkUsed;
+        if (usedSpkRaw != null) {
+            spkUsed = consumeSignedPreKey(usedSpkRaw).orElseThrow(() -> new IllegalStateException(
+                    "Bootstrap message references an SPK we don't have (rotated out and destroyed)"));
+        } else {
+            spkUsed = currentSpk();
+        }
+
         // If the initiator consumed one of our OTPKs, look it up and destroy
         // the private side.  X3DH-responder gets the matching keypair for DH4.
         KeyPair otpk = consumedOtpkRaw == null
@@ -606,8 +668,8 @@ public final class InMemoryVault implements Vault {
                         "Bootstrap message references an OTPK we don't have (already consumed, or never minted)"));
 
         byte[] sk = dev.everydaythings.graph.identity.X3dh.responder(
-                this, signedPreKey, otpk, peerIkJca, peerEkJca);
-        return dev.everydaythings.graph.identity.DoubleRatchet.initResponder(sk, signedPreKey);
+                this, spkUsed, otpk, peerIkJca, peerEkJca);
+        return dev.everydaythings.graph.identity.DoubleRatchet.initResponder(sk, spkUsed);
     }
 
     @Override

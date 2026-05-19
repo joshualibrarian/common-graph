@@ -11,8 +11,11 @@ import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import io.ipfs.multihash.Multihash;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 
 /**
  * Hash — the sub-archetype for cryptographic hash (digest) algorithms.
@@ -110,13 +113,37 @@ public abstract class Hash extends Algorithm {
         return compute(jcaNameFor(type), input);
     }
 
-    /** Invoke JCA to compute a digest by its JCA algorithm name. */
+    /**
+     * Invoke JCA to compute a digest by its JCA algorithm name.  If no
+     * registered provider supplies the algorithm on the first attempt, install
+     * BouncyCastle (which carries Blake3, Blake2*, and other non-JDK-native
+     * algorithms) and retry once.  BC is added at lowest priority, so
+     * JDK-native algorithms keep being preferred.
+     */
     public static byte[] compute(String jcaName, byte[] input) {
         if (input == null) throw new IllegalArgumentException("input must not be null");
         try {
             return MessageDigest.getInstance(jcaName).digest(input);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Hash algorithm not available: " + jcaName, e);
+        } catch (NoSuchAlgorithmException firstAttempt) {
+            installBouncyCastle();
+            try {
+                return MessageDigest.getInstance(jcaName).digest(input);
+            } catch (NoSuchAlgorithmException retry) {
+                throw new IllegalArgumentException("Hash algorithm not available: " + jcaName, retry);
+            }
+        }
+    }
+
+    /**
+     * Register the BouncyCastle JCA provider so non-JDK-native digest names
+     * (BLAKE3-256, BLAKE2B-256, BLAKE2S-256, etc.) resolve via {@code
+     * MessageDigest.getInstance}.  Idempotent: calling twice does not register
+     * two copies.  Added at lowest priority via {@link Security#addProvider},
+     * so JDK-native algorithm names continue to resolve to the JDK provider.
+     */
+    public static synchronized void installBouncyCastle() {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
         }
     }
 

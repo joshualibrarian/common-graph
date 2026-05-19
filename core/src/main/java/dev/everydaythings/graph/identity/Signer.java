@@ -291,6 +291,20 @@ public class Signer extends Item {
     }
 
     /**
+     * Rotate the signed pre-key: mint a fresh SPK in the vault and publish a
+     * new SignedPreKey frame for it.  Old SPK keypairs remain in the vault
+     * (so in-flight first-messages using them still decrypt) until
+     * {@link Vault#destroyOldSignedPreKeys} is called.
+     */
+    public Optional<Frame> rotateSignedPreKey() {
+        if (vault == null || librarian == null) return Optional.empty();
+        vault.rotateSignedPreKey();
+        Frame frame = vault.signedPreKeyFrame();
+        persistFrame(frame);
+        return Optional.of(frame);
+    }
+
+    /**
      * Fetch the most-recent SignedPreKey published by the named peer (queried
      * against the local graph via {@code FRAME_BY_TARGET} on THEME=peerIid).
      * Returns the decoded {@link MultiKey} (X25519 pubkey) if one is present.

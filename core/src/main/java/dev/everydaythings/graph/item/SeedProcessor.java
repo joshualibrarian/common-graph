@@ -684,11 +684,15 @@ public final class SeedProcessor {
         Seed.Binding classAnnotation = frame.clazz();
         Seed.Binding fieldAnnotation = frame.field();
 
-        boolean hasClassBinding = !classAnnotation.role().isEmpty() && seedIid != null;
+        ItemRef themeIid = frame.theme().isEmpty()
+                ? seedIid
+                : ItemRef.fromString(frame.theme());
+
+        boolean hasClassBinding = !classAnnotation.role().isEmpty() && themeIid != null;
         boolean hasFieldBinding = !fieldAnnotation.role().isEmpty();
 
         Binding classBinding = hasClassBinding
-                ? buildImplicitBinding(classAnnotation, seedIid)
+                ? buildImplicitBinding(classAnnotation, themeIid)
                 : null;
 
         // Pre-build the static extra bindings — same on every body produced.

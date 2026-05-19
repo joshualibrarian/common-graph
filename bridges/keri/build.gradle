@@ -1,0 +1,34 @@
+// =============================================================================
+// :bridges:keri — KERI bridge.
+//
+// Translates between CG identity frames (INCEPTION / ROTATION / DELEGATION /
+// REVOCATION) and KERI Key Event Log (KEL) events.  Wire format is CESR
+// (Composable Event Streaming Representation), implemented in-tree on top
+// of :core's algorithm primitives — same pattern we used for Noise XX.
+// No external KERI/CESR library (none of acceptable maturity exists on
+// Maven Central or for Java in general).
+//
+// v1 scope:
+//   - CESR codec for the textual ("qb64") mode used in JSON-with-attachments
+//   - KEL event types: icp (inception), rot (rotation), dip (delegated
+//     inception), drt (delegated rotation), ixn (interaction)
+//   - Round-trip: KERI event JSON → CG Frame → KERI event JSON
+//   - Verify KERI signatures using our Signing.Ed25519
+//   - AID/IID coexistence: both content-addressed, may need separate
+//     derivation
+//
+// Out of scope (deferred):
+//   - Binary CESR mode (task #231)
+//   - Witness role and witness receipts (task #229)
+//   - Threshold multi-sig events (single-sig in v1)
+//   - KEL streaming / gossip / watcher protocols
+//   - KERIA / direct-mode protocols
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}
