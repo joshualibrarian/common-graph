@@ -7,11 +7,18 @@ import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
+import dev.everydaythings.graph.text.FrameMap.Part;
+import dev.everydaythings.graph.text.ParseContext;
 import dev.everydaythings.graph.text.ParseParams;
+import dev.everydaythings.graph.text.TextSpan;
+import dev.everydaythings.graph.text.TokenLattice;
+import dev.everydaythings.graph.text.TokenLattice.TokenSpan;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -28,13 +35,15 @@ import java.util.Optional;
  * {@code :core} so that {@code @Seed.Binding(qualifiers = {Language.English.KEY})}
  * across the codebase points at this Language item.
  *
- * <p>Skeleton — locale plumbed in; {@link #render} handles the simplest English
- * grammar pattern, "transitive-verb with oblique PPs", which covers cases like
- * "add 5 to 3" (verb=add, THEME=5, GOAL=3 surfaced via preposition "to"). The
- * verb lemma comes from the predicate's English verb-lemma Lexeme frame; the
- * preposition for each oblique role is looked up via PrepositionVocabulary's
- * AssignedRole declarations. {@link #parse} stays a placeholder until render
- * pins down the lexicon-lookup shape.
+ * <p>Grammar coverage so far is the <b>transitive-verb pattern</b>: a verb whose
+ * direct object fills THEME, plus oblique PPs whose preposition assigns its
+ * object to a thematic role via the role item's own English Preposition Lexeme.
+ * "add 5 to 3" parses to ADD{THEME=5, GOAL=3} and renders the symmetric way.
+ *
+ * <p>The lexicon is structured around <b>lexemes on their semantic homes</b>:
+ * verb-lemmas live on predicate items (Add carries "add"/"sum"); preposition
+ * lemmas live on thematic-role items (Goal carries "to"; Source carries "from").
+ * Surface-form → semantic mapping is symmetric in both directions.
  *
  * <p>Sub-Languages for regional variants (English-US, English-GB, English-AU,
  * ...) will extend this class, override {@link #locale()} with their BCP-47
@@ -59,15 +68,18 @@ public class English extends Language {
         return ULocale.ENGLISH;
     }
 
+    // ==================================================================================
+    // Render — frame → English prose
+    // ==================================================================================
+
     /**
      * Render a frame as English prose.
      *
      * <p>Current coverage — the transitive-verb pattern: find an English verb-lemma
      * Lexeme on the predicate; emit the lemma followed by the THEME-rendered text
      * (as direct object); for every other binding, find the English preposition
-     * that assigns that role via PrepositionVocabulary's AssignedRole declarations,
-     * and emit {@code <prep> <target-rendered>}. So ADD{THEME=5, GOAL=3} becomes
-     * "add 5 to 3" (verb=add, THEME=5 direct object, GOAL=3 via "to"-PP).
+     * lemma declared on the role item itself, and emit {@code <prep> <target-rendered>}.
+     * So ADD{THEME=5, GOAL=3} becomes "add 5 to 3".
      *
      * <p>When the predicate carries no English verb-lemma, returns the input
      * unchanged so a different Language in the stack can take a turn.
@@ -110,6 +122,103 @@ public class English extends Language {
         return frameMap.withText(sb.toString());
     }
 
+    // ==================================================================================
+    // Parse — English prose → frame contribution
+    // ==================================================================================
+
+    /**
+     * Recognize the transitive-verb pattern in the token stream and emit a frame.
+     *
+     * <p>Scans for the <b>first</b> token whose dictionary postings reveal an
+     * English verb-lemma — that token's posting target is the predicate. The
+     * <b>next</b> token (when not itself a preposition) fills THEME as the
+     * direct object. Then it walks {@code <preposition> <operand>} pairs;
+     * each preposition's posting target is the thematic role it marks, and the
+     * following operand becomes that role's binding target.
+     *
+     * <p>Operand resolution: LITERAL tokens parse as {@code Long}; WORD tokens
+     * resolve to the first posting's target ItemRef (so proper nouns and item
+     * references work uniformly with literals).
+     *
+     * <p>Returns an empty FrameMap when no English verb-lemma is found —
+     * yielding to other Languages in the consensus round.
+     */
+    @Override
+    public FrameMap parse(ParseContext ctx) {
+        List<TokenSpan> tokens = ctx.tokens();
+        if (tokens == null || tokens.isEmpty() || librarian() == null) {
+            return FrameMap.empty();
+        }
+
+        // 1. Find the predicate-anchoring verb.
+        int verbIdx = -1;
+        ItemRef predicateIid = null;
+        TextSpan verbSpan = null;
+        for (int i = 0; i < tokens.size(); i++) {
+            TokenSpan t = tokens.get(i);
+            for (TokenPosting p : t.postings()) {
+                if (isEnglishVerbLemmaPosting(p) && p.target() != null) {
+                    verbIdx = i;
+                    predicateIid = p.target();
+                    verbSpan = t.span();
+                    break;
+                }
+            }
+            if (verbIdx >= 0) break;
+        }
+        if (verbIdx < 0) return FrameMap.empty();
+
+        BigDecimal predConfidence = new BigDecimal("0.8500");
+        BigDecimal bindConfidence = new BigDecimal("0.8000");
+
+        // 2. Walk post-verb tokens building bindings.
+        List<BindingMap> bindings = new ArrayList<>();
+        int idx = verbIdx + 1;
+
+        // Direct object (THEME) — first non-preposition operand after the verb.
+        if (idx < tokens.size() && !isEnglishPrepositionToken(tokens.get(idx))) {
+            Object themeVal = operandValue(tokens.get(idx));
+            if (themeVal != null) {
+                bindings.add(makeBinding(
+                        ItemRef.iid(ThematicRole.Theme.KEY),
+                        themeVal,
+                        tokens.get(idx).span(),
+                        bindConfidence));
+                idx++;
+            }
+        }
+
+        // Subsequent oblique PPs — {<preposition> <operand>}* .
+        while (idx + 1 < tokens.size()) {
+            TokenSpan prepToken = tokens.get(idx);
+            ItemRef prepRoleIid = englishPrepositionRole(prepToken);
+            if (prepRoleIid == null) { idx++; continue; }
+
+            TokenSpan operandToken = tokens.get(idx + 1);
+            Object operandVal = operandValue(operandToken);
+            if (operandVal == null) { idx += 2; continue; }
+
+            bindings.add(makeBinding(
+                    prepRoleIid,
+                    operandVal,
+                    operandToken.span(),
+                    bindConfidence));
+            idx += 2;
+        }
+
+        if (bindings.isEmpty()) return FrameMap.empty();
+
+        return new FrameMap(
+                null,
+                new Part<>(ItemRef.of(predicateIid), predConfidence, List.of(verbSpan)),
+                bindings,
+                List.of());
+    }
+
+    // ==================================================================================
+    // Lexeme lookups — render side (Item-fetch by IID, walk endorsed Lexeme frames)
+    // ==================================================================================
+
     /**
      * Find an English verb-lemma string on the predicate item. Picks the first
      * Lexeme frame whose VALUE-binding qualifiers include English + Verb + Lemma.
@@ -140,20 +249,14 @@ public class English extends Language {
                         .findFirst());
     }
 
-    /**
-     * Pull an English verb-lemma string out of a Lexeme frame: matches the
-     * VALUE-role binding whose qualifiers include English + Verb + Lemma, with
-     * a String target.
-     */
+    /** Pull an English verb-lemma string from a Lexeme frame (Value + English + Verb + Lemma). */
     private static Optional<String> readEnglishVerbLemma(Frame lexemeFrame) {
-        return readLemma(lexemeFrame,
-                ItemRef.iid(PartOfSpeech.Verb.KEY));
+        return readLemma(lexemeFrame, ItemRef.iid(PartOfSpeech.Verb.KEY));
     }
 
-    /** Same shape as {@link #readEnglishVerbLemma}, but matches Preposition POS. */
+    /** Pull an English preposition-lemma string from a Lexeme frame (Value + English + Preposition + Lemma). */
     private static Optional<String> readEnglishPrepositionLemma(Frame lexemeFrame) {
-        return readLemma(lexemeFrame,
-                ItemRef.iid(PartOfSpeech.Preposition.KEY));
+        return readLemma(lexemeFrame, ItemRef.iid(PartOfSpeech.Preposition.KEY));
     }
 
     /**
@@ -181,6 +284,78 @@ public class English extends Language {
         return false;
     }
 
+    // ==================================================================================
+    // Token-posting predicates — parse side (read features off TokenPostings produced
+    // by the TokenDictionary's index walk over endorsed Lexeme frames).
+    // ==================================================================================
+
+    /** A TokenPosting that came from an English verb-lemma Lexeme. */
+    private static boolean isEnglishVerbLemmaPosting(TokenPosting p) {
+        return isEnglishLexemePosting(p)
+                && p.features().contains(ItemRef.iid(PartOfSpeech.Verb.KEY))
+                && p.features().contains(ItemRef.iid(GrammaticalFeature.Lemma.KEY));
+    }
+
+    /** A TokenPosting that came from an English preposition-lemma Lexeme. */
+    private static boolean isEnglishPrepositionLemmaPosting(TokenPosting p) {
+        return isEnglishLexemePosting(p)
+                && p.features().contains(ItemRef.iid(PartOfSpeech.Preposition.KEY))
+                && p.features().contains(ItemRef.iid(GrammaticalFeature.Lemma.KEY));
+    }
+
+    /** A TokenPosting whose source is an English-scoped Lexeme frame. */
+    private static boolean isEnglishLexemePosting(TokenPosting p) {
+        return ItemRef.iid(LexicalVocabulary.Lexeme.KEY).equals(p.predicate())
+                && ItemRef.iid(Language.English.KEY).equals(p.scope());
+    }
+
+    /** True when any of {@code token}'s postings is an English preposition lemma. */
+    private static boolean isEnglishPrepositionToken(TokenSpan token) {
+        for (TokenPosting p : token.postings()) {
+            if (isEnglishPrepositionLemmaPosting(p)) return true;
+        }
+        return false;
+    }
+
+    /** The role IID a preposition token marks, taken from its English-preposition posting's target. */
+    private static ItemRef englishPrepositionRole(TokenSpan token) {
+        for (TokenPosting p : token.postings()) {
+            if (isEnglishPrepositionLemmaPosting(p)) return p.target();
+        }
+        return null;
+    }
+
+    // ==================================================================================
+    // Operand resolution + binding construction
+    // ==================================================================================
+
+    /**
+     * Convert a token to a binding-target value. LITERAL tokens parse as a
+     * {@code Long}; WORD tokens use the first posting's target ItemRef (proper
+     * nouns, references). Returns null when the token resolves to nothing useful.
+     */
+    private static Object operandValue(TokenSpan token) {
+        if (token.kind() == TokenLattice.Kind.LITERAL) {
+            try {
+                return Long.parseLong(token.surfaceText().trim());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        if (!token.postings().isEmpty()) {
+            return token.postings().get(0).target();
+        }
+        return null;
+    }
+
+    private static BindingMap makeBinding(ItemRef roleIid, Object target,
+                                          TextSpan targetSpan, BigDecimal confidence) {
+        return new BindingMap(
+                new Part<>(ItemRef.of(roleIid), confidence, List.of()),
+                List.of(),
+                new Part<>(target, confidence, List.of(targetSpan)));
+    }
+
     /**
      * Render a binding target as English text. Literals (Long, String) format
      * directly; everything else falls back to {@code toString()} for now. A
@@ -192,7 +367,4 @@ public class English extends Language {
         if (target instanceof String s) return s;
         return target.toString();
     }
-
-    // TODO: override parse(ParseContext) — once render proves the shape, parse
-    //       follows the same lexeme-driven anchoring path.
 }
