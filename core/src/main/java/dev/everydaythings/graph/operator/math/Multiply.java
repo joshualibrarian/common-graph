@@ -5,32 +5,36 @@ import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
 import dev.everydaythings.graph.value.Numeric;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.operator.BinaryArithmetic;
 import dev.everydaythings.graph.operator.Operator;
+import dev.everydaythings.graph.operator.OperatorNotation;
 
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
 
 /** The multiplication operator. Infix, left-associative, precedence 20 (above add/sub). */
-@Seed.Item(key = Multiply.KEY,
-        head = Operator.KEY,
-        bindings = {@Seed.Binding(role = Operator.Arity.KEY, integer = 2)})
+@Seed.Item(key = Multiply.KEY, head = Operator.KEY)
 @Seed.Embodies(key = Multiply.KEY)
-public class Multiply extends Operator {
+public class Multiply extends BinaryArithmetic {
 
     public static final String KEY = "cg.predicate:multiply";
 
+    /** Arity — binary operator. */
+    @Seed.Property(role = Operator.Arity.KEY)
+    static final long arity = 2;
+
     /** Returns a Numeric — the result of the operation. */
     @Seed.Property(role = SchemaVocabulary.Returns.KEY)
-    static final SchemaRef returnType = SchemaRef.iid(Numeric.KEY);
+    static final SchemaRef returns = SchemaRef.iid(Numeric.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss = "the operation of scaling one quantity by another";
 
-    /** Operator-form lexeme — bundles the symbol with its Fixity qualifier and ATTRIBUTE bindings for Precedence and Associativity. */
+    /** OperatorNotation lexeme — symbol with Infix qualifier plus Precedence and Associativity. */
     @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
-                  qualifiers = {Operator.Infix.KEY}),
+                  qualifiers = {OperatorNotation.KEY, Operator.Infix.KEY}),
           bindings = {
                   @Seed.Binding(role = ThematicRole.Attribute.KEY,
                           qualifiers = {Operator.Precedence.KEY},
@@ -52,22 +56,6 @@ public class Multiply extends Operator {
     public Multiply(ItemRef iid) { super(iid); }
     public Multiply(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
-    @Override
-    public Object execute(Object... operands) {
-        if (operands.length != 2) {
-            throw new IllegalArgumentException(
-                    "expects 2 operands, got " + operands.length);
-        }
-        Object left = operands[0];
-        Object right = operands[1];
-        if (left instanceof Number l && right instanceof Number r) {
-            if (left instanceof Double || right instanceof Double
-                    || left instanceof Float || right instanceof Float) {
-                return l.doubleValue() * r.doubleValue();
-            }
-            return l.longValue() * r.longValue();
-        }
-        throw new IllegalArgumentException(
-                "Multiply.execute: unsupported operand types " + left + " * " + right);
-    }
+    @Override protected double applyDouble(double l, double r) { return l * r; }
+    @Override protected long   applyLong(long l, long r)       { return l * r; }
 }

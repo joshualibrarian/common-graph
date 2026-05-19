@@ -1,10 +1,7 @@
 package dev.everydaythings.graph.operator.compare;
 
 import dev.everydaythings.graph.*;
-import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.CompoundKey;
 import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.id.SchemaRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -74,48 +71,19 @@ public class Between extends Operator {
     public Between(ItemRef iid, Librarian librarian) { super(iid, librarian); }
 
     /**
-     * Universal handler entry: extract SOURCE, GOAL, THEME from the incoming
-     * BETWEEN frame's bindings and delegate to {@link #execute}.  Returns
-     * {@code null} when any operand is absent (partial application — a
-     * matcher, not a value; matcher orchestration lands separately).
+     * Pull SOURCE / GOAL / THEME from the incoming frame and check that THEME
+     * lies in the inclusive closed range [SOURCE, GOAL].  Returns null when any
+     * operand is absent (partial application — a matcher, not a value; matcher
+     * orchestration lands separately).
      */
     @Override
-    public Object receive(Frame frame) {
-        Body body = frame.body();
-        Object source = readOperand(body, ThematicRole.Source.KEY);
-        Object goal   = readOperand(body, ThematicRole.Goal.KEY);
-        Object theme  = readOperand(body, ThematicRole.Theme.KEY);
-        if (source == null || goal == null || theme == null) {
-            return null;
-        }
-        return execute(source, goal, theme);
-    }
-
-    private static Object readOperand(Body body, String roleKey) {
-        return body.binding(CompoundKey.of(ItemRef.iid(roleKey)))
-                .map(Binding::target)
-                .orElse(null);
-    }
-
-    @Override
-    public Object execute(Object... operands) {
-        if (operands.length != 3) {
-            throw new IllegalArgumentException(
-                    "Between expects 3 operands (SOURCE, GOAL, THEME), got " + operands.length);
-        }
-        Object source = operands[0];
-        Object goal   = operands[1];
-        Object theme  = operands[2];
-        if (source instanceof Number s && goal instanceof Number g && theme instanceof Number t) {
-            double sd = s.doubleValue();
-            double gd = g.doubleValue();
-            double td = t.doubleValue();
-            double lo = Math.min(sd, gd);
-            double hi = Math.max(sd, gd);
-            return td >= lo && td <= hi;
-        }
-        throw new IllegalArgumentException(
-                "Between.execute: unsupported operand types (SOURCE=" + source
-                        + ", GOAL=" + goal + ", THEME=" + theme + ")");
+    protected Object evaluate(Frame frame) {
+        Number source = numberAt(frame, ThematicRole.Source.KEY);
+        Number goal   = numberAt(frame, ThematicRole.Goal.KEY);
+        Number theme  = numberAt(frame, ThematicRole.Theme.KEY);
+        if (source == null || goal == null || theme == null) return null;
+        double lo = Math.min(source.doubleValue(), goal.doubleValue());
+        double hi = Math.max(source.doubleValue(), goal.doubleValue());
+        return theme.doubleValue() >= lo && theme.doubleValue() <= hi;
     }
 }

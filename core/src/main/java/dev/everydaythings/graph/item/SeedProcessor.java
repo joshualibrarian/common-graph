@@ -14,6 +14,8 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.runtime.RuntimeVocabulary;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.CoreVocabulary;
 import io.github.classgraph.ClassGraph;
@@ -590,7 +592,70 @@ public final class SeedProcessor {
                 }
             }
         }
+
+        // Class-level shortcuts: @Seed.Gloss and @Seed.Lexeme expand to one or
+        // more endorsed Lexical-vocabulary frames each, no backing field needed.
+        if (seedIid != null) {
+            for (Seed.Gloss gloss : cls.getAnnotationsByType(Seed.Gloss.class)) {
+                Body body = buildGlossBody(gloss, seedIid);
+                endorsedCids.add(librarian.persist(body));
+            }
+            for (Seed.Lexeme lexeme : cls.getAnnotationsByType(Seed.Lexeme.class)) {
+                for (Body body : buildLexemeBodies(lexeme, seedIid, cls)) {
+                    endorsedCids.add(librarian.persist(body));
+                }
+            }
+        }
+
         return endorsedCids;
+    }
+
+    /**
+     * Build the Body for a {@code @Seed.Gloss}.  Predicate is the gloss sememe;
+     * bindings are the back-link THEME → seed and {@code VALUE[Language.English]
+     * → "<text>"}.
+     */
+    private static Body buildGlossBody(Seed.Gloss gloss, ItemRef seedIid) {
+        List<CompoundKey.Qualifier> englishQualifier = List.of(
+                new CompoundKey.Sememe(ItemRef.iid(Language.English.KEY)));
+        List<Binding> bindings = List.of(
+                new Binding(ItemRef.iid(ThematicRole.Theme.KEY), seedIid),
+                new Binding(ItemRef.iid(ThematicRole.Value.KEY),
+                        englishQualifier,
+                        gloss.english()));
+        return Body.of(ItemRef.of(ItemRef.iid(LexicalVocabulary.Gloss.KEY)), bindings);
+    }
+
+    /**
+     * Build the Body list for a {@code @Seed.Lexeme} — one Body per English
+     * lemma supplied.  Each carries a back-link THEME and a
+     * {@code VALUE[English, <pos>, <feature>] → "<lemma>"} binding.
+     */
+    private static List<Body> buildLexemeBodies(Seed.Lexeme lexeme, ItemRef seedIid,
+                                                Class<?> declaringClass) {
+        if (lexeme.pos().isEmpty()) {
+            throw new IllegalStateException(
+                    "@Seed.Lexeme on " + declaringClass.getName() + " missing pos="
+                            + " — every lexeme must declare a part of speech");
+        }
+        String[] lemmas = lexeme.english();
+        if (lemmas.length == 0) {
+            throw new IllegalStateException(
+                    "@Seed.Lexeme on " + declaringClass.getName() + " has no english lemmas"
+                            + " — supply english = \"...\" or english = {\"a\", \"b\"}");
+        }
+        List<CompoundKey.Qualifier> qualifiers = List.of(
+                new CompoundKey.Sememe(ItemRef.iid(Language.English.KEY)),
+                new CompoundKey.Sememe(ItemRef.iid(lexeme.pos())),
+                new CompoundKey.Sememe(ItemRef.iid(lexeme.feature())));
+        List<Body> bodies = new ArrayList<>(lemmas.length);
+        for (String lemma : lemmas) {
+            List<Binding> bindings = List.of(
+                    new Binding(ItemRef.iid(ThematicRole.Theme.KEY), seedIid),
+                    new Binding(ItemRef.iid(ThematicRole.Value.KEY), qualifiers, lemma));
+            bodies.add(Body.of(ItemRef.of(ItemRef.iid(LexicalVocabulary.Lexeme.KEY)), bindings));
+        }
+        return bodies;
     }
 
     /**

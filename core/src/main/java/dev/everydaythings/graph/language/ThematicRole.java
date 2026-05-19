@@ -80,6 +80,7 @@ public final class ThematicRole {
 
     /** The intended endpoint or aim of an action. */
     @Seed.Item(key = Goal.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "to", pos = PartOfSpeech.Preposition.KEY)
     public static final class Goal {
         public static final String KEY = "cg.role:goal";
         private Goal() {}
@@ -94,6 +95,7 @@ public final class ThematicRole {
 
     /** The originating location or origin of motion. */
     @Seed.Item(key = Source.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "from", pos = PartOfSpeech.Preposition.KEY)
     public static final class Source {
         public static final String KEY = "cg.role:source";
         private Source() {}
@@ -115,6 +117,7 @@ public final class ThematicRole {
 
     /** The participant receiving something in a transfer. */
     @Seed.Item(key = Recipient.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "for", pos = PartOfSpeech.Preposition.KEY)
     public static final class Recipient {
         public static final String KEY = "cg.role:recipient";
         private Recipient() {}
@@ -129,6 +132,7 @@ public final class ThematicRole {
 
     /** A co-participant in a reciprocal relation. */
     @Seed.Item(key = Partner.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "with", pos = PartOfSpeech.Preposition.KEY)
     public static final class Partner {
         public static final String KEY = "cg.role:partner";
         private Partner() {}
@@ -136,6 +140,7 @@ public final class ThematicRole {
 
     /** The means by which an action is performed. */
     @Seed.Item(key = Instrument.KEY, head = ThematicRole.KEY)
+    @Seed.Lexeme(english = "with", pos = PartOfSpeech.Preposition.KEY)
     public static final class Instrument {
         public static final String KEY = "cg.role:instrument";
         private Instrument() {}
