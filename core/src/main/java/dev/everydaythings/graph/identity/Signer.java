@@ -278,6 +278,19 @@ public class Signer extends Item {
     }
 
     /**
+     * Publish a OneTimePreKey frame for the vault's currently-available
+     * OTPK.  Returns empty if the vault has no unconsumed OTPK.  Senders
+     * consume one of these in X3DH for the fourth DH; this Signer's vault
+     * destroys the private side on first use.
+     */
+    public Optional<Frame> publishOneTimePreKey() {
+        if (vault == null || librarian == null) return Optional.empty();
+        Optional<Frame> frame = vault.oneTimePreKeyFrame();
+        frame.ifPresent(this::persistFrame);
+        return frame;
+    }
+
+    /**
      * Fetch the most-recent SignedPreKey published by the named peer (queried
      * against the local graph via {@code FRAME_BY_TARGET} on THEME=peerIid).
      * Returns the decoded {@link MultiKey} (X25519 pubkey) if one is present.
@@ -287,6 +300,20 @@ public class Signer extends Item {
      * rotation.
      */
     public Optional<MultiKey> fetchPeerSignedPreKey(ItemRef peerIid) {
+        return fetchPeerPreKey(peerIid, ItemRef.iid(IdentityVocabulary.SignedPreKey.KEY));
+    }
+
+    /**
+     * Fetch a peer's currently-available one-time pre-key.  Returns the
+     * most-recently-published unconsumed OTPK frame's pubkey, or empty if
+     * none exist.  First pass: a single OTPK per peer; future work batches
+     * many and tracks consumption.
+     */
+    public Optional<MultiKey> fetchPeerOneTimePreKey(ItemRef peerIid) {
+        return fetchPeerPreKey(peerIid, ItemRef.iid(IdentityVocabulary.OneTimePreKey.KEY));
+    }
+
+    private Optional<MultiKey> fetchPeerPreKey(ItemRef peerIid, ItemRef predicateIid) {
         if (librarian == null) return Optional.empty();
         List<DatumRef> candidates = librarian.library()
                 .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), peerIid);
@@ -296,7 +323,7 @@ public class Signer extends Item {
         for (DatumRef cid : candidates) {
             Frame frame = librarian.fetchFrame(cid).orElse(null);
             if (frame == null) continue;
-            if (!isSignedPreKeyFor(frame, peerIid)) continue;
+            if (!isPreKeyFor(frame, peerIid, predicateIid)) continue;
             Instant frameTime = readTime(frame.body()).orElse(Instant.MIN);
             if (frameTime.isAfter(chosenTime)) {
                 chosen = frame;
@@ -307,9 +334,9 @@ public class Signer extends Item {
         return extractInstrumentMultikey(chosen.body());
     }
 
-    private static boolean isSignedPreKeyFor(Frame frame, ItemRef peerIid) {
+    private static boolean isPreKeyFor(Frame frame, ItemRef peerIid, ItemRef predicateIid) {
         if (!(frame.body().head() instanceof ItemRef ref)) return false;
-        if (!ItemRef.iid(IdentityVocabulary.SignedPreKey.KEY).equals(ref.iid())) return false;
+        if (!predicateIid.equals(ref.iid())) return false;
         return readTheme(frame.body()).filter(peerIid::equals).isPresent();
     }
 
@@ -691,7 +718,11 @@ public class Signer extends Item {
             MultiKey peerIk = fetchPeerKeyAgreementKey(peerIid)
                     .orElseThrow(() -> new IllegalStateException(
                             "No key-agreement pubkey published for peer " + peerIid));
-            vault.openSessionTo(peerIid, peerIk, peerSpk);
+            // OTPK is optional: if present, X3DH gets a fourth DH for extra
+            // forward secrecy on the first message; if not, falls back to
+            // three-DH.
+            MultiKey peerOtpk = fetchPeerOneTimePreKey(peerIid).orElse(null);
+            vault.openSessionTo(peerIid, peerIk, peerSpk, peerOtpk);
         }
 
         DoubleRatchet.EncryptedMessage em = vault.encryptInSession(peerIid, plaintext);

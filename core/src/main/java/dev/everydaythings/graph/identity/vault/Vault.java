@@ -330,6 +330,37 @@ public interface Vault {
                 getClass().getSimpleName() + ".signedPreKeyFrame() not yet implemented");
     }
 
+    /**
+     * The signer's currently-available one-time pre-key pubkey, if one
+     * exists.  Single-use: returns empty after the OTPK has been consumed
+     * (until a fresh batch is generated).
+     */
+    default Optional<MultiKey> oneTimePreKeyPublicKey() {
+        return Optional.empty();
+    }
+
+    /**
+     * Build a self-signed OneTimePreKey {@link Frame} for the current OTPK,
+     * ready to publish.  Same body shape as SignedPreKey but with predicate
+     * {@code OneTimePreKey}.  Empty if no OTPK is available.
+     */
+    default Optional<Frame> oneTimePreKeyFrame() {
+        return Optional.empty();
+    }
+
+    /**
+     * Consume the one-time pre-key whose pubkey matches {@code rawPubKey},
+     * destroying the private side.  Returns the keypair if found, empty
+     * otherwise (already consumed, or never generated).
+     *
+     * <p>Responder-side X3DH uses this when an incoming bootstrap message
+     * carries a CONSUMED_PRE_KEY binding: look up the matching private key,
+     * run X3DH's fourth DH, and the vault marks the OTPK consumed.
+     */
+    default Optional<java.security.KeyPair> consumeOneTimePreKey(byte[] rawPubKey) {
+        return Optional.empty();
+    }
+
     // ==================================================================================
     // Double Ratchet sessions
     //
@@ -353,6 +384,18 @@ public interface Vault {
      * bindings and no session exists.
      */
     default void openSessionTo(ItemRef peerIid, MultiKey peerIkPub, MultiKey peerSpkPub) {
+        openSessionTo(peerIid, peerIkPub, peerSpkPub, null);
+    }
+
+    /**
+     * Open a session with an optional one-time pre-key consumed in X3DH.
+     * When {@code peerOtpkPub} is non-null, X3DH includes the fourth DH for
+     * extra forward secrecy and the first message's record carries a
+     * CONSUMED_PRE_KEY binding so the responder finds and destroys the
+     * matching private side.
+     */
+    default void openSessionTo(ItemRef peerIid, MultiKey peerIkPub, MultiKey peerSpkPub,
+                               MultiKey peerOtpkPub) {
         throw new UnsupportedOperationException(
                 getClass().getSimpleName() + ".openSessionTo(...) not yet implemented");
     }

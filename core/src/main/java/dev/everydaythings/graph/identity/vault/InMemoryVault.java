@@ -88,6 +88,11 @@ public final class InMemoryVault implements Vault {
     private final ItemRef identity;  // stable across rotations — derived from initial signing pubkey
     private final KeyPair signedPreKey;  // X25519 SPK for X3DH session opening
     private final Map<ItemRef, dev.everydaythings.graph.identity.DoubleRatchet> sessions = new java.util.HashMap<>();
+    // Unconsumed one-time pre-keys.  Keyed by raw pubkey bytes (compared by
+    // content via Arrays.equals).  First pass: a single OTPK at construction;
+    // future work batches many.  Consumed OTPKs are removed (private side
+    // destroyed) on first use.
+    private final java.util.List<KeyPair> oneTimePreKeys = new java.util.ArrayList<>();
 
     private InMemoryVault(Map<ItemRef, PurposeState> purposes, ItemRef identity, KeyPair signedPreKey) {
         this.purposes = purposes;
@@ -131,10 +136,17 @@ public final class InMemoryVault implements Vault {
         // key-agreement KEL track; published as a SignedPreKey frame.
         KeyPair spk = x25519.generateKeyPair();
 
+        // Generate one one-time pre-key.  Real Signal-style deployments
+        // pre-generate batches of ~100; one suffices to validate X3DH-4DH
+        // and gets replenished as OTPKs are consumed.
+        KeyPair otpk = x25519.generateKeyPair();
+
         ItemRef identity = ItemRef.fromMultikeyBytes(
                 MultiKey.of(ed25519, ed25519.publicKeyToRaw(signingCurrent.getPublic()))
                         .encoded());
-        return new InMemoryVault(purposes, identity, spk);
+        InMemoryVault vault = new InMemoryVault(purposes, identity, spk);
+        vault.oneTimePreKeys.add(otpk);
+        return vault;
     }
 
     // ==================================================================================
@@ -427,15 +439,56 @@ public final class InMemoryVault implements Vault {
 
     @Override
     public Frame signedPreKeyFrame() {
+        return preKeyFrame(
+                ItemRef.iid(IdentityVocabulary.SignedPreKey.KEY),
+                signedPreKey.getPublic());
+    }
+
+    @Override
+    public Optional<MultiKey> oneTimePreKeyPublicKey() {
+        if (oneTimePreKeys.isEmpty()) return Optional.empty();
         KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
-        MultiKey spkPub = MultiKey.of(x, x.publicKeyToRaw(signedPreKey.getPublic()));
+        KeyPair otpk = oneTimePreKeys.get(0);
+        return Optional.of(MultiKey.of(x, x.publicKeyToRaw(otpk.getPublic())));
+    }
+
+    @Override
+    public Optional<Frame> oneTimePreKeyFrame() {
+        if (oneTimePreKeys.isEmpty()) return Optional.empty();
+        KeyPair otpk = oneTimePreKeys.get(0);
+        return Optional.of(preKeyFrame(
+                ItemRef.iid(IdentityVocabulary.OneTimePreKey.KEY),
+                otpk.getPublic()));
+    }
+
+    @Override
+    public Optional<KeyPair> consumeOneTimePreKey(byte[] rawPubKey) {
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        for (java.util.Iterator<KeyPair> it = oneTimePreKeys.iterator(); it.hasNext();) {
+            KeyPair kp = it.next();
+            byte[] ourRaw = x.publicKeyToRaw(kp.getPublic());
+            if (java.util.Arrays.equals(ourRaw, rawPubKey)) {
+                it.remove();   // single-use: destroy on first use
+                return Optional.of(kp);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Build a self-signed pre-key frame (SignedPreKey or OneTimePreKey
+     * depending on {@code predicateIid}) for the given X25519 pubkey.
+     */
+    private Frame preKeyFrame(ItemRef predicateIid, java.security.PublicKey pub) {
+        KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
+        MultiKey keyMulti = MultiKey.of(x, x.publicKeyToRaw(pub));
 
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity));
         bindings.add(new Binding(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
-                spkPub.encoded()));
+                keyMulti.encoded()));
         bindings.add(Binding.ref(
                 ItemRef.iid(ThematicRole.Purpose.KEY),
                 ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY)));
@@ -444,9 +497,7 @@ public final class InMemoryVault implements Vault {
                 List.of(),
                 Instant.now()));
 
-        Body body = Body.of(
-                ItemRef.of(ItemRef.iid(IdentityVocabulary.SignedPreKey.KEY)),
-                bindings);
+        Body body = Body.of(ItemRef.of(predicateIid), bindings);
         PurposeState signingState = signingState();
         VarSig sig = signWith(signingAlgorithm(signingState),
                 signingState.currentKeyPair,
@@ -456,7 +507,8 @@ public final class InMemoryVault implements Vault {
     }
 
     @Override
-    public void openSessionTo(ItemRef peerIid, MultiKey peerIkPub, MultiKey peerSpkPub) {
+    public void openSessionTo(ItemRef peerIid, MultiKey peerIkPub, MultiKey peerSpkPub,
+                              MultiKey peerOtpkPub) {
         Objects.requireNonNull(peerIid, "peerIid");
         Objects.requireNonNull(peerIkPub, "peerIkPub");
         Objects.requireNonNull(peerSpkPub, "peerSpkPub");
@@ -465,21 +517,29 @@ public final class InMemoryVault implements Vault {
         KeyPair ephemeral = x.generateKeyPair();
         java.security.PublicKey peerIkJca  = x.decodePublicKey(peerIkPub.rawKey());
         java.security.PublicKey peerSpkJca = x.decodePublicKey(peerSpkPub.rawKey());
+        java.security.PublicKey peerOtpkJca = peerOtpkPub == null
+                ? null
+                : x.decodePublicKey(peerOtpkPub.rawKey());
 
         byte[] sk = dev.everydaythings.graph.identity.X3dh.initiator(
-                this, ephemeral, peerIkJca, peerSpkJca);
+                this, ephemeral, peerIkJca, peerSpkJca, peerOtpkJca);
 
         // Bootstrap bindings: included on every outgoing message until the
         // peer responds, so the peer can run X3DH responder asynchronously.
         MultiKey ourIk = keyAgreementPublicKey().orElseThrow();
         byte[] ourEkPub = x.publicKeyToRaw(ephemeral.getPublic());
-        java.util.List<dev.everydaythings.graph.datum.Binding> bootstrap = java.util.List.of(
-                new dev.everydaythings.graph.datum.Binding(
-                        ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorIdentityKey.KEY),
-                        ourIk.rawKey()),
-                new dev.everydaythings.graph.datum.Binding(
-                        ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorEphemeralKey.KEY),
-                        ourEkPub));
+        java.util.List<dev.everydaythings.graph.datum.Binding> bootstrap = new java.util.ArrayList<>();
+        bootstrap.add(new dev.everydaythings.graph.datum.Binding(
+                ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorIdentityKey.KEY),
+                ourIk.rawKey()));
+        bootstrap.add(new dev.everydaythings.graph.datum.Binding(
+                ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorEphemeralKey.KEY),
+                ourEkPub));
+        if (peerOtpkPub != null) {
+            bootstrap.add(new dev.everydaythings.graph.datum.Binding(
+                    ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.ConsumedPreKey.KEY),
+                    peerOtpkPub.rawKey()));
+        }
 
         dev.everydaythings.graph.identity.DoubleRatchet dr =
                 dev.everydaythings.graph.identity.DoubleRatchet.initInitiator(
@@ -514,8 +574,10 @@ public final class InMemoryVault implements Vault {
             ItemRef peerIid, java.util.List<dev.everydaythings.graph.datum.Binding> bindings) {
         byte[] initiatorIkRaw = null;
         byte[] initiatorEkRaw = null;
+        byte[] consumedOtpkRaw = null;
         ItemRef ikRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorIdentityKey.KEY);
         ItemRef ekRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.InitiatorEphemeralKey.KEY);
+        ItemRef otpkRole = ItemRef.iid(dev.everydaythings.graph.identity.EncryptionVocabulary.ConsumedPreKey.KEY);
         for (dev.everydaythings.graph.datum.Binding b : bindings) {
             Object role = b.role();
             if (!(role instanceof ItemRef ir)) continue;
@@ -523,6 +585,8 @@ public final class InMemoryVault implements Vault {
                 initiatorIkRaw = bytes;
             } else if (ir.equals(ekRole) && b.target() instanceof byte[] bytes) {
                 initiatorEkRaw = bytes;
+            } else if (ir.equals(otpkRole) && b.target() instanceof byte[] bytes) {
+                consumedOtpkRaw = bytes;
             }
         }
         if (initiatorIkRaw == null || initiatorEkRaw == null) {
@@ -533,8 +597,16 @@ public final class InMemoryVault implements Vault {
         KeyAgreement.X25519 x = KeyAgreement.X25519.builtin();
         java.security.PublicKey peerIkJca = x.decodePublicKey(initiatorIkRaw);
         java.security.PublicKey peerEkJca = x.decodePublicKey(initiatorEkRaw);
+
+        // If the initiator consumed one of our OTPKs, look it up and destroy
+        // the private side.  X3DH-responder gets the matching keypair for DH4.
+        KeyPair otpk = consumedOtpkRaw == null
+                ? null
+                : consumeOneTimePreKey(consumedOtpkRaw).orElseThrow(() -> new IllegalStateException(
+                        "Bootstrap message references an OTPK we don't have (already consumed, or never minted)"));
+
         byte[] sk = dev.everydaythings.graph.identity.X3dh.responder(
-                this, signedPreKey, peerIkJca, peerEkJca);
+                this, signedPreKey, otpk, peerIkJca, peerEkJca);
         return dev.everydaythings.graph.identity.DoubleRatchet.initResponder(sk, signedPreKey);
     }
 

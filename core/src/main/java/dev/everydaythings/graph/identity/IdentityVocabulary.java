@@ -423,4 +423,45 @@ public final class IdentityVocabulary {
         static final String englishNounLemma = "signed pre-key";
     }
 
+    /**
+     * ONE_TIME_PRE_KEY — a signer's published single-use X25519 pre-key for
+     * use as the fourth DH input in X3DH.  Adds forward secrecy for the very
+     * first message of a session: even if the signed pre-key is later
+     * compromised, the one-time pre-key's private side has already been
+     * destroyed by the consumer.
+     *
+     * <p>Body shape (same pattern as {@link SignedPreKey}):
+     * <pre>
+     * ONE_TIME_PRE_KEY
+     *     THEME → @signer                                # whose key
+     *     INSTRUMENT [MULTIKEY] → x25519-multikey-bytes  # the pre-key
+     *     PURPOSE → @key-agreement                       # which track
+     *     TIME → instant                                 # when published
+     * </pre>
+     *
+     * <p>Lifecycle: publisher generates a batch (commonly ~100) and
+     * publishes each as its own frame.  Senders fetch one per new session
+     * and reference its pubkey in a {@code CONSUMED_PRE_KEY} binding on the
+     * first message.  The publisher's vault destroys the private side on
+     * first use; subsequent messages claiming the same pre-key fail to
+     * decrypt.  When the publisher's published batch runs low, a new batch
+     * is generated and published.
+     */
+    @Seed.Item(key = OneTimePreKey.KEY)
+    public static final class OneTimePreKey {
+        public static final String KEY = "cg.predicate:one-time-pre-key";
+        private OneTimePreKey() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "a signer's published single-use X25519 pre-key; consumed by a sender "
+                        + "as the fourth DH input in X3DH, providing forward secrecy "
+                        + "even if the signed pre-key is later compromised";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "one-time pre-key";
+    }
+
 }

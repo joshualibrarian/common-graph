@@ -338,4 +338,24 @@ public final class EncryptionVocabulary {
                 "the initiator's freshly-minted ephemeral public key on a Double-Ratchet "
                         + "session-bootstrap message; present only on the first message";
     }
+
+    /**
+     * CONSUMED_PRE_KEY — present on a Double-Ratchet bootstrap message when
+     * the initiator consumed one of the responder's published one-time
+     * pre-keys in X3DH.  Names the specific OTPK (by its raw pubkey bytes)
+     * so the responder can find the matching private key in their vault
+     * and destroy it after use.
+     */
+    @Seed.Item(key = ConsumedPreKey.KEY)
+    public static final class ConsumedPreKey {
+        public static final String KEY = "cg.role:consumed-pre-key";
+        private ConsumedPreKey() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the responder's one-time pre-key (X25519 pubkey bytes) that the "
+                        + "initiator consumed in X3DH; present only on bootstrap messages "
+                        + "where OTPK was used";
+    }
 }
