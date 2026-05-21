@@ -1306,6 +1306,31 @@ public class Librarian extends Signer {
         itemCache.remove(iid);
     }
 
+    /**
+     * Find a live cached instance whose {@code archetype()} matches {@code archetype}.
+     * Used by the dispatcher to find the "running instance" for an archetype before
+     * falling through to materializing a fresh one from storage.
+     *
+     * <p>When {@code instanceIid} is non-null, only returns a match whose
+     * {@link Item#iid() iid} equals it — for per-instance routing
+     * (Session-with-specific-iid, Signer-with-specific-iid).
+     *
+     * <p>When {@code instanceIid} is null, returns the first cached instance
+     * of the archetype (singleton-style routing — operators, the librarian).
+     *
+     * <p>Linear scan over {@code itemCache.values()}.  Cache is small in practice.
+     */
+    public Optional<Item> liveInstanceOf(ItemRef archetype, ItemRef instanceIid) {
+        Objects.requireNonNull(archetype, "archetype");
+        for (Item item : itemCache.values()) {
+            if (!archetype.equals(item.archetype())) continue;
+            if (instanceIid == null || instanceIid.equals(item.iid())) {
+                return Optional.of(item);
+            }
+        }
+        return Optional.empty();
+    }
+
     // ==================================================================================
     // Frame assembly (publish + route)
     // ==================================================================================
@@ -1502,38 +1527,155 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Whether any code item in storage declares {@code IMPLEMENTS → @predicateIid}.
-     * Distinguishes "the new path found something but the handler returned
-     * empty" from "the new path had nothing to dispatch to."
+     * Whether any code item in storage declares {@code IMPLEMENTS → @predicateIid}
+     * directly (the self-handling case: operators whose archetype is also
+     * their own predicate).  Used to distinguish "the new IMPLEMENTS-based
+     * path found and consumed something" from "no IMPLEMENTS match — fall
+     * through to legacy for Librarian-style reflective handlers."
+     *
+     * <p>Two-hop archetype HANDLES → predicate matches are NOT counted here —
+     * those go through {@link #dispatchViaImplements}'s archetype walk, but
+     * when that walk produces nothing (e.g., handler returns empty), we
+     * still want legacy fall-through for LOOKUP and friends.
      */
     private boolean hasImplementer(ItemRef predicateIid) {
         return !library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, predicateIid).isEmpty();
     }
 
     /**
-     * New-style dispatch: find code items that {@code IMPLEMENTS} the frame's
-     * head predicate, pick one, materialize it through {@link #fetchItem},
-     * and hand the frame to {@link ItemStage#deliver}.
+     * New-style dispatch using a two-hop walk: find archetypes that
+     * {@code HANDLES} the frame's predicate, then find code items that
+     * {@code IMPLEMENTS} those archetypes, then route to a live instance
+     * (or materialize a fresh one) via {@link ItemStage#deliver}.
      *
-     * <p>Returns an empty list when no code item implements the predicate, or
-     * when the chosen code item's {@code receive} returns nothing.  Caller
-     * distinguishes the two via {@link #hasImplementer}.
+     * <p><b>Self-handling case</b> (operators like Between): the archetype
+     * declares {@code HANDLES → self}, so step 1 finds the archetype itself,
+     * and step 2 finds its self-embodying code item.  Same result as the
+     * old single-hop {@code IMPLEMENTS → predicate} lookup.
+     *
+     * <p><b>Item-archetype case</b> (Session, Signer): the archetype declares
+     * {@code HANDLES → some-other-predicate}, and code items declare
+     * {@code IMPLEMENTS → archetype}.  The two-hop walk follows that chain.
+     *
+     * <p><b>Instance routing</b>: each code item's HANDLES frame body for
+     * the predicate may declare a {@code Pivot → role-iid} binding.  When
+     * present, the dispatcher reads the incoming frame's
+     * {@code binding[role-iid]} to find the target instance's IID, then
+     * looks up the live instance of the archetype at that IID via
+     * {@link #liveInstanceOf}.  When absent (operators), singleton
+     * dispatch.
+     *
+     * <p>Returns an empty list when no path leads to a deliverable item, or
+     * when the chosen item's {@code receive} returns nothing.
      */
     private List<Frame> dispatchViaImplements(Frame frame, ItemRef predicateIid) {
-        List<DatumRef> codeManifestCids =
-                library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, predicateIid);
-        if (codeManifestCids.isEmpty()) return List.of();
+        // Step 1: archetypes that HANDLES this predicate.
+        List<DatumRef> archetypeManifestCids =
+                library.bodyCidsForReferenceBinding(Manifest.HANDLES, predicateIid);
+        if (archetypeManifestCids.isEmpty()) return List.of();
 
-        // Trust-matrix selection lands later; for now, first match wins.
-        DatumRef chosen = codeManifestCids.get(0);
-        Manifest manifest = fetchManifest(chosen).orElse(null);
-        if (manifest == null) return List.of();
+        for (DatumRef archetypeManifestCid : archetypeManifestCids) {
+            Manifest archetypeManifest = fetchManifest(archetypeManifestCid).orElse(null);
+            if (archetypeManifest == null) continue;
+            ItemRef archetypeIid = archetypeManifest.itemId();
+            if (archetypeIid == null) continue;
 
-        Item codeItemInstance = fetchItem(manifest.itemId()).orElse(null);
-        if (codeItemInstance == null) return List.of();
+            // Step 2: code items that IMPLEMENTS this archetype.
+            List<DatumRef> codeManifestCids =
+                    library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, archetypeIid);
+            if (codeManifestCids.isEmpty()) continue;
 
-        Object result = stage.deliver(codeItemInstance, frame);
-        return unwrapResponses(result);
+            // Trust-matrix selection lands later; for now, first match wins.
+            DatumRef chosenCodeCid = codeManifestCids.get(0);
+            Manifest codeManifest = fetchManifest(chosenCodeCid).orElse(null);
+            if (codeManifest == null) continue;
+
+            // Read PIVOT role from the code item's HANDLES frame body for
+            // this predicate (if any).  When present, names the role on the
+            // incoming frame whose target identifies the live instance.
+            ItemRef pivotRole = readPivotFromCodeManifest(codeManifest, predicateIid);
+            ItemRef instanceIid = (pivotRole != null)
+                    ? readBindingAsRef(frame, pivotRole).orElse(null)
+                    : null;
+
+            // Live instance first; otherwise materialize fresh using the
+            // code-item's IMPLEMENTATION binding to find the Java class and
+            // construct it with the target instance-IID (not the code-item's
+            // own IID — fetchItem(codeIid) returns a bare Item per the
+            // code-archetype shortcut in hydrateItem).
+            Item target = liveInstanceOf(archetypeIid, instanceIid).orElse(null);
+            if (target == null) {
+                ItemRef ctorIid = instanceIid != null ? instanceIid : archetypeIid;
+                target = instantiateFromCodeManifest(codeManifest, ctorIid);
+            }
+            if (target == null) continue;
+
+            Object result = stage.deliver(target, frame);
+            List<Frame> responses = unwrapResponses(result);
+            if (!responses.isEmpty()) return responses;
+            return List.of();   // delivered, just no responses
+        }
+        return List.of();
+    }
+
+    /**
+     * Walk a code item's ENDORSES bindings to find the HANDLES frame body
+     * for the given predicate, then read its {@code Pivot} binding (if any)
+     * and return the role-iid it names.  Returns {@code null} when no
+     * matching HANDLES frame exists or it carries no Pivot.
+     */
+    private ItemRef readPivotFromCodeManifest(Manifest codeManifest, ItemRef predicateIid) {
+        ItemRef themeRole = ItemRef.iid(ThematicRole.Theme.KEY);
+        ItemRef pivotRole = ItemRef.iid(ThematicRole.Pivot.KEY);
+        for (Binding b : codeManifest.body().bindings()) {
+            if (!Manifest.ENDORSES.equals(b.roleIid())) continue;
+            if (!(b.target() instanceof DatumRef handlesCid)) continue;
+            Body handlesBody = library.fetchBody(handlesCid).orElse(null);
+            if (handlesBody == null) continue;
+            // The HANDLES frame's Theme binding names the predicate; the
+            // optional Pivot binding names the role for instance routing.
+            ItemRef theme = handlesBody.binding(CompoundKey.of(themeRole))
+                    .map(bb -> bb.target() instanceof ItemRef ir ? ir : null)
+                    .orElse(null);
+            if (!predicateIid.equals(theme)) continue;
+            return handlesBody.binding(CompoundKey.of(pivotRole))
+                    .map(bb -> bb.target() instanceof ItemRef ir ? ir : null)
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    /**
+     * Instantiate the Java class declared in {@code codeManifest}'s
+     * IMPLEMENTATION binding, with the given {@code iid} as the new
+     * instance's identity.  Used by the dispatcher when no live instance
+     * exists at the target archetype/iid pair and we need to materialize
+     * fresh.  Unlike {@link #fetchItem}, this does NOT short-circuit on
+     * code-archetype manifests — we explicitly want the embodied class.
+     */
+    private Item instantiateFromCodeManifest(Manifest codeManifest, ItemRef iid) {
+        Optional<Binding> impl = codeManifest.implementation();
+        if (impl.isEmpty()) return new Item(iid, this);
+        Class<? extends Item> clazz = resolveImplementationClass(impl.get(), iid);
+        try {
+            return clazz.getConstructor(ItemRef.class, Librarian.class)
+                    .newInstance(iid, this);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(
+                    "Failed to materialize " + clazz.getName() + " at " + iid
+                            + " for dispatch (needs public (ItemRef, Librarian) constructor)", e);
+        }
+    }
+
+    /**
+     * Read a frame's binding for {@code role} and return the target if it's
+     * an {@link ItemRef}.  Returns empty otherwise.
+     */
+    private static Optional<ItemRef> readBindingAsRef(Frame frame, ItemRef role) {
+        return frame.body().binding(CompoundKey.of(role))
+                .map(Binding::target)
+                .filter(t -> t instanceof ItemRef)
+                .map(t -> (ItemRef) t);
     }
 
     /** Coerce a {@code receive}-style return into a list of response frames. */

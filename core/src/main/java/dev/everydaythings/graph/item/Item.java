@@ -220,6 +220,33 @@ public class Item {
      * behavior, they're just data containers.  Behavioural items override.
      */
     public Object receive(Frame frame) {
+        // Default implementation: dispatch via reflection to a
+        // @Seed.Handler-annotated method whose predicate() matches the
+        // frame's head AND whose signature is exactly {@code (Frame) → Object}.
+        // Multi-arg handlers (Librarian's lookup(String, Integer) etc.) are
+        // skipped here — those are handled by the legacy reflection path
+        // in {@code Librarian.dispatchViaLegacyHandlesFrames} which knows
+        // how to extract args.  Subclasses with bespoke routing
+        // (Operator → evaluate) override this entirely.
+        if (frame == null) return null;
+        ItemRef predicate = frame.body().headRef();
+        if (predicate == null) return null;
+        for (java.lang.reflect.Method m : getClass().getMethods()) {
+            Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
+            if (ann == null) continue;
+            if (!ItemRef.fromString(ann.predicate()).equals(predicate)) continue;
+            Class<?>[] params = m.getParameterTypes();
+            if (params.length != 1 || !params[0].isAssignableFrom(Frame.class)) continue;
+            try {
+                return m.invoke(this, frame);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof RuntimeException re) throw re;
+                throw new RuntimeException("Handler '" + m.getName() + "' threw", cause);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Handler '" + m.getName() + "' inaccessible", e);
+            }
+        }
         return null;
     }
 
