@@ -3,10 +3,9 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;

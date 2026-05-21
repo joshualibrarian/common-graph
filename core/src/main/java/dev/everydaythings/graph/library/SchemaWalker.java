@@ -3,9 +3,9 @@ package dev.everydaythings.graph.library;
 import dev.everydaythings.graph.canonical.DatumWalker;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.HashID;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.ref.HashID;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
 
 import java.util.ArrayList;
 import java.util.List;

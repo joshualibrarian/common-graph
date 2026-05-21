@@ -2,8 +2,8 @@ package dev.everydaythings.graph.operator.math;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.value.Numeric;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.operator.Operator;

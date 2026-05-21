@@ -2,12 +2,12 @@ package dev.everydaythings.graph.item;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.FrameDraftMerger;
 import dev.everydaythings.graph.text.FrameMap;

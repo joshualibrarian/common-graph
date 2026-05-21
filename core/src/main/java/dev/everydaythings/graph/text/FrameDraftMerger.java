@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.text;
 
-import dev.everydaythings.graph.datum.BindingTarget;
-import dev.everydaythings.graph.id.CompoundKey.Qualifier;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.CompoundKey.Qualifier;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
 import dev.everydaythings.graph.text.FrameMap.Part;
 import java.math.BigDecimal;

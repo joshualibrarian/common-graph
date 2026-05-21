@@ -3,7 +3,7 @@ package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.librarian.LibrarianVocabulary;
 import org.junit.jupiter.api.DisplayName;

@@ -2,11 +2,11 @@ package dev.everydaythings.graph.bridges.keri;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.algorithm.Hash;
-import dev.everydaythings.graph.identity.algorithm.KeyAgreement;
-import dev.everydaythings.graph.identity.algorithm.Signing;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.algorithm.Hash;
+import dev.everydaythings.graph.cryptography.algorithm.KeyAgreement;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;

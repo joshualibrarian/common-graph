@@ -2,8 +2,8 @@ package dev.everydaythings.graph.operator.compare;
 
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;

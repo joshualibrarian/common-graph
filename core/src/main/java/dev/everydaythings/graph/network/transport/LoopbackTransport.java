@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.transport;
 
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.NetworkVocabulary;
 import dev.everydaythings.graph.network.tunnel.LoopbackTunnel;
 import dev.everydaythings.graph.network.tunnel.Tunnel;

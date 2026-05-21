@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.bridges.keri;
 
 import dev.everydaythings.graph.encoding.Encoding;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

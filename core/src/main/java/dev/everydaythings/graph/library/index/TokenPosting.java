@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.index;
 
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import java.math.BigDecimal;
 
 import java.util.Objects;

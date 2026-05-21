@@ -2,12 +2,12 @@ package dev.everydaythings.graph.datum;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.encoding.CgCbor;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.HashID;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
-import dev.everydaythings.graph.id.TypeRef;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.HashID;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
+import dev.everydaythings.graph.ref.TypeRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

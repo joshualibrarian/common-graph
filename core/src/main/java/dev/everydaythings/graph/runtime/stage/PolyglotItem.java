@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime.stage;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 

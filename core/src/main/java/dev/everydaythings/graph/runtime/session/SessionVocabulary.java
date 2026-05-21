@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.runtime.session;
 
 import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.*;
 
 import static dev.everydaythings.graph.Seed.*;
@@ -30,8 +29,31 @@ public final class SessionVocabulary {
      *
      * <p>Body shape:
      * <pre>
-     * ITEM_VIEW { THEME → item, LOCATION → session }
+     * ITEM_VIEW {
+     *   Theme                    → item        // what's being viewed
+     *   Location                 → session     // back-pointer to the session this view lives on
+     *   Location[<device-iid>]   → Point       // handle anchor on that device's display
+     *   Attribute[Expanded]      → Bool        // collapsed (handle-only) vs expanded
+     *   Attribute[<Size-archetype>] → Size     // expanded box dimensions
+     * }
      * </pre>
+     *
+     * <p>Theme is the item being viewed (the assertion is "about" the item;
+     * "what's open in session X" is a reverse-lookup over the Location back-
+     * pointer via FRAME_BY_TARGET).  Location does double duty — one binding
+     * names the session, additional bindings carry a device-IID qualifier to
+     * say WHERE on that device the view's handle is anchored.  Multi-display
+     * mirroring uses multiple Location[device]:Point bindings.
+     *
+     * <p>{@link Expanded} is a {@code Quality} sememe used as the qualifier on
+     * an {@code Attribute} binding whose target is a {@code Bool}.  Size is
+     * the {@code GeometryVocabulary.Size} archetype.
+     *
+     * <p>Position coordinates and Size dimensions are {@link
+     * dev.everydaythings.graph.value.Length Length} values, which carry their
+     * own units (px, em, rem, ...).  Viewport-relative units (vh, vw, %, ...)
+     * arrive when the layout engine's variable-resolution system is wired
+     * (see UnitVocabulary's TODO).
      */
     @Item(key = ItemView.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class ItemView {
@@ -47,6 +69,31 @@ public final class SessionVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY,
             qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "view";
+    }
+
+    /**
+     * Expanded — the expansion-state qualifier for an {@link ItemView}.
+     *
+     * <p>Used as the qualifier on an {@code Attribute[Expanded]: Bool} binding.
+     * {@code true} = the window's handle plus content scene are both shown;
+     * {@code false} = handle-only (collapsed).  The handle is always drawn
+     * when the window exists; expansion just controls whether the content
+     * scene is drawn below it.
+     */
+    @Item(key = Expanded.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Expanded {
+        public static final String KEY = "cg.quality:expanded";
+        private Expanded() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "whether a window is showing its content scene or only its handle";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishAdjectiveLemma = "expanded";
     }
 
     /**

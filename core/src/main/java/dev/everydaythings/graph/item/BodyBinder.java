@@ -3,7 +3,7 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.IpAddress;
 import dev.everydaythings.graph.value.Value;
 
@@ -94,14 +94,30 @@ public final class BodyBinder {
      * Bind one field from the body's matching binding.  No-op when the
      * body has no binding for the role, or when the binding's target is
      * null.
+     *
+     * <p>Honors {@link Seed.Property#qualifiers()} — a property with
+     * qualifiers matches a compound binding key (e.g.,
+     * {@code role=SIGNING, qualifiers={CURRENT}} matches
+     * {@code (SIGNING, CURRENT)}).
      */
     private static void bindField(Object instance, Field field,
                                   Seed.Property property, Body body) {
         if (property.role().isEmpty()) return;  // schemaRole / typeRole forms don't bind at runtime
         ItemRef role = ItemRef.iid(property.role());
 
-        Optional<Binding> bindingOpt = body.binding(
-                dev.everydaythings.graph.id.CompoundKey.of(role));
+        String[] qualifierKeys = property.qualifiers();
+        dev.everydaythings.graph.ref.CompoundKey compoundKey;
+        if (qualifierKeys.length == 0) {
+            compoundKey = dev.everydaythings.graph.ref.CompoundKey.of(role);
+        } else {
+            Object[] qualifiers = new Object[qualifierKeys.length];
+            for (int i = 0; i < qualifierKeys.length; i++) {
+                qualifiers[i] = ItemRef.iid(qualifierKeys[i]);
+            }
+            compoundKey = dev.everydaythings.graph.ref.CompoundKey.of(role, qualifiers);
+        }
+
+        Optional<Binding> bindingOpt = body.binding(compoundKey);
         if (bindingOpt.isEmpty()) return;
         Object target = bindingOpt.get().target();
         if (target == null) return;
@@ -124,6 +140,11 @@ public final class BodyBinder {
      * null if no conversion path applies; throws if the path was wrong.
      */
     private static Object convert(Object target, Class<?> fieldType, Field field) {
+        // BindingExempt types are vault-managed (or similar): hydrated in a
+        // later pass by the owning subsystem with the runtime context they
+        // need.  BodyBinder leaves them at their default value.
+        if (BindingExempt.class.isAssignableFrom(fieldType)) return null;
+
         // Direct assignment.
         if (fieldType.isInstance(target)) return target;
 
@@ -156,6 +177,15 @@ public final class BodyBinder {
         // Body → V extends Value via static from(Body).
         if (target instanceof Body bodyTarget && Value.class.isAssignableFrom(fieldType)) {
             return invokeFromBody(fieldType, bodyTarget, field);
+        }
+
+        // Deferred Variable reference: an ItemRef where the field type
+        // can't hold one is the unresolved-Variable case (the binding
+        // target is a Variable's IID, awaiting substitution by the
+        // Presenter).  Leave the field null; the underlying bindings
+        // list still carries the reference for downstream stages.
+        if (target instanceof dev.everydaythings.graph.ref.ItemRef) {
+            return null;
         }
 
         throw new IllegalStateException(

@@ -16,10 +16,11 @@ import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.HashID;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,9 +61,7 @@ import java.util.Optional;
  * if you want body-only bytes, encode a Body; if you want full record bytes,
  * encode a Record.
  */
-public final class CgCbor {
-
-    private CgCbor() {}
+public final class CgCbor implements Encoding {
 
     // ==================================================================================
     // CG-CBOR tag layout — definitive reference for wire-level tags.
@@ -184,22 +183,50 @@ public final class CgCbor {
             new CBOREncodeOptions("useIndefLengthStrings=false;allowduplicatekeys=false;float64=false");
 
     // ==================================================================================
-    // Public API — encode
+    // Singleton accessor
+    //
+    // CgCbor is stateless; one instance suffices for the whole process.
+    // The librarian (and remote session) hold this singleton as their
+    // configured codec; the {@link Encoding}-typed reference flows from
+    // there through the storage layer, the network layer, and tests.
+    // ==================================================================================
+
+    private static final CgCbor INSTANCE = new CgCbor();
+
+    /** The CG-CBOR-v1 codec.  Singleton. */
+    public static CgCbor codec() {
+        return INSTANCE;
+    }
+
+    /** Private — use {@link #codec()}. */
+    private CgCbor() {}
+
+    // ==================================================================================
+    // Encoding interface — codec identity
+    // ==================================================================================
+
+    @Override public ItemRef encoding()  { return ItemRef.iid(Encoding.CgCborV1.KEY); }
+    @Override public byte formatCode()   { return (byte) Encoding.CgCborV1.FORMAT_CODE; }
+
+    // ==================================================================================
+    // Encoding interface — encode
     // ==================================================================================
 
     /** Encode a value to canonical CG-CBOR bytes. */
-    public static byte[] encode(Object value) {
+    @Override
+    public byte[] encode(Object value) {
         return toCbor(value).EncodeToBytes(CANONICAL);
     }
 
     /** Encode a value to text form: multibase-encoded CG-CBOR bytes. */
-    public static String encodeText(Object value) {
+    @Override
+    public String encodeText(Object value) {
         byte[] bytes = encode(value);
         return io.ipfs.multibase.Multibase.encode(io.ipfs.multibase.Multibase.Base.Base32, bytes);
     }
 
     // ==================================================================================
-    // Public API — decode
+    // Encoding interface — decode
     // ==================================================================================
 
     /**
@@ -210,40 +237,46 @@ public final class CgCbor {
      * {@link Long}, {@link Boolean}, {@code byte[]}) for bare CBOR primitives,
      * {@link List} for a bare CBOR array, etc.
      */
-    public static Object decode(byte[] bytes) {
+    @Override
+    public Object decode(byte[] bytes) {
         return fromCbor(CBORObject.DecodeFromBytes(bytes));
     }
 
     /** Decode bytes to a typed value of the requested class, throwing on mismatch. */
-    public static <T> T decode(byte[] bytes, Class<T> type) {
-        Object value = decode(bytes);
-        if (value == null || !type.isInstance(value)) {
-            throw new IllegalArgumentException(
-                    "Decoded value of type " + (value == null ? "null" : value.getClass().getName())
-                            + " is not assignable to " + type.getName());
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T decode(byte[] bytes, Class<T> type) {
+        // CompoundKey's wire shape is an untagged 2-element array, which
+        // collides with Body's transitional-untagged fallback under the
+        // polymorphic decode.  Dispatch by class here.
+        if (type == CompoundKey.class) {
+            return (T) decodeCompoundKey(bytes);
         }
-        return type.cast(value);
+        return Encoding.super.decode(bytes, type);
     }
 
     /** Decode a text form back to a typed value. */
-    public static Object decodeText(String text) {
+    @Override
+    public Object decodeText(String text) {
         byte[] bytes = io.ipfs.multibase.Multibase.decode(text);
         return decode(bytes);
     }
 
     // ==================================================================================
-    // Public API — introspection
+    // Encoding interface — introspection
     // ==================================================================================
 
     /** Pretty-printed representation of a value, primarily for debugging. */
-    public static String prettyPrint(Object value) {
+    @Override
+    public String prettyPrint(Object value) {
         StringBuilder sb = new StringBuilder();
         prettyPrintNode(CanonWalker.walk(value), sb, 0);
         return sb.toString();
     }
 
     /** Whether the bytes parse as a syntactically valid CBOR value. */
-    public static boolean isValid(byte[] bytes) {
+    @Override
+    public boolean isValid(byte[] bytes) {
         try {
             CBORObject.DecodeFromBytes(bytes);
             return true;
@@ -252,6 +285,9 @@ public final class CgCbor {
         }
     }
 
+    @Override public Node walk(Object value) { return CanonWalker.walk(value); }
+    @Override public Node walk(byte[] bytes) { return CanonWalker.walk(decode(bytes)); }
+
     /**
      * Streaming-decode primitive — read one top-level CBOR value from the
      * stream, discriminate complete / short-read / malformed.  See
@@ -259,7 +295,8 @@ public final class CgCbor {
      * single entry point Parley (and any other streaming consumer) uses for
      * CG-CBOR streams.
      */
-    public static Optional<Object> decodeOne(InputStream in) {
+    @Override
+    public Optional<Object> decodeOne(InputStream in) {
         Objects.requireNonNull(in, "in");
         in.mark(Integer.MAX_VALUE);
         try {
@@ -287,51 +324,6 @@ public final class CgCbor {
             // Bytes remained — the data is malformed.
             throw new RuntimeException("Malformed CG-CBOR", e);
         }
-    }
-
-    // ==================================================================================
-    // Encoding-interface adapter
-    //
-    // The static API above is the fast path for code that knows it wants
-    // CG-CBOR-v1 specifically (bootstrap, ID derivation, etc.). The codec()
-    // method returns a polymorphic {@link Encoding} reference, useful for code
-    // that holds a configurable encoder (e.g. a Librarian's preferred encoding).
-    // ==================================================================================
-
-    /**
-     * The CG-CBOR-v1 codec as an {@link Encoding} instance — for code that
-     * holds a configurable encoder (such as a Librarian's preferred encoding).
-     * The returned instance is a singleton adapter; it shares no state.
-     */
-    public static Encoding codec() {
-        return CodecAdapter.INSTANCE;
-    }
-
-    private static final class CodecAdapter implements Encoding {
-        static final CodecAdapter INSTANCE = new CodecAdapter();
-
-        @Override public ItemRef encoding() { return ItemRef.iid(Encoding.CgCborV1.KEY); }
-        @Override public byte formatCode() { return (byte) Encoding.CgCborV1.FORMAT_CODE; }
-        @Override public byte[] encode(Object value) { return CgCbor.encode(value); }
-        @Override public Object decode(byte[] bytes) { return CgCbor.decode(bytes); }
-        @Override
-        @SuppressWarnings("unchecked")
-        public <T> T decode(byte[] bytes, Class<T> type) {
-            // CompoundKey's wire shape is an untagged 2-element array, which
-            // collides with Body's transitional-untagged fallback under the
-            // polymorphic decode.  Dispatch by class here.
-            if (type == CompoundKey.class) {
-                return (T) CgCbor.decodeCompoundKey(bytes);
-            }
-            return Encoding.super.decode(bytes, type);
-        }
-        @Override public String encodeText(Object value) { return CgCbor.encodeText(value); }
-        @Override public Object decodeText(String text) { return CgCbor.decodeText(text); }
-        @Override public Node walk(Object value) { return CanonWalker.walk(value); }
-        @Override public Node walk(byte[] bytes) { return CanonWalker.walk(decode(bytes)); }
-        @Override public String prettyPrint(Object value) { return CgCbor.prettyPrint(value); }
-        @Override public boolean isValid(byte[] bytes) { return CgCbor.isValid(bytes); }
-        @Override public Optional<Object> decodeOne(InputStream in) { return CgCbor.decodeOne(in); }
     }
 
     // ==================================================================================
@@ -468,9 +460,14 @@ public final class CgCbor {
     private static CBORObject encodeDatum(Datum d) {
         CBORObject arr = CBORObject.NewArray();
         arr.Add(toCbor(d.head()));
-        CBORObject entries = CBORObject.NewArray();
-        for (dev.everydaythings.graph.datum.DatumNode e : d.entries()) entries.Add(toCbor(e));
-        arr.Add(entries);
+        if (d instanceof Body b && b.isAtomic()) {
+            // Atomic body: slot 2 is the leaf value, not an entries array.
+            arr.Add(toCbor(b.atomicContent().orElseThrow()));
+        } else {
+            CBORObject entries = CBORObject.NewArray();
+            for (dev.everydaythings.graph.datum.DatumNode e : d.entries()) entries.Add(toCbor(e));
+            arr.Add(entries);
+        }
         int tag;
         if (d instanceof Record r) {
             arr.Add(CBORObject.FromByteArray(r.signature()));
@@ -768,9 +765,17 @@ public final class CgCbor {
     }
 
     /**
-     * Decode a {@link Body} from its CBOR form ({@code Tag-12 [Tag-6(head),
-     * [bindings]]}).  Tolerates an untagged 2-element array as a transitional
-     * fallback.
+     * Decode a {@link Body} from its CBOR form.  Two shapes:
+     *
+     * <ul>
+     *   <li><b>Structured</b>: {@code Tag-12 [Tag-6(head), [bindings...]]}
+     *       (slot 2 is a CBOR array).</li>
+     *   <li><b>Atomic</b>: {@code Tag-12 [Tag-6(head), leaf-value]} (slot 2 is
+     *       anything-but-an-array — a text string, integer, byte string,
+     *       Instant, etc.).</li>
+     * </ul>
+     *
+     * <p>Tolerates an untagged 2-element array as a transitional fallback.
      */
     public static Body decodeBody(CBORObject node) {
         java.util.Objects.requireNonNull(node, "node");
@@ -783,12 +788,19 @@ public final class CgCbor {
                             + (node.getType() == CBORType.Array ? " of size " + node.size() : ""));
         }
         HashID headRef = decodeHashID(node.get(0));
-        CBORObject bindingsArr = node.get(1);
-        if (bindingsArr.getType() != CBORType.Array) {
-            throw new IllegalArgumentException(
-                    "Body bindings must be a CBOR array, got " + bindingsArr.getType());
+        CBORObject slot2 = node.get(1);
+        // Structured = untagged CBOR array (the bindings list).
+        // Atomic = anything else, including tagged arrays (Rational, BigDecimal,
+        // ...) which fromCbor will decode to their natural Java types.
+        if (slot2.getType() == CBORType.Array && !slot2.isTagged()) {
+            return new Body(headRef, decodeDatumEntries(slot2));
         }
-        return new Body(headRef, decodeDatumEntries(bindingsArr));
+        Object atomic = fromCbor(slot2);
+        if (atomic == null) {
+            throw new IllegalArgumentException(
+                    "Atomic body content cannot be null");
+        }
+        return new Body(headRef, atomic);
     }
 
     /**
@@ -806,9 +818,10 @@ public final class CgCbor {
                             + (node.getType() == CBORType.Array ? " of size " + node.size() : ""));
         }
         HashID headRef = decodeHashID(node.get(0));
-        if (!(headRef instanceof DatumRef datumRef)) {
+        if (!(headRef instanceof DatumRef) && !(headRef instanceof ContentRef)) {
             throw new IllegalArgumentException(
-                    "Record head must be a DatumRef (#-prefix), got " + headRef.variant());
+                    "Record head must be a DatumRef (#-prefix) or ContentRef "
+                            + "(~-prefix), got " + headRef.variant());
         }
         CBORObject bindingsArr = node.get(1);
         if (bindingsArr.getType() != CBORType.Array) {
@@ -821,7 +834,7 @@ public final class CgCbor {
             throw new IllegalArgumentException(
                     "Record signature must be a CBOR byte string, got " + sigNode.getType());
         }
-        return new Record(datumRef, entries, sigNode.GetByteString());
+        return new Record(headRef, entries, sigNode.GetByteString());
     }
 
     /**
@@ -881,12 +894,16 @@ public final class CgCbor {
         if (node == null || node.isNull()) return null;
         if (node.isTagged()) {
             int tag = node.getMostOuterTag().ToInt32Checked();
-            if (tag == TAG_REF)        return decodeHashID(node);
-            if (tag == TAG_REDACTED)   return decodeOpaqueRedacted(node);
-            if (tag == TAG_COMPRESSED) return decodeOpaqueCompressed(node);
-            if (tag == TAG_ENCRYPTED)  return decodeOpaqueEncrypted(node);
-            if (tag == TAG_BODY)       return decodeBody(node);
-            if (tag == STD_INSTANT)    return Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
+            if (tag == TAG_REF)         return decodeHashID(node);
+            if (tag == TAG_REDACTED)    return decodeOpaqueRedacted(node);
+            if (tag == TAG_COMPRESSED)  return decodeOpaqueCompressed(node);
+            if (tag == TAG_ENCRYPTED)   return decodeOpaqueEncrypted(node);
+            if (tag == TAG_BODY)        return decodeBody(node);
+            if (tag == STD_INSTANT)     return Instant.ofEpochMilli(node.UntagOne().AsInt64Value());
+            if (tag == TAG_RATIONAL)    return decodeRational(node);
+            if (tag == STD_DECIMAL)     return decodeBigDecimal(node);
+            if (tag == STD_POS_BIGNUM
+                    || tag == STD_NEG_BIGNUM) return decodeBigInteger(node);
         }
         return switch (node.getType()) {
             case TextString -> node.AsString();

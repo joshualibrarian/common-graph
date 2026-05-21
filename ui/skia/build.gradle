@@ -1,0 +1,27 @@
+// =============================================================================
+// :ui:skia — Skia 2D painter.
+//
+// Renders scene Datums to a Skia canvas via Skija (HumbleUI's JVM bindings).
+// Window + GL context come from LWJGL/GLFW.  Pairs with the Filament 2D
+// surface painter for pixel-identical 2D output; Skia covers the CPU path,
+// Filament covers the GPU path.
+//
+// STUB — only the Gradle module skeleton lands now; painter implementation
+// follows.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':ui')
+
+    // Painter implementation deps land when the first Skia painting code goes
+    // in.  Skija + LWJGL placeholders below; uncomment as we wire them up.
+    // implementation "io.github.humbleui:skija-shared:${skijaVersion}"
+    // implementation "io.github.humbleui:skija-linux:${skijaVersion}"
+    // implementation "org.lwjgl:lwjgl:${lwjglVersion}"
+    // implementation "org.lwjgl:lwjgl-glfw:${lwjglVersion}"
+    // implementation "org.lwjgl:lwjgl-opengl:${lwjglVersion}"
+}

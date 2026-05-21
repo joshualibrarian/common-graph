@@ -2,9 +2,9 @@ package dev.everydaythings.graph.datum;
 
 
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;

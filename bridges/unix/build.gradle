@@ -1,0 +1,25 @@
+// =============================================================================
+// :bridges:unix — Unix domain socket transport via Netty NIO.
+//
+// Implements the :core Transport SPI for the Unix transport-sememe; produces
+// Netty-backed Tunnels for connect / listen on UnixEndpoint addresses.  Uses
+// Netty's pure-NIO Unix domain socket channels (NioDomainSocketChannel /
+// NioServerDomainSocketChannel), available in Netty 4.1.x on top of JDK 16+
+// StandardProtocolFamily.UNIX — no native epoll/kqueue libs needed.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+
+    implementation "io.netty:netty-buffer:${nettyVersion}"
+    implementation "io.netty:netty-common:${nettyVersion}"
+    implementation "io.netty:netty-transport:${nettyVersion}"
+    implementation "io.netty:netty-handler:${nettyVersion}"
+
+    // :bridges:unix is a pure transport bridge — implements Transport SPI,
+    // registers via META-INF/services.  No entrypoint code here anymore.
+}

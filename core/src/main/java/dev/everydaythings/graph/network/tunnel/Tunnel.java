@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.tunnel;
 
-import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.cryptography.MultiKey;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

@@ -1,0 +1,31 @@
+// =============================================================================
+// :ui:filament — Filament 2D + Filament 3D painters.
+//
+// Renders scene Datums via Google's Filament physically-based renderer.
+// Filament covers two fidelities:
+//
+//   - 2D ortho ("Surface") — a flat camera over the scene.  Produces output
+//     pixel-identical to :ui:skia for 2D content.  GPU-accelerated.
+//   - 3D spatial — perspective camera, real meshes, real lights, real
+//     shadows.  Picks the model representation on body nodes; falls back to
+//     2D when no model is available.
+//
+// Filament's native libs are large; isolating this in a submodule keeps the
+// rest of the codebase free of that dependency unless explicitly pulled in.
+//
+// STUB — only the Gradle module skeleton lands now; painter implementation
+// follows.  Old monolithic Filament code lives in git history and in
+// docs/reference-FilamentSpatialRenderer.java.txt / docs/reference-
+// LegacyFilamentSurfacePainter.java.txt for reference.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':ui')
+
+    // Filament JVM bindings + windowing land when the first Filament
+    // painting code goes in.
+}

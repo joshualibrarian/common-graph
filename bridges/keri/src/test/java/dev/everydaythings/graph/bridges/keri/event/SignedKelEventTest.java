@@ -2,7 +2,7 @@ package dev.everydaythings.graph.bridges.keri.event;
 
 import dev.everydaythings.graph.bridges.keri.Cesr;
 import dev.everydaythings.graph.bridges.keri.MatterCode;
-import dev.everydaythings.graph.identity.algorithm.Signing;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -6,8 +6,8 @@ import dev.everydaythings.graph.operator.BinaryLogical;
 import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.operator.OperatorNotation;
 
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.value.Bool;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;

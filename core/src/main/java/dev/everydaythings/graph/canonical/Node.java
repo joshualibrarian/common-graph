@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.canonical;
 
-import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.ref.HashID;
 
 import java.util.List;
 import java.util.Objects;

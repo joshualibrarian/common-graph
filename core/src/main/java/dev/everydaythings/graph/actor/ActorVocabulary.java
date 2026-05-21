@@ -20,7 +20,7 @@ import dev.everydaythings.graph.language.ThematicRole;
  *
  * <p>A {@code REPRESENTS} frame asserts that one entity stands for another.
  * The canonical use is connecting a
- * {@link dev.everydaythings.graph.identity.Signer Signer} to an
+ * {@link dev.everydaythings.graph.cryptography.Signer Signer} to an
  * {@link Actor}: the Signer (with its keys) is the cryptographic name for the
  * Actor (the social entity in the world).  Many-to-many: one Actor may be
  * represented by multiple Signers (rotation, multi-device, multi-sig), and

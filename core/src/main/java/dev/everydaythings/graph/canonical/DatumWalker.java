@@ -6,8 +6,8 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.datum.Opaque;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.HashID;
 
 /**
  * Side-effect visitor base for walking a {@link Datum}'s structure.

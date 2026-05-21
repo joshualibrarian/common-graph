@@ -2,9 +2,9 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
-import dev.everydaythings.graph.id.TypeRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
+import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.value.Color;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

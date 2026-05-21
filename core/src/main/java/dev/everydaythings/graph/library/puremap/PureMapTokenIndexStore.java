@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library.puremap;
 
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.library.index.TokenIndexStore;
 import dev.everydaythings.graph.library.index.TokenPosting;
 

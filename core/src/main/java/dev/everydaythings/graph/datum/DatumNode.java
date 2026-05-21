@@ -21,19 +21,19 @@ package dev.everydaythings.graph.datum;
  *       — a whole signed-or-unsigned datum, headed by a sememe.</li>
  *   <li>{@link Binding} — a single role→value entry in a body's bindings
  *       list.</li>
- *   <li>{@link dev.everydaythings.graph.id.CompoundKey CompoundKey} — the
+ *   <li>{@link dev.everydaythings.graph.ref.CompoundKey CompoundKey} — the
  *       semantic address of a binding (head sememe + qualifiers).</li>
- *   <li>{@link dev.everydaythings.graph.id.CompoundKey.Qualifier Qualifier}
+ *   <li>{@link dev.everydaythings.graph.ref.CompoundKey.Qualifier Qualifier}
  *       — a single sememe or literal qualifier inside a CompoundKey.</li>
  *   <li>{@link BindingTarget} (so its implementing {@link
  *       BindingTarget.RefTarget RefTarget} and {@link BindingTarget.FrameTarget
  *       FrameTarget}) — structured forms a binding target can take.</li>
  *   <li>{@link Opaque} (so {@link Opaque.Redacted}, {@link Opaque.Compressed},
  *       {@link Opaque.Encrypted}) — merkle-preserving stand-ins.</li>
- *   <li>{@link dev.everydaythings.graph.id.HashID HashID} (so {@link
- *       dev.everydaythings.graph.id.ItemRef ItemRef}, {@link
- *       dev.everydaythings.graph.id.ContentRef ContentRef}, {@link
- *       dev.everydaythings.graph.id.DatumRef DatumRef}, …) — references
+ *   <li>{@link dev.everydaythings.graph.ref.HashID HashID} (so {@link
+ *       dev.everydaythings.graph.ref.ItemRef ItemRef}, {@link
+ *       dev.everydaythings.graph.ref.ContentRef ContentRef}, {@link
+ *       dev.everydaythings.graph.ref.DatumRef DatumRef}, …) — references
  *       that can stand at a leaf-ish node.</li>
  * </ul>
  *

@@ -1,6 +1,5 @@
 package dev.everydaythings.graph.runtime;
 
-import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,24 +13,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for {@link Librarian#fresh(Path)} and {@link Librarian#load(Path)} —
- * the on-disk startup paths. Full disk persistence is not yet wired (RocksDB
- * plumbing pending); these tests pin the factory shape and the
- * {@code .librarian/format} marker mechanism.
+ * the on-disk startup paths.
  */
 class LibrarianFreshLoadTest {
-
-    @Test
-    @DisplayName("fresh(path) writes the .librarian/format marker file")
-    void freshWritesMarker(@TempDir Path root) throws Exception {
-        Librarian lib = Librarian.fresh(root);
-
-        Path markerPath = root.resolve(".librarian").resolve("format");
-        assertThat(Files.exists(markerPath)).isTrue();
-        byte[] bytes = Files.readAllBytes(markerPath);
-        assertThat(bytes).containsExactly((byte) Encoding.CgCborV1.FORMAT_CODE);
-
-        assertThat(lib.rootPath()).contains(root);
-    }
 
     @Test
     @DisplayName("fresh(path) creates a full signing identity (vault, iid, inception)")
@@ -52,33 +36,93 @@ class LibrarianFreshLoadTest {
     }
 
     @Test
-    @DisplayName("load(path) throws NotFound when marker is missing")
-    void loadRejectsMissingMarker(@TempDir Path root) {
-        // No fresh() call → no marker file.
-        assertThatThrownBy(() -> Librarian.load(root))
-                .isInstanceOf(dev.everydaythings.graph.library.LibraryException.NotFound.class)
-                .hasMessageContaining("No format marker");
+    @DisplayName("load(path) re-acquires the same signing identity as the original fresh(path)")
+    void loadPreservesIdentity(@TempDir Path root) throws Exception {
+        Librarian first = Librarian.fresh(root);
+        dev.everydaythings.graph.ref.ItemRef firstIid = first.iid();
+        first.close();
+
+        Librarian loaded = Librarian.load(root);
+        assertThat(loaded.iid()).isEqualTo(firstIid);
+        assertThat(loaded.canSign()).isTrue();
+        loaded.library().close();
     }
 
     @Test
-    @DisplayName("load(path) throws Corrupted when marker disagrees with runtime encoder")
-    void loadRejectsForeignEncoder(@TempDir Path root) throws Exception {
-        Path markerPath = root.resolve(".librarian").resolve("format");
-        Files.createDirectories(markerPath.getParent());
-        Files.write(markerPath, new byte[]{(byte) 0x99});  // unknown encoder
-
+    @DisplayName("load(path) throws if no materialized Librarian exists at the path")
+    void loadMissingLibrarian(@TempDir Path root) {
         assertThatThrownBy(() -> Librarian.load(root))
-                .isInstanceOf(dev.everydaythings.graph.library.LibraryException.Corrupted.class)
-                .hasMessageContaining("0x99");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No materialized Librarian");
     }
 
     @Test
-    @DisplayName("load(path) currently throws UnsupportedOperationException — vault loading pending")
-    void loadPendingVaultLoading(@TempDir Path root) {
-        Librarian.fresh(root);   // sets up marker + identity
-        // load() can verify the marker, but cannot re-acquire the vault yet.
-        assertThatThrownBy(() -> Librarian.load(root))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining("vault disk-persistence");
+    @DisplayName("fresh(path) writes .item/head + a MATERIALIZED record + body in .item/objects/")
+    void freshWritesMaterializedManifest(@TempDir Path root) throws Exception {
+        Librarian lib = Librarian.fresh(root);
+        lib.close();
+
+        Path itemDir = root.resolve(".item");
+        assertThat(Files.isRegularFile(itemDir.resolve("head"))).isTrue();
+        Path objectsDir = itemDir.resolve("objects");
+        // At least two objects: the manifest record + the manifest body.
+        long objectCount;
+        try (java.util.stream.Stream<Path> walk = Files.list(objectsDir)) {
+            objectCount = walk.count();
+        }
+        assertThat(objectCount).isGreaterThanOrEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("fresh(path) materializes the librarian at <path>/.item/ (iid, codec, objects/)")
+    void freshMaterializesLibrarian(@TempDir Path root) throws Exception {
+        Librarian lib = Librarian.fresh(root);
+
+        Path itemDir = root.resolve(".item");
+        assertThat(Files.isDirectory(itemDir)).isTrue();
+        assertThat(Files.isRegularFile(itemDir.resolve("iid"))).isTrue();
+        assertThat(Files.isRegularFile(itemDir.resolve("codec"))).isTrue();
+        assertThat(Files.isDirectory(itemDir.resolve("objects"))).isTrue();
+
+        // .item/iid carries the librarian's actual IID.
+        byte[] iidBytes = Files.readAllBytes(itemDir.resolve("iid"));
+        assertThat(iidBytes).isEqualTo(lib.iid().toRefBytes());
+
+        lib.close();
+    }
+
+    @Test
+    @DisplayName("fresh(path) refuses to clobber an existing librarian .item/ (use load() instead)")
+    void freshRefusesExistingLibrarian(@TempDir Path root) throws Exception {
+        Librarian first = Librarian.fresh(root);
+        first.close();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> Librarian.fresh(root));
+    }
+
+    @Test
+    @DisplayName("Bodies persisted by a first Librarian survive into a second Librarian via load(path)")
+    void bodiesPersistAcrossRestart(@TempDir Path root) throws Exception {
+        Librarian first = Librarian.fresh(root);
+        dev.everydaythings.graph.ref.ContentRef cid =
+                first.persistContent("hello-persistent".getBytes());
+        first.close();
+
+        Librarian second = Librarian.load(root);
+        assertThat(second.fetch(cid))
+                .isPresent()
+                .get()
+                .isEqualTo("hello-persistent".getBytes());
+        second.close();
+    }
+
+    @SuppressWarnings("unused")
+    private static void deleteDirectory(Path dir) throws Exception {
+        try (java.util.stream.Stream<Path> walk = Files.walk(dir)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                try { Files.deleteIfExists(p); } catch (Exception ignored) {}
+            });
+        }
     }
 }

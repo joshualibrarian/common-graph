@@ -3,10 +3,9 @@ package dev.everydaythings.graph.value;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.encoding.CgCbor;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.network.IpAddress;
 import dev.everydaythings.graph.network.NetworkVocabulary;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
@@ -40,8 +39,8 @@ class EndpointTest {
             assertThat(endpoint.port()).isEqualTo(8080);
             assertThat(endpoint.transport()).isEqualTo(ItemRef.iid(NetworkVocabulary.Tcp.KEY));
 
-            byte[] bytes = CgCbor.encode(endpoint);
-            Body decoded = (Body) CgCbor.decode(bytes);
+            byte[] bytes = CgCbor.codec().encode(endpoint);
+            Body decoded = (Body) CgCbor.codec().decode(bytes);
             TcpEndpoint roundtripped = TcpEndpoint.from(decoded);
 
             assertThat(roundtripped.host().bytes()).isEqualTo(endpoint.host().bytes());
@@ -55,7 +54,7 @@ class EndpointTest {
             assertThat(endpoint.path()).isEqualTo("/tmp/cg.sock");
             assertThat(endpoint.transport()).isEqualTo(ItemRef.iid(NetworkVocabulary.Unix.KEY));
 
-            UnixEndpoint roundtripped = UnixEndpoint.from((Body) CgCbor.decode(CgCbor.encode(endpoint)));
+            UnixEndpoint roundtripped = UnixEndpoint.from((Body) CgCbor.codec().decode(CgCbor.codec().encode(endpoint)));
             assertThat(roundtripped.path()).isEqualTo(endpoint.path());
         }
 
@@ -67,7 +66,7 @@ class EndpointTest {
             assertThat(endpoint.identity()).isEqualTo(identity);
             assertThat(endpoint.transport()).isEqualTo(ItemRef.iid(NetworkVocabulary.Reticulum.KEY));
 
-            ReticulumEndpoint roundtripped = ReticulumEndpoint.from((Body) CgCbor.decode(CgCbor.encode(endpoint)));
+            ReticulumEndpoint roundtripped = ReticulumEndpoint.from((Body) CgCbor.codec().decode(CgCbor.codec().encode(endpoint)));
             assertThat(roundtripped.identity()).isEqualTo(endpoint.identity());
         }
 
@@ -78,7 +77,7 @@ class EndpointTest {
             assertThat(endpoint.bindings()).isEmpty();
             assertThat(endpoint.transport()).isEqualTo(ItemRef.iid(NetworkVocabulary.Loopback.KEY));
 
-            LoopbackEndpoint roundtripped = LoopbackEndpoint.from((Body) CgCbor.decode(CgCbor.encode(endpoint)));
+            LoopbackEndpoint roundtripped = LoopbackEndpoint.from((Body) CgCbor.codec().decode(CgCbor.codec().encode(endpoint)));
             assertThat(roundtripped.bindings()).isEmpty();
         }
     }

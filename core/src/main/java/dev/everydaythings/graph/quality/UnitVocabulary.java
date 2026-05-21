@@ -2,7 +2,7 @@ package dev.everydaythings.graph.quality;
 
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;

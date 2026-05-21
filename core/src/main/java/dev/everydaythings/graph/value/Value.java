@@ -8,7 +8,7 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 
 import java.util.List;
 
@@ -42,8 +42,19 @@ public abstract class Value extends Body {
 
     public static final String KEY = "cg.archetype:value";
 
+    /** Structured-form constructor: head plus a list of bindings. */
     protected Value(ItemRef head, List<Binding> bindings) {
         super(head, bindings);
+    }
+
+    /**
+     * Atomic-form constructor: head plus a single leaf value.  Used by value
+     * subclasses (notably {@link dev.everydaythings.graph.value.identifier.Identifier
+     * Identifier} subclasses like EmailAddress) whose canonical form is a
+     * single string or number rather than a binding structure.
+     */
+    protected Value(ItemRef head, Object atomicContent) {
+        super(head, atomicContent);
     }
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,

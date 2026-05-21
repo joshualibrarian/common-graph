@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.bridges.keri;
 
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.algorithm.Signing;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import io.ipfs.multihash.Multihash;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,9 +1,8 @@
 package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.HashID;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

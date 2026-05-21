@@ -195,7 +195,7 @@ class LoopbackTransportTest {
         void transportSememe() {
             LoopbackTransport transport = new LoopbackTransport();
             assertThat(transport.transport())
-                    .isEqualTo(dev.everydaythings.graph.id.ItemRef.iid(
+                    .isEqualTo(dev.everydaythings.graph.ref.ItemRef.iid(
                             dev.everydaythings.graph.network.NetworkVocabulary.Loopback.KEY));
         }
     }

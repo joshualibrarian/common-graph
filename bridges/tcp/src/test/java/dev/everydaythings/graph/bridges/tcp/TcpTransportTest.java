@@ -161,7 +161,7 @@ class TcpTransportTest {
         @DisplayName("transport() returns the TCP transport-sememe IID")
         void transportSememe() {
             assertThat(transport.transport())
-                    .isEqualTo(dev.everydaythings.graph.id.ItemRef.iid(
+                    .isEqualTo(dev.everydaythings.graph.ref.ItemRef.iid(
                             dev.everydaythings.graph.network.NetworkVocabulary.Tcp.KEY));
         }
 

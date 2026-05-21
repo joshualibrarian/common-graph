@@ -1,8 +1,7 @@
 package dev.everydaythings.graph;
 
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 
@@ -492,6 +491,59 @@ public final class CoreVocabulary {
             public static final String KEY = "cg.source:cili";
             private Cili() {}
         }
+    }
+
+    /**
+     * Preferred — marks something as chosen in preference to alternatives.
+     * Generic qualifier; appears wherever the data offers multiple options
+     * and one is to be picked first (preferred email, preferred address,
+     * preferred witness).
+     *
+     * <p>Grounded in OEWN synset oewn-02130856-a (CILI {@code i11628}):
+     * "chosen in preference to another" (preferred, selected).
+     */
+    @Seed.Item(key = Preferred.KEY)
+    @Seed.Cili("i11628")
+    public static final class Preferred {
+        public static final String KEY = "cg.sememe:preferred";
+        private Preferred() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss = "chosen in preference to another";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] englishAdjLemmas = {"preferred", "selected"};
+    }
+
+    /**
+     * CurrentTime — the resolution-context variable carrying the current
+     * wall-clock time.  An instance of {@link Variable}; its runtime value
+     * is supplied by the session (typically as an {@code Instant} or
+     * milliseconds-since-epoch) and re-read at each presenter pass.
+     *
+     * <p>Scenes that reference CurrentTime (a clock display, a freshness
+     * indicator, a countdown) declare the dependency simply by carrying
+     * the reference; the session's tick driver re-presents the scene at
+     * the painter's native cadence and CurrentTime resolves to the
+     * current value each time.  Wire-side: the resolver leaves CurrentTime
+     * references unresolved so remote clients re-read locally.
+     */
+    @Seed.Item(key = CurrentTime.KEY, head = Variable.KEY)
+    public static final class CurrentTime {
+        public static final String KEY = "cg.variable:current-time";
+        private CurrentTime() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the resolution-context variable carrying the current wall-clock time";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String[] englishNounLemmas = {"current time", "now"};
     }
 
     /** Witness — a co-participant who attests to the truth of an assertion. */

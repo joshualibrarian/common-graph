@@ -2,12 +2,13 @@ package dev.everydaythings.graph.canonical;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.BindingTarget;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.DatumNode;
 import dev.everydaythings.graph.datum.Opaque;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.HashID;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -185,6 +186,9 @@ public final class CanonWalker {
      * body-part, not to itself.
      */
     public static Node walkBodyPart(Datum d) {
+        if (d instanceof Body b && b.isAtomic()) {
+            return Node.array(walk(d.head()), walk(b.atomicContent().orElseThrow()));
+        }
         List<Node> entryNodes = new ArrayList<>(d.entries().size());
         for (DatumNode e : d.entries()) entryNodes.add(walk(e));
         return Node.array(walk(d.head()), Node.array(entryNodes));
@@ -197,9 +201,14 @@ public final class CanonWalker {
     private static Node walkDatum(Datum d) {
         List<Node> children = new ArrayList<>(3);
         children.add(walk(d.head()));
-        List<Node> entryNodes = new ArrayList<>(d.entries().size());
-        for (DatumNode e : d.entries()) entryNodes.add(walk(e));
-        children.add(Node.array(entryNodes));
+        if (d instanceof Body b && b.isAtomic()) {
+            // Atomic body: slot 2 is a leaf value, not an entries array.
+            children.add(walk(b.atomicContent().orElseThrow()));
+        } else {
+            List<Node> entryNodes = new ArrayList<>(d.entries().size());
+            for (DatumNode e : d.entries()) entryNodes.add(walk(e));
+            children.add(Node.array(entryNodes));
+        }
         if (d instanceof Record r) {
             children.add(leafBytes(r.signature()));
         }

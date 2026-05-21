@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemRef;
 
 /**
  * Thematic roles — semantic functions that participants fill in a frame.

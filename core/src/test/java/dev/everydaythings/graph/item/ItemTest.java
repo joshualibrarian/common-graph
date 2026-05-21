@@ -4,15 +4,14 @@ package dev.everydaythings.graph.item;
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.BindingTarget;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -427,7 +426,7 @@ class ItemTest {
             Manifest manifest = item.commit(List.of());
             DatumRef bodyCid = manifest.versionId();
             ContentRef recordCid = ContentRef.of(
-                    CgCbor.encode(manifest.records().get(0)));
+                    CgCbor.codec().encode(manifest.records().get(0)));
 
             assertThat(lib.has(bodyCid)).isTrue();
             assertThat(lib.has(recordCid)).isTrue();

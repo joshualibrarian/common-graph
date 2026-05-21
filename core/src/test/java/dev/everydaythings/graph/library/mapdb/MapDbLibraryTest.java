@@ -4,8 +4,8 @@ package dev.everydaythings.graph.library.mapdb;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.language.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
@@ -41,10 +41,10 @@ class MapDbLibraryTest {
     }
 
     @Test
-    @DisplayName("MapDB Library writes format marker on first open")
-    void marker(@TempDir Path root) {
+    @DisplayName("MapDB Library creates the library subdirectory on first open")
+    void libraryDirCreated(@TempDir Path root) {
         try (Library ignored = Library.mapDb(root)) {
-            assertThat(root.resolve(".librarian").resolve("format")).exists();
+            assertThat(root.resolve(Library.LIBRARY_SUBDIR)).isDirectory();
         }
     }
 

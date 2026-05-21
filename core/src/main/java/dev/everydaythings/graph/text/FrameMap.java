@@ -1,8 +1,7 @@
 package dev.everydaythings.graph.text;
 
-import dev.everydaythings.graph.datum.BindingTarget;
-import dev.everydaythings.graph.id.CompoundKey.Qualifier;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.CompoundKey.Qualifier;
+import dev.everydaythings.graph.ref.ItemRef;
 import java.math.BigDecimal;
 import lombok.Value;
 import lombok.With;

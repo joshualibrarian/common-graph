@@ -4,16 +4,14 @@ import dev.everydaythings.graph.encoding.CgCbor;
 
 import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.identity.AlgorithmVocabulary;
-import dev.everydaythings.graph.identity.algorithm.Algorithm;
-import dev.everydaythings.graph.identity.algorithm.Signing;
-import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
+import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.runtime.RuntimeVocabulary;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,7 +44,7 @@ class DatumTest {
 
             assertThat(body.head()).isEqualTo(ItemRef.of(PRED));
             assertThat(body.bindings()).hasSize(2);
-            assertThat(ContentRef.of(CgCbor.encode(body))).isNotNull();
+            assertThat(ContentRef.of(CgCbor.codec().encode(body))).isNotNull();
         }
 
         @Test
@@ -61,8 +59,8 @@ class DatumTest {
             Body decoded = CgCbor.decodeBody(cbor);
 
             assertThat(decoded).isEqualTo(original);
-            assertThat(ContentRef.of(CgCbor.encode(decoded)))
-                    .isEqualTo(ContentRef.of(CgCbor.encode(original)));
+            assertThat(ContentRef.of(CgCbor.codec().encode(decoded)))
+                    .isEqualTo(ContentRef.of(CgCbor.codec().encode(original)));
         }
 
         @Test
@@ -102,8 +100,8 @@ class DatumTest {
         void equalBodiesEqualCids() {
             Body a = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
             Body b = Body.of(ItemRef.of(PRED), List.of(Binding.ref(THEME, HOBBIT)));
-            assertThat(ContentRef.of(CgCbor.encode(a)))
-                    .isEqualTo(ContentRef.of(CgCbor.encode(b)));
+            assertThat(ContentRef.of(CgCbor.codec().encode(a)))
+                    .isEqualTo(ContentRef.of(CgCbor.codec().encode(b)));
         }
 
         @Test
@@ -122,7 +120,7 @@ class DatumTest {
 
             // DatumRef (Merkle structural hash) is computed differently from
             // ContentRef (canonical bytes hash); they should not coincide.
-            ContentRef aContentId = ContentRef.of(CgCbor.encode(a));
+            ContentRef aContentId = ContentRef.of(CgCbor.codec().encode(a));
             assertThat(a.datumId().encodeBinary()).isNotEqualTo(aContentId.encodeBinary());
         }
 
@@ -152,8 +150,8 @@ class DatumTest {
             assertThat(full.datumId()).isEqualTo(redactedBody.datumId());
 
             // But their canonical bytes differ — the wire forms are different.
-            assertThat(ContentRef.of(CgCbor.encode(full)))
-                    .isNotEqualTo(ContentRef.of(CgCbor.encode(redactedBody)));
+            assertThat(ContentRef.of(CgCbor.codec().encode(full)))
+                    .isNotEqualTo(ContentRef.of(CgCbor.codec().encode(redactedBody)));
         }
 
         @Test

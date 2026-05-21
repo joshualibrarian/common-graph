@@ -2,7 +2,7 @@ package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.encoding.CgCbor;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.ThematicRole;
 import com.upokecenter.cbor.CBORObject;
 import org.junit.jupiter.api.DisplayName;

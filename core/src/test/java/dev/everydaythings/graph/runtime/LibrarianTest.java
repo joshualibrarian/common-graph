@@ -4,8 +4,8 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
@@ -14,10 +14,10 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.library.index.TokenPosting;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -297,8 +297,8 @@ class LibrarianTest {
 
             assertThat(frame.body()).isEqualTo(body);
             assertThat(frame.records()).hasSize(1);
-            assertThat(lib.has(ContentRef.of(CgCbor.encode(frame.body())))).isTrue();
-            assertThat(lib.has(ContentRef.of(CgCbor.encode(frame.records().get(0))))).isTrue();
+            assertThat(lib.has(ContentRef.of(CgCbor.codec().encode(frame.body())))).isTrue();
+            assertThat(lib.has(ContentRef.of(CgCbor.codec().encode(frame.records().get(0))))).isTrue();
         }
 
         @Test

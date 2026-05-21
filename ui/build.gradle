@@ -1,0 +1,27 @@
+// =============================================================================
+// :ui — UI umbrella: cross-painter machinery and the per-painter submodules.
+//
+// The Painter SPI and the scene-Datum classes live in :core.  Concrete
+// painter implementations live in submodules so each can bring its own
+// native deps without polluting the umbrella:
+//
+//   :ui:tui       — JLine TUI painter.  Pure Java, no native deps.
+//   :ui:skia      — Skia 2D painter (Skija + LWJGL/GLFW).
+//   :ui:filament  — Filament 2D ortho + Filament 3D spatial painters.
+//
+// :ui itself carries the painter-agnostic glue: the presenter implementation,
+// window/event-loop machinery, and (eventually) the main entry point that
+// wires Stage → Librarian → Session → Painter for one host + one window.
+//
+// Mirrors :bridges / :bridges:* — one-way dependency: :ui → :core; :core
+// never depends on anything here.  Each :ui:* submodule depends on :ui and
+// :core, never on each other.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':core')
+}

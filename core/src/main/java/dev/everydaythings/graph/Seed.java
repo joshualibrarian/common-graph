@@ -580,6 +580,25 @@ public class Seed {
 
         /** Canonical key of the predicate whose frames this method handles. */
         String predicate();
+
+        /**
+         * Optional canonical key of the binding-role on incoming frames that
+         * names the <i>target instance</i> for dispatch.
+         *
+         * <p>When set, the dispatcher reads the incoming frame's
+         * {@code binding[role]} to find the IID of the item-instance this
+         * frame is about; it then looks up the live instance of the handling
+         * archetype at that IID and invokes the handler on it.  Used for
+         * archetypes whose handlers care about <i>which specific instance</i>
+         * is being addressed (Session via {@code Location}, Signer via
+         * {@code Agent}, etc.).
+         *
+         * <p>When empty (default), dispatch is singleton: the handler runs on
+         * a code-item instance (cached if previously materialized, freshly
+         * hydrated otherwise) without consulting frame bindings.  Used for
+         * stateless operator-style archetypes (Add, Between, Sqrt, ...).
+         */
+        String role() default "";
     }
 
     /**
@@ -625,11 +644,71 @@ public class Seed {
     }
 
     /**
+     * Field-level annotation that declares an IDENTIFIED_BY frame on the
+     * enclosing {@link Item @Seed.Item} seed.
+     *
+     * <p>The field's String value is the canonical text of the identifier;
+     * the {@link #type} attribute names the Identifier subclass to wrap it
+     * in (CILIID, ISBN, DOI, ORCID, ...).  At bootstrap, the SeedProcessor:
+     *
+     * <ol>
+     *   <li>resolves {@code type} to the Java class (must be on the
+     *       classpath and have {@code @Seed.Item} declaring that key)</li>
+     *   <li>invokes that class's {@code @Decode static fromText(String)}
+     *       to mint a typed Identifier body</li>
+     *   <li>persists the body</li>
+     *   <li>builds an IDENTIFIED_BY frame: THEME → enclosing seed,
+     *       VALUE → DatumRef of the typed body</li>
+     *   <li>persists the frame and adds it to ENDORSES on the seed manifest</li>
+     * </ol>
+     *
+     * <p>Repeatable — a single seed may carry identifiers from multiple
+     * registries (a sememe with both a CILI id and an ISBN, etc.).
+     *
+     * <pre>{@code
+     * public final class SomeBook {
+     *     @Seed.IdentifiedBy(type = "cg.archetype:cili-id")
+     *     static final String CILI = "i12345";
+     *
+     *     @Seed.IdentifiedBy(type = "cg.archetype:isbn")
+     *     static final String ISBN = "978-0547928227";
+     * }
+     * }</pre>
+     */
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(IdentifiedBy.List.class)
+    public static @interface IdentifiedBy {
+
+        /**
+         * Canonical key of the Identifier subclass to wrap the field's text
+         * value in.  The named class must extend
+         * {@code dev.everydaythings.graph.value.identifier.Identifier}, be
+         * declared with {@code @Seed.Item(key = type)}, and expose a
+         * {@code @Decode static T fromText(String)} factory.
+         */
+        String type();
+
+        /** Container for repeated {@code @Seed.IdentifiedBy} annotations on the same field. */
+        @Target(ElementType.FIELD)
+        @Retention(RetentionPolicy.RUNTIME)
+        @interface List {
+            IdentifiedBy[] value();
+        }
+    }
+
+    /**
      * Shortcut for declaring this seed's CILI (Collaborative Interlingual Index)
      * identifier — the language-neutral concept id that aligns CG sememes with
      * WordNets across languages.  Expands to a {@link Frame @Seed.Frame} whose
      * predicate is {@code cg.sememe:cili-id}, with back-link THEME → seed and
      * a VALUE binding carrying the {@code "iN"} text.
+     *
+     * @deprecated Use {@code @Seed.IdentifiedBy(type = "cg.archetype:cili-id")}
+     *     on a {@code String} field instead.  The new annotation produces a
+     *     properly typed CILIID body and an IDENTIFIED_BY frame, generalizing
+     *     to any registry-issued identifier.  Existing {@code @Seed.Cili}
+     *     declarations continue to work in the legacy shape during migration.
      *
      * <p>Supports both placements:
      * <pre>{@code
@@ -654,6 +733,7 @@ public class Seed {
      */
     @Target({ElementType.TYPE, ElementType.FIELD})
     @Retention(RetentionPolicy.RUNTIME)
+    @Deprecated
     public static @interface Cili {
 
         /**

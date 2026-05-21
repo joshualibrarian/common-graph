@@ -1,11 +1,14 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.id.HashID;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
-import dev.everydaythings.graph.id.TypeRef;
+import dev.everydaythings.graph.ref.HashID;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
+import dev.everydaythings.graph.ref.TypeRef;
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A Datum that asserts content. Has no signature slot.
@@ -13,17 +16,28 @@ import java.util.Objects;
  * <p>The head is a reference into the IID space — one of {@link ItemRef}
  * (literal), {@link TypeRef} (query: match instances of this kind), or
  * {@link SchemaRef} (schema: declare what instances of this kind look like).
- * {@link dev.everydaythings.graph.id.ContentRef} and
- * {@link dev.everydaythings.graph.id.DatumRef} are rejected — a Body's head
+ * {@link dev.everydaythings.graph.ref.ContentRef} and
+ * {@link dev.everydaythings.graph.ref.DatumRef} are rejected — a Body's head
  * always points at a sememe, never at content or datum hashes.
  *
- * <p>Literal-headed bodies are the common case: propositional frames (head is
- * a Predicate), archetypal/manifest bodies (head is an Archetype), value
- * bodies (head is a Value archetype like Color or Quantity).  Query and
- * schema-headed bodies have the same wire shape — the head's reference
- * variant marks the operational mode.
+ * <p>Two forms:
  *
- * <p>CBOR encoding: 2-element array {@code [Tag-6(head), [bindings]]}.
+ * <ul>
+ *   <li><b>Structured</b> (the common form): head plus a list of bindings.
+ *       Propositional frames, manifest bodies, multi-field value bodies
+ *       (Color, PostalAddress).  CBOR encoding:
+ *       {@code [Tag-6(head), [bindings]]}.</li>
+ *   <li><b>Atomic</b>: head plus a single leaf value (text, integer, instant,
+ *       byte[], boolean, rational, ...).  Used for typed value-atoms whose
+ *       content has no internal structure to bind — EmailAddress, ISBN,
+ *       standalone numeric values, etc.  CBOR encoding:
+ *       {@code [Tag-6(head), leaf-value]} (slot 2 is anything-but-an-array).</li>
+ * </ul>
+ *
+ * <p>The encoder distinguishes the two forms by the CBOR type of the second
+ * slot: an array means structured (bindings); anything else means atomic.
+ * CIDs are deterministic in both cases since CanonWalker walks them
+ * canonically.
  *
  * <p>Construction is permissive — bodies may carry any bindings, including ones
  * beyond what the head sememe's EXPECTS strictly declares. Validation against
@@ -31,13 +45,43 @@ import java.util.Objects;
  */
 public non-sealed class Body extends Datum {
 
+    /**
+     * Atomic-form content: a single leaf value.  Non-null only for atomic
+     * bodies; structured bodies have {@code null} here and use {@link #entries}
+     * instead.
+     */
+    private final Object atomicContent;
+
     public Body(HashID head, List<? extends DatumNode> entries) {
         super(validateHead(head), entries);
+        this.atomicContent = null;
     }
 
     /** Backwards-compat constructor; prefer {@link #Body(HashID, List)}. */
     public Body(ItemRef head, List<? extends DatumNode> entries) {
         super(head, entries);
+        this.atomicContent = null;
+    }
+
+    /**
+     * Atomic-form constructor: a Body whose content is a single leaf value
+     * rather than a list of bindings.  Use for typed value-atoms
+     * (EmailAddress, ISBN, standalone numeric values) where the body's
+     * identity IS its head plus a canonical leaf.
+     *
+     * <p>The content must be a recognized leaf type: {@link String},
+     * {@link Long}/{@link Integer}, {@link Boolean}, {@code byte[]},
+     * {@link Instant}, {@link java.math.BigInteger}, {@link java.math.BigDecimal},
+     * {@link dev.everydaythings.graph.value.Rational}, or {@link HashID}.
+     *
+     * @throws IllegalArgumentException if {@code atomicContent}'s runtime type
+     *         isn't a recognized leaf
+     */
+    public Body(HashID head, Object atomicContent) {
+        super(validateHead(head), List.of());
+        Objects.requireNonNull(atomicContent, "atomicContent");
+        validateAtomicType(atomicContent);
+        this.atomicContent = atomicContent;
     }
 
     /**
@@ -56,6 +100,23 @@ public non-sealed class Body extends Datum {
                         + head.variant());
     }
 
+    private static void validateAtomicType(Object content) {
+        if (content instanceof String) return;
+        if (content instanceof Long) return;
+        if (content instanceof Integer) return;
+        if (content instanceof Boolean) return;
+        if (content instanceof byte[]) return;
+        if (content instanceof Instant) return;
+        if (content instanceof java.math.BigInteger) return;
+        if (content instanceof java.math.BigDecimal) return;
+        if (content instanceof dev.everydaythings.graph.value.Rational) return;
+        if (content instanceof HashID) return;
+        throw new IllegalArgumentException(
+                "Atomic body content must be a leaf-typed value (String, Long, Boolean, "
+                        + "byte[], Instant, BigInteger, BigDecimal, Rational, HashID); got: "
+                        + content.getClass().getName());
+    }
+
     /**
      * Create a Body with the given head and bindings.
      */
@@ -68,6 +129,13 @@ public non-sealed class Body extends Datum {
      */
     public static Body of(HashID head) {
         return new Body(head, List.of());
+    }
+
+    /**
+     * Create an atomic-form Body with the given head and leaf content.
+     */
+    public static Body ofAtomic(HashID head, Object atomicContent) {
+        return new Body(head, atomicContent);
     }
 
     /**
@@ -103,20 +171,58 @@ public non-sealed class Body extends Datum {
     /** True when this body's head is a {@link SchemaRef} — the body is a schema/expectation. */
     public boolean isSchemaBody() { return head instanceof SchemaRef; }
 
+    /**
+     * True when this body is in atomic form (head plus a single leaf value).
+     * Atomic bodies have no bindings.
+     */
+    public boolean isAtomic() {
+        return atomicContent != null;
+    }
+
+    /**
+     * The atomic-form content, if this body is atomic.  Returns
+     * {@link Optional#empty()} for structured bodies.
+     */
+    public Optional<Object> atomicContent() {
+        return Optional.ofNullable(atomicContent);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Body other)) return false;
-        return head.equals(other.head) && entries.equals(other.entries);
+        return head.equals(other.head)
+                && entries.equals(other.entries)
+                && atomicEquals(atomicContent, other.atomicContent);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(head, entries);
+        return Objects.hash(head, entries, atomicHashCode(atomicContent));
     }
 
     @Override
     public String toString() {
+        if (isAtomic()) return "Body[" + head + ", atomic=" + atomicSummary() + "]";
         return "Body[" + head + ", " + entries.size() + " entries]";
+    }
+
+    private String atomicSummary() {
+        if (atomicContent instanceof byte[] bs) return "byte[" + bs.length + "]";
+        String s = atomicContent.toString();
+        return s.length() <= 32 ? s : s.substring(0, 29) + "...";
+    }
+
+    private static boolean atomicEquals(Object a, Object b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+        if (a instanceof byte[] ab && b instanceof byte[] bb) return Arrays.equals(ab, bb);
+        return a.equals(b);
+    }
+
+    private static int atomicHashCode(Object a) {
+        if (a == null) return 0;
+        if (a instanceof byte[] bs) return Arrays.hashCode(bs);
+        return a.hashCode();
     }
 }

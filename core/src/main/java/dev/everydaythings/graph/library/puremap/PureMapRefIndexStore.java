@@ -5,9 +5,9 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.library.index.RefIndexStore;
 
 import java.util.List;

@@ -6,9 +6,9 @@ import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.library.data.DataByteStore;
 import dev.everydaythings.graph.library.data.DataStore;
 import dev.everydaythings.graph.library.index.RefIndexStore;
@@ -24,6 +24,9 @@ import dev.everydaythings.graph.library.skiplist.SkipListDataStore;
 import dev.everydaythings.graph.library.skiplist.SkipListRefIndexStore;
 import dev.everydaythings.graph.library.skiplist.SkipListTokenIndexStore;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -59,6 +62,17 @@ import java.util.Set;
  */
 public final class Library implements AutoCloseable {
 
+    /**
+     * Hardcoded subdirectory name for the library inside a librarian's
+     * root.  When a librarian materializes at {@code ~/.cg/librarian/},
+     * its library lives at {@code ~/.cg/librarian/library/}.
+     *
+     * <p>TODO: make configurable via a CONFIG binding on the librarian's
+     * manifest, so librarians can place their library anywhere (e.g. a
+     * dedicated SSD).  Hardcoded as a sensible default until that lands.
+     */
+    public static final String LIBRARY_SUBDIR = "library";
+
     private final DataStore data;
     private final RefIndexStore index;
     private final TokenIndexStore tokens;
@@ -91,19 +105,36 @@ public final class Library implements AutoCloseable {
     }
 
     /**
-     * All-SkipList Library rooted at {@code path}. Writes the
-     * {@code .librarian/format} marker on first open; validates on subsequent.
-     * Data itself currently stays in RAM until persistent SkipList backing
-     * lands.
+     * Persistent Library rooted at {@code path}.  Data, ref index, and
+     * token index live at {@code <path>/}{@link #LIBRARY_SUBDIR}{@code /}
+     * backed by MapDB (pure-Java embedded persistence; no native deps).
+     * The library directory is created on first use; subsequent calls
+     * reopen the existing MapDB files.
+     *
+     * <p>The library is an internal artifact of the librarian — no IID,
+     * no {@code .item/} of its own.  The librarian's own {@code .item/}
+     * (and its identity/codec) lives at the root; the library inherits.
      */
     public static Library atPath(Path path) {
         Objects.requireNonNull(path, "path");
+        Path libraryDir = ensureLibraryDir(path);
         return builder()
-                .data(SkipListDataStore.create())
-                .refIndex(SkipListRefIndexStore.create())
-                .tokens(SkipListTokenIndexStore.create())
+                .data(dev.everydaythings.graph.library.mapdb.MapDbDataStore.atPath(libraryDir))
+                .refIndex(dev.everydaythings.graph.library.mapdb.MapDbRefIndexStore.atPath(libraryDir))
+                .tokens(dev.everydaythings.graph.library.mapdb.MapDbTokenIndexStore.atPath(libraryDir))
                 .path(path)
                 .build();
+    }
+
+    private static Path ensureLibraryDir(Path librarianRoot) {
+        Path libraryDir = librarianRoot.resolve(LIBRARY_SUBDIR);
+        try {
+            Files.createDirectories(libraryDir);
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "Failed to create library directory at " + libraryDir, e);
+        }
+        return libraryDir;
     }
 
     /**
@@ -119,34 +150,36 @@ public final class Library implements AutoCloseable {
     }
 
     /**
-     * All-RocksDB Library rooted at {@code path}. Writes the format marker and
-     * opens three RocksDB column-family groups (one each for data, ref index,
-     * token index) under {@code path/data}, {@code path/ref-index},
-     * {@code path/token-index}.
+     * All-RocksDB Library rooted at {@code path}.  RocksDB column-family
+     * groups for data / ref-index / token-index live under
+     * {@code <path>/}{@link #LIBRARY_SUBDIR}{@code /}.
      */
     public static Library rocksDb(Path path) {
         Objects.requireNonNull(path, "path");
+        Path libraryDir = ensureLibraryDir(path);
         return builder()
-                .data(RocksDataStore.atPath(path))
-                .refIndex(RocksRefIndexStore.atPath(path))
-                .tokens(RocksTokenIndexStore.atPath(path))
+                .data(RocksDataStore.atPath(libraryDir))
+                .refIndex(RocksRefIndexStore.atPath(libraryDir))
+                .tokens(RocksTokenIndexStore.atPath(libraryDir))
                 .path(path)
                 .build();
     }
 
     /**
-     * All-MapDB Library rooted at {@code path}. Lightweight pure-Java embedded
-     * persistence — good fit for tests with on-disk requirements without
-     * RocksDB's native-library overhead, or for embedded deployments.
-     * Creates {@code path/data.mapdb}, {@code path/ref-index.mapdb},
-     * {@code path/token-index.mapdb}, plus the format marker.
+     * All-MapDB Library rooted at {@code path}.  Lightweight pure-Java embedded
+     * persistence — good for tests with on-disk requirements without
+     * RocksDB's native-library overhead.  Creates
+     * {@code <path>/}{@link #LIBRARY_SUBDIR}{@code /data.mapdb},
+     * {@code <path>/}{@link #LIBRARY_SUBDIR}{@code /ref-index.mapdb}, and
+     * {@code <path>/}{@link #LIBRARY_SUBDIR}{@code /token-index.mapdb}.
      */
     public static Library mapDb(Path path) {
         Objects.requireNonNull(path, "path");
+        Path libraryDir = ensureLibraryDir(path);
         return builder()
-                .data(dev.everydaythings.graph.library.mapdb.MapDbDataStore.atPath(path))
-                .refIndex(dev.everydaythings.graph.library.mapdb.MapDbRefIndexStore.atPath(path))
-                .tokens(dev.everydaythings.graph.library.mapdb.MapDbTokenIndexStore.atPath(path))
+                .data(dev.everydaythings.graph.library.mapdb.MapDbDataStore.atPath(libraryDir))
+                .refIndex(dev.everydaythings.graph.library.mapdb.MapDbRefIndexStore.atPath(libraryDir))
+                .tokens(dev.everydaythings.graph.library.mapdb.MapDbTokenIndexStore.atPath(libraryDir))
                 .path(path)
                 .build();
     }
@@ -175,11 +208,8 @@ public final class Library implements AutoCloseable {
             Objects.requireNonNull(index, "index");
             Objects.requireNonNull(tokens, "tokens");
             Optional<Path> root = Optional.ofNullable(path);
-            // Write or validate the format marker if a path is given and the
-            // data store has an encoder.
-            if (root.isPresent() && data.encoder().isPresent()) {
-                FormatMarker.write(root.get(), data.encoder().get());
-            }
+            // Codec identity is captured in the materialized data store's
+            // .item/codec; no separate marker file needed.
             return new Library(data, index, tokens, root);
         }
     }

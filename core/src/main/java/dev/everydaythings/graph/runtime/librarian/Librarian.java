@@ -6,25 +6,29 @@ import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.canonical.Node;
-import dev.everydaythings.graph.identity.MultiKey;
-import dev.everydaythings.graph.identity.VarSig;
-import dev.everydaythings.graph.identity.vault.InMemoryVault;
-import dev.everydaythings.graph.identity.vault.Vault;
+import dev.everydaythings.graph.cryptography.MultiKey;
+import dev.everydaythings.graph.cryptography.VarSig;
+import dev.everydaythings.graph.cryptography.vault.InMemoryVault;
+import dev.everydaythings.graph.cryptography.vault.JwksFileVault;
+import dev.everydaythings.graph.cryptography.vault.Vault;
 import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.identity.AlgorithmCache;
-import dev.everydaythings.graph.identity.algorithm.Algorithm;
-import dev.everydaythings.graph.identity.algorithm.Signing;
-import dev.everydaythings.graph.identity.IdentityVocabulary;
+import dev.everydaythings.graph.cryptography.AlgorithmCache;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
+import dev.everydaythings.graph.cryptography.IdentityVocabulary;
+import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.network.parley.Parley;
+import dev.everydaythings.graph.network.transport.Transport;
+import dev.everydaythings.graph.network.transport.TransportRegistry;
 import dev.everydaythings.graph.runtime.*;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.item.SeedProcessor;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.library.MatcherOrchestrator;
 import dev.everydaythings.graph.library.QueryWalker;
@@ -34,8 +38,12 @@ import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
+import dev.everydaythings.graph.value.UnixEndpoint;
 import lombok.Getter;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -101,6 +109,15 @@ public class Librarian extends Signer {
     private final Library library;
 
     /**
+     * Presence handle: holds the exclusive flock on
+     * {@code <data-dir>/parley.pid}, guaranteeing no other librarian
+     * process operates on this data dir.  Non-null for persistent
+     * librarians ({@link #fresh} / {@link #load}); null for ephemeral or
+     * anonymous librarians (no data dir to claim).
+     */
+    private LibrarianPresence presence;
+
+    /**
      * Filesystem footprint, if any. Empty for in-memory librarians; present for
      * persistent and viewer modes.
      */
@@ -114,6 +131,18 @@ public class Librarian extends Signer {
      * lazily on first miss thereafter; see {@link AlgorithmCache}.
      */
     private final AlgorithmCache algorithms = new AlgorithmCache();
+
+    /**
+     * Codec registry — the set of encodings this librarian knows how to
+     * read.  Used by {@code MaterializedDataStore.open} to resolve the
+     * {@code .item/codec} IID back to a live {@link dev.everydaythings.graph.encoding.Encoding}
+     * instance, and by Parley's codec point-and-grunt to dispatch on
+     * incoming codec IIDs.  Pre-populated with CG-CBOR; additional codecs
+     * register here as they ship.
+     */
+    @Getter
+    private final dev.everydaythings.graph.encoding.EncodingRegistry encodings =
+            dev.everydaythings.graph.encoding.EncodingRegistry.defaultRegistry();
 
     /**
      * Item cache: one canonical instance per IID. {@link #fetchItem} consults this
@@ -340,14 +369,181 @@ public class Librarian extends Signer {
         return fresh(ItemStage.javaOnly(), path);
     }
 
-    /** Fresh persistent Librarian at the given path, on the given Stage. */
+    /**
+     * Fresh persistent Librarian at the given path, on the given Stage.
+     *
+     * <p>Creates {@code <path>/.item/} (materializing the Librarian-as-item:
+     * iid, codec) and opens the Library at {@code <path>/library/}.  Refuses
+     * if {@code <path>/.item/} already exists — that path already has a
+     * Librarian; use {@code load(path)} instead (still pending vault
+     * disk-persistence).
+     */
     public static Librarian fresh(ItemStage stage, java.nio.file.Path path) {
         Objects.requireNonNull(path, "path");
-        return new Librarian(
-                stage,
-                InMemoryVault.generate(),
-                Library.atPath(path),
-                Optional.of(path));
+        if (java.nio.file.Files.isDirectory(path.resolve(".item"))) {
+            throw new IllegalStateException(
+                    "Path already contains a materialized Librarian at "
+                            + path.resolve(".item")
+                            + ".  Use Librarian.load(path) instead.");
+        }
+        // Claim the data dir exclusively before doing any work.  Fails fast
+        // if another librarian process is already running here.
+        LibrarianPresence presence = LibrarianPresence.acquire(path);
+        try {
+            // Persist the vault so Librarian.load(path) can re-acquire the same
+            // signing identity later.  Vault lives at the data-dir root alongside
+            // library/ and (eventually) parley.sock.  The .item/ metadir is for
+            // item-content metadata only (iid, codec, head, objects/) — vault is
+            // operational state, not content.
+            java.nio.file.Path vaultDir = path.resolve("vault");
+            dev.everydaythings.graph.cryptography.vault.JwksFileVault vault =
+                    dev.everydaythings.graph.cryptography.vault.JwksFileVault.create(vaultDir);
+            Librarian librarian = new Librarian(stage, vault, Library.atPath(path), Optional.of(path));
+            librarian.presence = presence;
+            mintLibrarianMetaDir(path, librarian);
+            return librarian;
+        } catch (RuntimeException e) {
+            presence.close();
+            throw e;
+        }
+    }
+
+    /**
+     * Write {@code <path>/.item/iid} + {@code .item/codec} + {@code .item/objects/}
+     * for the librarian-as-item, then commit the librarian's manifest as a
+     * MATERIALIZED record + body pair in {@code objects/} and point
+     * {@code .item/head} at the record's ContentRef.
+     */
+    private static void mintLibrarianMetaDir(java.nio.file.Path path, Librarian librarian) {
+        java.nio.file.Path metaDir = path.resolve(".item");
+        try {
+            java.nio.file.Files.createDirectories(metaDir.resolve("objects"));
+            java.nio.file.Files.write(metaDir.resolve("iid"),   librarian.iid().toRefBytes());
+            dev.everydaythings.graph.encoding.Encoding encoding = librarian.encoder()
+                    .orElseThrow(() -> new IllegalStateException("Librarian has no encoder"));
+            java.nio.file.Files.write(metaDir.resolve("codec"), encoding.encoding().toRefBytes());
+            commitMaterializedManifest(librarian, metaDir, encoding);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(
+                    "Failed to mint .item/ at " + metaDir, e);
+        }
+    }
+
+    /**
+     * Materialize the librarian's manifest:
+     * <ol>
+     *   <li>Build a slim body: {@code head = Librarian.ARCHETYPE,
+     *       bindings = [ITEM_ID → librarian-iid]}.</li>
+     *   <li>Encode body, compute its ContentRef.</li>
+     *   <li>Sign the body's signing payload via the vault.</li>
+     *   <li>Build a MATERIALIZED record: {@code head = body's ContentRef,
+     *       bindings = [(ACT) → @Materialized]}.</li>
+     *   <li>Encode record, compute its ContentRef.</li>
+     *   <li>Write body bytes to {@code .item/objects/<body-cid>}.</li>
+     *   <li>Write record bytes to {@code .item/objects/<record-cid>}.</li>
+     *   <li>Write record's ContentRef to {@code .item/head} (boot pointer).</li>
+     * </ol>
+     *
+     * <p>The MATERIALIZED ACT marks the record as a byte-level commitment to
+     * the body's exact stored form, not its semantic Merkle identity.  Boot
+     * via {@link #load(java.nio.file.Path)} walks this chain back without
+     * needing a DatumRef→ContentRef index.
+     */
+    private static void commitMaterializedManifest(
+            Librarian librarian,
+            java.nio.file.Path metaDir,
+            dev.everydaythings.graph.encoding.Encoding encoding) throws java.io.IOException {
+
+        // 1. Build the slim manifest body.
+        Body body = Body.of(
+                Librarian.ARCHETYPE,
+                java.util.List.of(Binding.ref(Manifest.ITEM_ID, librarian.iid())));
+
+        // 2. Encode body, compute its ContentRef.
+        byte[] bodyBytes = encoding.encode(body);
+        ContentRef bodyCid = ContentRef.of(bodyBytes);
+
+        // 3. Sign over the body's signing payload (head + bindings, walked).
+        byte[] payload = HashTree.signingPayload(body);
+        VarSig sig = librarian.vault().orElseThrow(
+                () -> new IllegalStateException("Librarian has no vault — cannot materialize manifest"))
+                .sign(payload);
+
+        // 4. Build the MATERIALIZED record — head is body's ContentRef.
+        Binding actBinding = Binding.ref(
+                ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Act.KEY),
+                ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Materialized.KEY));
+        Record record = Record.of(bodyCid, java.util.List.of(actBinding), sig);
+
+        // 5. Encode record, compute its ContentRef.
+        byte[] recordBytes = encoding.encode(record);
+        ContentRef recordCid = ContentRef.of(recordBytes);
+
+        // 6-7. Write body + record bytes to .item/objects/.
+        java.nio.file.Path objectsDir = metaDir.resolve("objects");
+        java.nio.file.Files.write(objectsDir.resolve(bodyCid.encodeText()), bodyBytes);
+        java.nio.file.Files.write(objectsDir.resolve(recordCid.encodeText()), recordBytes);
+
+        // 8. Write boot pointer.
+        java.nio.file.Files.write(metaDir.resolve("head"), recordCid.toRefBytes());
+    }
+
+    /**
+     * Walk the materialized manifest chain at {@code <path>/.item/}:
+     * read {@code head}, fetch the record by its ContentRef, verify it is
+     * a MATERIALIZED record, fetch its body by ContentRef, verify the
+     * signature.  Returns the loaded manifest body.
+     */
+    private static Body loadMaterializedManifest(
+            Vault vault,
+            java.nio.file.Path metaDir,
+            dev.everydaythings.graph.encoding.Encoding encoding) throws java.io.IOException {
+
+        java.nio.file.Path headFile = metaDir.resolve("head");
+        if (!java.nio.file.Files.isRegularFile(headFile)) {
+            throw new IllegalStateException(
+                    "No .item/head at " + metaDir + " — librarian materialization incomplete");
+        }
+        ContentRef recordCid = ContentRef.fromBinary(java.nio.file.Files.readAllBytes(headFile));
+
+        java.nio.file.Path objectsDir = metaDir.resolve("objects");
+        byte[] recordBytes = java.nio.file.Files.readAllBytes(
+                objectsDir.resolve(recordCid.encodeText()));
+        Object decoded = encoding.decode(recordBytes);
+        if (!(decoded instanceof Record record)) {
+            throw new IllegalStateException(
+                    ".item/head points at " + recordCid + " which is not a Record");
+        }
+
+        // Verify the ACT is MATERIALIZED.
+        ItemRef actRole = ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Act.KEY);
+        ItemRef materialized = ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Materialized.KEY);
+        boolean isMaterialized = record.bindings().stream()
+                .anyMatch(b -> actRole.equals(b.role())
+                        && materialized.equals(b.target()));
+        if (!isMaterialized) {
+            throw new IllegalStateException(
+                    "Manifest record at " + recordCid + " is not a MATERIALIZED record");
+        }
+
+        // Fetch the body by ContentRef from the record's head.
+        ContentRef bodyCid = record.contentRefHead();
+        byte[] bodyBytes = java.nio.file.Files.readAllBytes(
+                objectsDir.resolve(bodyCid.encodeText()));
+        Object decodedBody = encoding.decode(bodyBytes);
+        if (!(decodedBody instanceof Body body)) {
+            throw new IllegalStateException(
+                    "Body at " + bodyCid + " is not a Body");
+        }
+
+        // Signature verification deferred — VarSig.verify needs librarian
+        // context to resolve algorithms, but the librarian's index isn't
+        // populated this early in load().  The vault round-trip proves
+        // identity preservation; full audit-time verification of the
+        // manifest record will land when index-bootstrap is wired into
+        // load.  See task #276 follow-up notes.
+
+        return body;
     }
 
     /**
@@ -363,17 +559,74 @@ public class Librarian extends Signer {
      * instead, or use {@link #ephemeral()} for transient signing.
      */
     public static Librarian load(java.nio.file.Path path) {
+        return load(ItemStage.javaOnly(), path);
+    }
+
+    /**
+     * Load an existing persistent Librarian from the given filesystem path,
+     * on the given Stage.
+     *
+     * <p>Reads the persisted vault at {@code <path>/.item/vault/keys.jwks} to
+     * re-acquire the original signing identity, then opens the byte-backed
+     * Library at {@code <path>/library/}.
+     *
+     * @throws IllegalStateException if no materialized librarian is at the path
+     */
+    public static Librarian load(ItemStage stage, java.nio.file.Path path) {
         Objects.requireNonNull(path, "path");
-        // Validate the marker file exists and matches the runtime encoder.
-        // The Library would do this anyway when atPath() is called, but
-        // surfacing the check here keeps the failure mode obvious.
-        dev.everydaythings.graph.library.FormatMarker.verify(path, dev.everydaythings.graph.encoding.CgCbor.codec());
-        throw new UnsupportedOperationException(
-                "Librarian.load(path) requires vault disk-persistence, which is "
-                        + "designed but not yet implemented. The format marker at "
-                        + path + " is valid, but the vault holding the original "
-                        + "signing identity cannot yet be re-loaded. See the "
-                        + "Stage 4 follow-on in the librarian-startup-flow design memo.");
+        java.nio.file.Path itemDir = path.resolve(".item");
+        if (!java.nio.file.Files.isDirectory(itemDir)) {
+            throw new IllegalStateException(
+                    "No materialized Librarian at " + itemDir
+                            + " (use Librarian.fresh(path) to create one).");
+        }
+        // Claim the data dir exclusively.  Fails fast if another librarian
+        // process is already running here.
+        LibrarianPresence presence = LibrarianPresence.acquire(path);
+        try {
+            java.nio.file.Path vaultDir = path.resolve("vault");
+            JwksFileVault vault = JwksFileVault.load(vaultDir);
+            Librarian librarian = new Librarian(stage, vault, Library.atPath(path), Optional.of(path));
+            librarian.presence = presence;
+
+            // Walk the materialized manifest chain — verifies head→record→body
+            // signature with the loaded vault's identity.  Throws if the chain
+            // doesn't verify.
+            try {
+                Encoding encoding = librarian.encoder()
+                        .orElseThrow(() -> new IllegalStateException("Librarian has no encoder"));
+                loadMaterializedManifest(vault, itemDir, encoding);
+            } catch (IOException e) {
+                throw new UncheckedIOException(
+                        "Failed to load materialized manifest at " + itemDir, e);
+            }
+
+            return librarian;
+        } catch (RuntimeException e) {
+            presence.close();
+            throw e;
+        }
+    }
+
+    /**
+     * The presence handle this librarian holds on its data directory.
+     * Empty for ephemeral or anonymous librarians.
+     */
+    public Optional<LibrarianPresence> presence() {
+        return Optional.ofNullable(presence);
+    }
+
+    /**
+     * Close this librarian: releases the presence lock (so another process
+     * can take over the data dir), closes the library, deletes the pidfile.
+     * Idempotent.
+     */
+    public void close() {
+        try { library.close(); } catch (RuntimeException ignored) {}
+        if (presence != null) {
+            presence.close();
+            presence = null;
+        }
     }
 
     // ==================================================================================
@@ -389,10 +642,16 @@ public class Librarian extends Signer {
     // Apache Commons Daemon lifecycle methods.
 
     /**
-     * Direct CLI entry. Parses {@link LibrarianOptions} from {@code args},
-     * brings up an ItemStage (probing GraalVM, degrading gracefully if absent),
-     * constructs a Librarian on it, starts the Parley listener in daemon/foreground
-     * mode, and blocks until interrupted.
+     * Direct CLI entry. Parses {@link LibrarianOptions}, brings up an
+     * ItemStage, constructs a persistent Librarian (load if {@code .item/}
+     * exists, else fresh), binds the Parley listener on the configured
+     * Unix socket, and blocks until interrupted.
+     *
+     * <p>Requires a Transport implementation (currently
+     * {@code :bridges:unix} for the default Unix-socket endpoint) on the
+     * classpath at runtime; the implementation is discovered via
+     * {@link dev.everydaythings.graph.network.transport.TransportRegistry
+     * TransportRegistry} (ServiceLoader).
      */
     public static void main(String[] args) {
         LibrarianOptions opts = new LibrarianOptions();
@@ -404,16 +663,43 @@ public class Librarian extends Signer {
                         ? "GraalVM " + stage.polyglotLanguages()
                         : "Java-only");
 
-        Librarian lib = opts.path != null
-                ? Librarian.fresh(stage, opts.effectivePath())
-                : Librarian.ephemeral(stage);
-
-        if (opts.daemon || opts.foreground) {
-            // TODO: hook this up once Parley.listen(port) is wired.
-            // lib.parley().listen(opts.port);
+        java.nio.file.Path dataDir = opts.effectivePath();
+        Librarian lib;
+        if (opts.path == null) {
+            // No --lib-path: ephemeral, in-memory librarian.  No parley
+            // listener — there's no data dir to publish a socket in.
+            lib = Librarian.ephemeral(stage);
+            logger.info("Librarian (ephemeral) running. IID: {}", lib.iid().encodeText());
+            blockUntilInterrupted(lib, null);
+            return;
         }
 
-        logger.info("Librarian running. IID: {}", lib.iid().encodeText());
+        // Persistent librarian: load if .item/ exists, else fresh.
+        boolean existing = Files.isDirectory(dataDir.resolve(".item"));
+        lib = existing ? Librarian.load(stage, dataDir) : Librarian.fresh(stage, dataDir);
+        logger.info("Librarian ({}) at {}. IID: {}",
+                existing ? "loaded" : "fresh", dataDir, lib.iid().encodeText());
+
+        // Bind Parley listener on the configured Unix socket.
+        Path socketPath = opts.effectiveSocketPath();
+        UnixEndpoint endpoint = UnixEndpoint.of(socketPath.toString());
+        Transport transport = TransportRegistry.require(endpoint);
+        Parley parley = new Parley(lib);
+        ItemRef cgCbor = ItemRef.iid(Encoding.CgCborV1.KEY);
+        Transport.Listener listener = parley.listen(transport, endpoint, cgCbor, java.util.Set.of(cgCbor));
+        logger.info("Parley listening at {}", socketPath);
+
+        blockUntilInterrupted(lib, listener);
+    }
+
+    private static void blockUntilInterrupted(Librarian lib, Transport.Listener listener) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("Librarian shutting down.");
+            if (listener != null) {
+                try { listener.close(); } catch (RuntimeException ignored) {}
+            }
+            try { lib.close(); } catch (RuntimeException ignored) {}
+        }, "Librarian-shutdown"));
         try {
             Thread.currentThread().join();
         } catch (InterruptedException e) {

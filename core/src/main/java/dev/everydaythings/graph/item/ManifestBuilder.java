@@ -4,7 +4,7 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.BodyBuilder;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 
 import java.util.List;
 import java.util.Objects;

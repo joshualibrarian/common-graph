@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.datum;
 
 
-import dev.everydaythings.graph.id.*;
+import dev.everydaythings.graph.ref.*;
 import java.util.Objects;
 
 /**

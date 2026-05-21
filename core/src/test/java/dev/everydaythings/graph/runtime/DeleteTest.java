@@ -6,10 +6,10 @@ import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.librarian.LibrarianVocabulary;
@@ -148,7 +148,7 @@ class DeleteTest {
                     List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             ContentRef deleteFrameCid = ContentRef.of(
-                    CgCbor.encode(lib.assembleFrame(deleteBody, lib).body()));
+                    CgCbor.codec().encode(lib.assembleFrame(deleteBody, lib).body()));
 
             // The item is gone, but the DELETE frame's body remains.
             assertThat(lib.library().manifestCidsForItem(iid)).isEmpty();
@@ -228,7 +228,7 @@ class DeleteTest {
                     List.of(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), iid))
             );
             ContentRef frameCid = ContentRef.of(
-                    CgCbor.encode(lib.assembleFrame(deleteBody, alice).body()));
+                    CgCbor.codec().encode(lib.assembleFrame(deleteBody, alice).body()));
 
             // The DELETE frame is in storage even though it wasn't honored.
             assertThat(lib.has(frameCid)).isTrue();

@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.language;
 
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.operator.math.Add;
 import dev.everydaythings.graph.operator.math.Subtract;

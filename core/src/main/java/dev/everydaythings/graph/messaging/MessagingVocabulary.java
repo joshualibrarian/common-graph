@@ -19,7 +19,7 @@ import dev.everydaythings.graph.language.ThematicRole;
  *
  * <p>Encryption is orthogonal: any frame body, including a MESSAGE body, may
  * be wrapped in {@code Opaque.Encrypted}.  See
- * {@link dev.everydaythings.graph.identity.vault.Vault Vault} session methods
+ * {@link dev.everydaythings.graph.cryptography.vault.Vault Vault} session methods
  * for the Double-Ratchet path that produces such wrappers.
  */
 public final class MessagingVocabulary {

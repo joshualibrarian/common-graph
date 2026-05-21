@@ -2,10 +2,10 @@ package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.encoding.CgCbor;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.HashID;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.HashID;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.ThematicRole;
@@ -152,8 +152,8 @@ class OpaqueTest {
                     new Binding(BODY_ROLE, "visible"),
                     new Opaque.Redacted(hiddenBindingHash)));
 
-            byte[] encoded = CgCbor.encode(body);
-            Body decoded = (Body) CgCbor.decode(encoded);
+            byte[] encoded = CgCbor.codec().encode(body);
+            Body decoded = (Body) CgCbor.codec().decode(encoded);
 
             assertThat(decoded.entries()).hasSize(2);
             assertThat(decoded.entries()).anyMatch(e -> e instanceof Opaque.Redacted);
@@ -210,8 +210,8 @@ class OpaqueTest {
             Binding binding = new Binding(key, "value");
             Body body = Body.of(HEAD, java.util.List.of(binding));
 
-            byte[] encoded = CgCbor.encode(body);
-            Body decoded = (Body) CgCbor.decode(encoded);
+            byte[] encoded = CgCbor.codec().encode(body);
+            Body decoded = (Body) CgCbor.codec().decode(encoded);
 
             assertThat(decoded).isEqualTo(body);
 

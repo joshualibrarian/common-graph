@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.actor;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
@@ -14,7 +14,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
  * Actor — the abstract base archetype for social entities.
  *
  * <p>An Actor is a thing in the world that a {@link
- * dev.everydaythings.graph.identity.Signer Signer} may represent.  Actors are
+ * dev.everydaythings.graph.cryptography.Signer Signer} may represent.  Actors are
  * orthogonal to Signers: a Signer is a cryptographic identity (has keys, can
  * sign), an Actor is a social identity (a person, a group, a service).  The
  * two are connected by the {@code REPRESENTS} predicate from

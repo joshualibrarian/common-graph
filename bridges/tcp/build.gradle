@@ -20,8 +20,5 @@ dependencies {
     implementation "io.netty:netty-transport:${nettyVersion}"
     implementation "io.netty:netty-handler:${nettyVersion}"
 
-    // Cross-bridge composition test: ParleyTcpTest exercises Parley running
-    // on top of a TcpTunnel.  Test-scoped so :bridges:tcp itself stays free
-    // of the dependency at runtime.
-    testImplementation project(':bridges:parley')
+    // Parley lives in :core now — already available via the :core api dep.
 }

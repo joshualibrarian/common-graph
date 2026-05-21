@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.library;
 
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.ContentRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.ContentRef;
 
 /**
  * Base exception for all Library operations.

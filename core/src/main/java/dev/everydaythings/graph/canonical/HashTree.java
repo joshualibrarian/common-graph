@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.canonical;
 
-import dev.everydaythings.graph.identity.algorithm.Hash;
+import dev.everydaythings.graph.cryptography.algorithm.Hash;
 import io.ipfs.multihash.Multihash;
 import lombok.experimental.UtilityClass;
 

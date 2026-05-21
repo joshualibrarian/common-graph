@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.transport;
 
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import dev.everydaythings.graph.value.Endpoint;
 
@@ -60,6 +60,20 @@ public interface Transport {
      * {@link dev.everydaythings.graph.network.NetworkVocabulary}.
      */
     ItemRef transport();
+
+    /**
+     * Whether this Transport can connect to / listen on the given endpoint.
+     * Default: true iff {@code endpoint.transport()} matches
+     * {@link #transport()}.  Implementations override only for unusual
+     * cases (e.g., a transport that handles multiple endpoint kinds).
+     *
+     * <p>Used by {@link TransportRegistry} for ServiceLoader-based
+     * dispatch: the registry walks all registered Transports and picks the
+     * first one whose {@code handles(endpoint)} returns true.
+     */
+    default boolean handles(Endpoint endpoint) {
+        return endpoint != null && transport().equals(endpoint.transport());
+    }
 
     /**
      * Open a Tunnel to the given endpoint. The endpoint's

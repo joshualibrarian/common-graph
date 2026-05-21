@@ -3,7 +3,7 @@ package dev.everydaythings.graph.runtime;
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.librarian.LibrarianVocabulary;

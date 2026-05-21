@@ -3,7 +3,7 @@ package dev.everydaythings.graph.bridges.keri.event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.everydaythings.graph.bridges.keri.Cesr;
 import dev.everydaythings.graph.bridges.keri.MatterCode;
-import dev.everydaythings.graph.identity.algorithm.Hash;
+import dev.everydaythings.graph.cryptography.algorithm.Hash;
 import io.ipfs.multihash.Multihash;
 
 import java.io.IOException;

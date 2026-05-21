@@ -2,10 +2,10 @@ package dev.everydaythings.graph.bridges.keri;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.algorithm.Hash;
-import dev.everydaythings.graph.identity.algorithm.KeyAgreement;
-import dev.everydaythings.graph.identity.algorithm.Signing;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.algorithm.Hash;
+import dev.everydaythings.graph.cryptography.algorithm.KeyAgreement;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;

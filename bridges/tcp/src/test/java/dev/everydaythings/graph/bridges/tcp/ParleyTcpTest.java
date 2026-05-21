@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.bridges.tcp;
 
 import dev.everydaythings.graph.encoding.Encoding;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.bridges.parley.Parley;
-import dev.everydaythings.graph.bridges.parley.RemoteConnection;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.network.parley.Parley;
+import dev.everydaythings.graph.network.parley.RemoteConnection;
 import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import dev.everydaythings.graph.runtime.librarian.Librarian;

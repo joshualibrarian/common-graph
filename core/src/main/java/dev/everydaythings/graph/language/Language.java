@@ -6,7 +6,7 @@ import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.util.ULocale;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.GroupVocabulary;

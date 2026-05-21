@@ -1,11 +1,11 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.TypeRef;
+import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.DatumNode;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;

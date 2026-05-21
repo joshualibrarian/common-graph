@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.bridges.tcp;
 
-import dev.everydaythings.graph.identity.MultiKey;
+import dev.everydaythings.graph.cryptography.MultiKey;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 /**
  * TCP {@link Tunnel} — one logical bidirectional byte stream over a
  * TCP connection.  Plaintext, unauthenticated; security is added by
- * wrapping with a {@link dev.everydaythings.graph.network.parley.NoiseTunnel
+ * wrapping with a {@link dev.everydaythings.graph.network.noise.NoiseTunnel
  * NoiseTunnel} (or a future TLS wrapper).
  *
  * <p>This implementation is Netty-backed under the hood, but the type

@@ -36,8 +36,9 @@ import java.util.Set;
  *   <li>Storage, identity, signing — all Librarian's domain.</li>
  *   <li>User context, presence, device bindings — all Session's domain.</li>
  *   <li>Application orchestration (main, CLI options, daemon protocol). Those
- *       live on the entry classes ({@code Librarian.main}, {@code LibrarianDaemon},
- *       {@code RemoteSession.main}) — ItemStage is the substrate, not the entry.</li>
+ *       live on the entry classes ({@code Librarian.main} in {@code :core},
+ *       {@code Graph.main} in {@code :ui}) — ItemStage is the substrate, not
+ *       the entry.</li>
  * </ul>
  *
  * <h2>Substrate, not peer</h2>

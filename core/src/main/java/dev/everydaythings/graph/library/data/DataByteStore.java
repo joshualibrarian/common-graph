@@ -3,8 +3,8 @@ package dev.everydaythings.graph.library.data;
 
 import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 
 import java.util.Arrays;

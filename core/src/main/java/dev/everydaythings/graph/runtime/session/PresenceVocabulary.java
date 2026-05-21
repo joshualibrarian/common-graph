@@ -2,8 +2,7 @@ package dev.everydaythings.graph.runtime.session;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.SchemaVocabulary;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ContentRef;
 import dev.everydaythings.graph.language.*;
 
 import static dev.everydaythings.graph.Seed.*;

@@ -1,13 +1,11 @@
 package dev.everydaythings.graph.item.user;
 
-import dev.everydaythings.graph.identity.AlgorithmVocabulary;
-import dev.everydaythings.graph.identity.algorithm.Algorithm;
-import dev.everydaythings.graph.identity.algorithm.Signing;
-import dev.everydaythings.graph.identity.MultiKey;
-import dev.everydaythings.graph.identity.VarSig;
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
+import dev.everydaythings.graph.cryptography.MultiKey;
+import dev.everydaythings.graph.cryptography.VarSig;
+import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

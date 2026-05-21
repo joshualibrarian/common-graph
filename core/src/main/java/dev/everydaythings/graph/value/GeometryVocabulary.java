@@ -2,7 +2,6 @@ package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
@@ -126,6 +125,32 @@ public final class GeometryVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY,
             qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "box";
+    }
+
+    /**
+     * A two-dimensional extent — Width and Height bindings (typically Length
+     * Quantities, but any numeric value type works).
+     *
+     * <p>Distinct from {@link Box}: Size describes <i>how big</i> something is,
+     * not <i>where</i> a rectangle sits. Used for window dimensions, image
+     * intrinsic sizes, layout-pass extents, and any other "w×h" carrier.  The
+     * Width and Height binding-role sememes are declared in
+     * {@link dev.everydaythings.graph.quality.SpatialVocabulary SpatialVocabulary}.
+     */
+    @Seed.Item(key = Size.KEY, head = Value.KEY)
+    public static final class Size {
+        public static final String KEY = "cg.value:size";
+        private Size() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "a two-dimensional extent, with Width and Height bindings";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "size";
     }
 
     // ==================================================================================

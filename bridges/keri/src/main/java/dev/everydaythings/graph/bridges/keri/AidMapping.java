@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.bridges.keri;
 
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import io.ipfs.multihash.Multihash;
 
 /**

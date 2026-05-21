@@ -49,11 +49,14 @@ public class LibrarianOptions {
 
     /**
      * Get the effective socket path, using default if not specified.
+     *
+     * <p>Default: {@code <data-dir>/parley.sock} — the librarian's Parley
+     * IPC endpoint, alongside {@code parley.pid} and {@code .item/}.
      */
     public Path effectiveSocketPath() {
         if (socketPath != null) {
             return socketPath;
         }
-        return effectivePath().resolve("session.sock");
+        return effectivePath().resolve("parley.sock");
     }
 }

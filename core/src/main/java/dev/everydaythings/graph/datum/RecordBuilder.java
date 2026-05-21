@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.identity.Signer;
+import dev.everydaythings.graph.cryptography.Signer;
 
 import java.util.ArrayList;
 import java.util.Objects;

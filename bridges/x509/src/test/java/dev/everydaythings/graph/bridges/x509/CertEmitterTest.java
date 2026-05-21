@@ -1,13 +1,13 @@
 package dev.everydaythings.graph.bridges.x509;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.Attestations;
-import dev.everydaythings.graph.identity.IdentityVocabulary;
-import dev.everydaythings.graph.identity.MultiKey;
-import dev.everydaythings.graph.identity.jca.VaultProvider;
-import dev.everydaythings.graph.identity.vault.InMemoryVault;
-import dev.everydaythings.graph.identity.vault.Vault;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.Attestations;
+import dev.everydaythings.graph.cryptography.IdentityVocabulary;
+import dev.everydaythings.graph.cryptography.MultiKey;
+import dev.everydaythings.graph.cryptography.jca.VaultProvider;
+import dev.everydaythings.graph.cryptography.vault.InMemoryVault;
+import dev.everydaythings.graph.cryptography.vault.Vault;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;

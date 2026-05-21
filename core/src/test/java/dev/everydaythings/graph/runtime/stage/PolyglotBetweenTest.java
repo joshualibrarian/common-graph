@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.runtime.stage;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.operator.compare.Between;
 import dev.everydaythings.graph.runtime.librarian.Librarian;

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.actor;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
@@ -13,7 +13,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
  * Person — a human {@link Actor}.
  *
  * <p>A Person item represents a specific human being.  It may or may not have
- * any associated {@link dev.everydaythings.graph.identity.Signer Signers};
+ * any associated {@link dev.everydaythings.graph.cryptography.Signer Signers};
  * the connection is made via the {@link ActorVocabulary#Represents
  * REPRESENTS} predicate.  Historical figures, the deceased, and people who
  * have never held cryptographic keys can all be modeled as Persons.

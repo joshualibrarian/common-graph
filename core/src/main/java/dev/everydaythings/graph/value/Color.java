@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
@@ -10,7 +9,7 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.operator.compare.Between;
 import java.util.List;
 import java.util.Objects;

@@ -2,10 +2,10 @@ package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.Layout;
 import dev.everydaythings.graph.canonical.Order;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.CompoundKey.Qualifier;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.CompoundKey.Qualifier;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.HashID;
 
 import java.util.List;
 import java.util.Objects;
@@ -49,7 +49,7 @@ public final class Binding implements DatumNode {
     /**
      * The bound value. Any of:
      * <ul>
-     *   <li>a {@link dev.everydaythings.graph.id.HashID} (ItemRef / ContentRef / DatumRef)
+     *   <li>a {@link dev.everydaythings.graph.ref.HashID} (ItemRef / ContentRef / DatumRef)
      *       — reference to an item, content, or datum</li>
      *   <li>a {@link Body} — inline nested frame</li>
      *   <li>a {@link BindingTarget.RedactedTarget} — Merkle elision marker</li>

@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.bridges.tls;
 
-import dev.everydaythings.graph.identity.MultiKey;
-import dev.everydaythings.graph.identity.algorithm.Signing;
+import dev.everydaythings.graph.cryptography.MultiKey;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;

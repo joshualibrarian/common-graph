@@ -2,10 +2,10 @@ package dev.everydaythings.graph.scene;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
-import dev.everydaythings.graph.id.TypeRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
+import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.item.BodyBinder;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.quality.LayoutVocabulary;

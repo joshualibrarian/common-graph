@@ -2,7 +2,6 @@ package dev.everydaythings.graph.runtime.host;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.*;
 
 import static dev.everydaythings.graph.Seed.*;

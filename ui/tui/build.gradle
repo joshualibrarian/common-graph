@@ -1,0 +1,40 @@
+// =============================================================================
+// :ui:tui — JLine TUI painter.
+//
+// Renders scene Datums to a terminal via JLine.  Three painter primitives
+// (group / text / body) map to indentation + glyphs + box-drawing.  Falls
+// back from richer fidelities: a Model body becomes its Alt text, an Image
+// body becomes its Glyph or Alt.
+//
+// Pure Java — no native deps beyond JLine itself.  This makes :ui:tui the
+// smoke-test target: it works in CI, it works over SSH, it works without a
+// GPU or window server.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+    id 'application'
+}
+
+dependencies {
+    api project(':ui')
+
+    implementation "org.jline:jline:${jlineVersion}"
+}
+
+// The `application` plugin lets us run demo `main()` classes via Gradle.
+// Default mainClass is ClockDemo; override with -PmainClass=<fqcn> for others.
+application {
+    mainClass = project.findProperty('mainClass') ?: 'dev.everydaythings.graph.ui.tui.ClockDemo'
+}
+
+// Convenience task: a small clock-demo run with a tight duration so it
+// finishes quickly when invoked from the command line.
+tasks.register('runClockDemo', JavaExec) {
+    group = 'application'
+    description = 'Run the clock-demo for 10 seconds, printing one tick per second.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.everydaythings.graph.ui.tui.ClockDemo'
+    standardInput = System.in
+    args = project.findProperty('seconds') ? [project.findProperty('seconds')] : ['10']
+}

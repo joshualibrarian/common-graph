@@ -2,9 +2,9 @@ package dev.everydaythings.graph.library;
 
 import dev.everydaythings.graph.canonical.DatumWalker;
 import dev.everydaythings.graph.datum.Datum;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.HashID;
-import dev.everydaythings.graph.id.TypeRef;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.HashID;
+import dev.everydaythings.graph.ref.TypeRef;
 
 /**
  * Routing decision: does this datum represent a query?

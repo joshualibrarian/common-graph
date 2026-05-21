@@ -5,16 +5,14 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.AlgorithmVocabulary;
-import dev.everydaythings.graph.identity.IdentityVocabulary;
-import dev.everydaythings.graph.identity.MultiKey;
-import dev.everydaythings.graph.identity.algorithm.Algorithm;
-import dev.everydaythings.graph.identity.algorithm.Signing;
-import dev.everydaythings.graph.identity.VarSig;
-import dev.everydaythings.graph.identity.vault.Vault;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.cryptography.IdentityVocabulary;
+import dev.everydaythings.graph.cryptography.MultiKey;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
+import dev.everydaythings.graph.cryptography.VarSig;
+import dev.everydaythings.graph.cryptography.vault.Vault;
 import dev.everydaythings.graph.language.ThematicRole;
 import org.bouncycastle.openssl.PEMParser;
 
@@ -31,7 +29,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Parse X.509 certificates into {@link IdentityVocabulary.Attestation

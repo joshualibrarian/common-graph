@@ -2,13 +2,12 @@ package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.canonical.CanonWalker;
-import dev.everydaythings.graph.id.*;
+import dev.everydaythings.graph.ref.*;
 import lombok.Getter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The unified structural primitive of Common Graph.

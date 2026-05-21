@@ -4,7 +4,7 @@ package dev.everydaythings.graph.encoding;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.canonical.Node;
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.language.ThematicRole;
 

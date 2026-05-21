@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.id.HashID;
+import dev.everydaythings.graph.ref.HashID;
 
 import java.util.ArrayList;
 import java.util.Arrays;

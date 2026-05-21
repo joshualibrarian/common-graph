@@ -3,16 +3,13 @@ package dev.everydaythings.graph.datum;
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
-import dev.everydaythings.graph.identity.AlgorithmVocabulary;
-import dev.everydaythings.graph.identity.algorithm.Algorithm;
-import dev.everydaythings.graph.identity.algorithm.Signing;
-import dev.everydaythings.graph.identity.MultiKey;
-import dev.everydaythings.graph.identity.VarSig;
+import dev.everydaythings.graph.cryptography.algorithm.Signing;
+import dev.everydaythings.graph.cryptography.MultiKey;
+import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.id.ContentRef;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.identity.algorithm.Signing;
+import dev.everydaythings.graph.ref.ContentRef;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +61,7 @@ class DatumIntegrationTest {
                 Binding.ref(THEME, hobbit)
         ));
         DatumRef bodyId = body.datumId();
-        ContentRef bodyCid = ContentRef.of(CgCbor.encode(body));
+        ContentRef bodyCid = ContentRef.of(CgCbor.codec().encode(body));
 
         // Build a record body (head + bindings, no signature yet) for signing
         Record proto = Record.of(
@@ -155,8 +152,8 @@ class DatumIntegrationTest {
 
         // CBOR round-trip preserves identity
         Body decoded = CgCbor.decodeBody(CgCbor.toCbor(v2Body));
-        assertThat(ContentRef.of(CgCbor.encode(decoded)))
-                .isEqualTo(ContentRef.of(CgCbor.encode(v2Body)));
+        assertThat(ContentRef.of(CgCbor.codec().encode(decoded)))
+                .isEqualTo(ContentRef.of(CgCbor.codec().encode(v2Body)));
         Manifest reconstituted = Manifest.of(decoded);
         assertThat(reconstituted.itemId()).isEqualTo(iid);
         assertThat(reconstituted.parents()).hasSize(1);

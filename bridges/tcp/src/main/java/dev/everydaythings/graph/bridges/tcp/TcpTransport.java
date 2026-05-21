@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.bridges.tcp;
 
-import dev.everydaythings.graph.id.ItemRef;
+import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.IpAddress;
 import dev.everydaythings.graph.network.NetworkVocabulary;
 import dev.everydaythings.graph.network.transport.Transport;

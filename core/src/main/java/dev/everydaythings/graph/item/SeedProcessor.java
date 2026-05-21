@@ -2,14 +2,16 @@ package dev.everydaythings.graph.item;
 
 
 import dev.everydaythings.graph.*;
+import dev.everydaythings.graph.canonical.Leaves;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.id.CompoundKey;
-import dev.everydaythings.graph.id.DatumRef;
-import dev.everydaythings.graph.id.HashID;
-import dev.everydaythings.graph.id.ItemRef;
-import dev.everydaythings.graph.id.SchemaRef;
-import dev.everydaythings.graph.id.TypeRef;
+import dev.everydaythings.graph.value.identifier.Identifier;
+import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.DatumRef;
+import dev.everydaythings.graph.ref.HashID;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.SchemaRef;
+import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.SchemaVocabulary;
 
@@ -29,7 +31,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Processes {@code @Seed} and {@code @Embodies} annotations at bootstrap, persisting
@@ -66,9 +70,25 @@ public final class SeedProcessor {
             // on the archetype manifest here. Two-level @Embodies is NOT consulted
             // here — its work is independent (pass 3).
             ClassInfoList seedClasses = result.getClassesWithAnnotation(Seed.Item.class.getName());
+
+            // Build a (canonical key) → Class<?> map up front so @Seed.IdentifiedBy
+            // can resolve its type= attribute to the corresponding Identifier
+            // subclass during pass 1 — no ordering dependency between seeds.
+            Map<String, Class<?>> classByKey = new HashMap<>();
             for (ClassInfo classInfo : seedClasses) {
                 Class<?> cls = classInfo.loadClass();
-                processSeed(librarian, cls);
+                Seed.Item item = cls.getAnnotation(Seed.Item.class);
+                if (item != null) classByKey.put(item.key(), cls);
+            }
+            CLASS_BY_KEY.set(classByKey);
+
+            try {
+                for (ClassInfo classInfo : seedClasses) {
+                    Class<?> cls = classInfo.loadClass();
+                    processSeed(librarian, cls);
+                }
+            } finally {
+                CLASS_BY_KEY.remove();
             }
 
             // Pass 2: @Seed.Mints classes — publishes IMPLEMENTS frames for
@@ -441,20 +461,30 @@ public final class SeedProcessor {
      * on the class, returning their DatumIDs (suitable as ENDORSES targets on a
      * CodeItem manifest).
      *
-     * <p>Each body has shape {@code head=HANDLES, THEME→@predicate, INSTRUMENT→"<method>"}.
+     * <p>Each body has shape
+     * {@code head=HANDLES, THEME→@predicate, INSTRUMENT→"<method>", [PIVOT→@role]}.
+     * The {@code PIVOT} binding is present only when the handler declared a
+     * non-empty {@code role()} — that's the binding-role on incoming frames
+     * the dispatcher reads to identify the target instance.  Absent for
+     * stateless / singleton-dispatch handlers (operators).
      */
     private static List<DatumRef> buildHandlesFrames(Librarian librarian, Class<?> cls) {
         List<DatumRef> cids = new ArrayList<>();
         for (Method m : cls.getDeclaredMethods()) {
             Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
             if (ann == null) continue;
+            List<Binding> bindings = new ArrayList<>(3);
+            bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY),
+                    ItemRef.fromString(ann.predicate())));
+            bindings.add(new Binding(ItemRef.iid(ThematicRole.Instrument.KEY),
+                    m.getName()));
+            if (!ann.role().isEmpty()) {
+                bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Pivot.KEY),
+                        ItemRef.fromString(ann.role())));
+            }
             Body body = Body.of(
                     ItemRef.of(ItemRef.iid(CoreVocabulary.Handles.KEY)),
-                    List.of(
-                            Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY),
-                                    ItemRef.fromString(ann.predicate())),
-                            new Binding(ItemRef.iid(ThematicRole.Instrument.KEY),
-                                    m.getName())));
+                    bindings);
             cids.add(librarian.persist(body));
         }
         return cids;
@@ -552,6 +582,15 @@ public final class SeedProcessor {
     // ==================================================================================
 
     /**
+     * Per-bootstrap key→class registry, set in {@link #bootstrap} so the
+     * {@code @Seed.IdentifiedBy} processor can resolve its {@code type=}
+     * attribute to the Java class implementing the corresponding Identifier
+     * subclass.  ThreadLocal so reentrant bootstraps (test isolation) don't
+     * stomp each other.
+     */
+    private static final ThreadLocal<Map<String, Class<?>>> CLASS_BY_KEY = new ThreadLocal<>();
+
+    /**
      * Process all {@code @Seed.Frame}-annotated fields on {@code cls}, persist the
      * generated frame bodies, and return the CIDs of those marked for endorsement
      * ({@code endorse=true}, the default).
@@ -595,6 +634,35 @@ public final class SeedProcessor {
                 } catch (IllegalAccessException e) {
                     throw new IllegalStateException(
                             "Cannot read @Seed.Cili field " + cls.getName() + "." + field.getName(), e);
+                }
+            }
+
+            // @Seed.IdentifiedBy fields — the field's String value is the
+            // canonical text for the identifier; the type= attribute names
+            // the Identifier subclass to wrap it in.  Emits an IDENTIFIED_BY
+            // frame referencing the typed body.
+            Seed.IdentifiedBy[] idBys = field.getAnnotationsByType(Seed.IdentifiedBy.class);
+            if (idBys.length > 0 && seedIid != null) {
+                if (!Modifier.isStatic(field.getModifiers()) || field.getType() != String.class) {
+                    throw new IllegalStateException(
+                            "@Seed.IdentifiedBy field " + cls.getName() + "." + field.getName()
+                                    + " must be a static String");
+                }
+                field.setAccessible(true);
+                String text;
+                try {
+                    text = (String) field.get(null);
+                } catch (IllegalAccessException e) {
+                    throw new IllegalStateException(
+                            "Cannot read @Seed.IdentifiedBy field "
+                                    + cls.getName() + "." + field.getName(), e);
+                }
+                if (text != null && !text.isEmpty()) {
+                    for (Seed.IdentifiedBy idBy : idBys) {
+                        Body identifierBody = mintIdentifierBody(idBy, text, cls, field);
+                        Body frameBody = buildIdentifiedByFrame(seedIid, identifierBody);
+                        endorsedCids.add(librarian.persist(frameBody));
+                    }
                 }
             }
 
@@ -672,6 +740,62 @@ public final class SeedProcessor {
                             + " a field-level annotation");
         }
         return fieldCili;
+    }
+
+    /**
+     * Mint the typed Identifier body for a {@code @Seed.IdentifiedBy}
+     * declaration.  Resolves the {@code type} key to the Java class via
+     * {@link #CLASS_BY_KEY}, invokes its {@code @Decode static fromText(String)}
+     * factory, and returns the resulting Body.
+     *
+     * <p>The body is NOT persisted separately — it gets inlined into the
+     * IDENTIFIED_BY frame's VALUE binding.  Atomic identifier bodies (CILIID,
+     * EmailAddress, ISBN, ...) are short enough that inlining their bytes is
+     * smaller than carrying a 32-byte CID + multihash framing.  Querying by
+     * pattern (TypeRef-headed body matching the inline atom) works directly;
+     * no CID indirection needed.
+     */
+    private static Body mintIdentifierBody(Seed.IdentifiedBy idBy,
+                                            String text,
+                                            Class<?> declaringClass,
+                                            Field field) {
+        Map<String, Class<?>> registry = CLASS_BY_KEY.get();
+        if (registry == null) {
+            throw new IllegalStateException(
+                    "@Seed.IdentifiedBy processing requires bootstrap-time class registry "
+                            + "(CLASS_BY_KEY is null on " + declaringClass.getName()
+                            + "." + field.getName() + ")");
+        }
+        Class<?> typeClass = registry.get(idBy.type());
+        if (typeClass == null) {
+            throw new IllegalStateException(
+                    "@Seed.IdentifiedBy(type=" + idBy.type() + ") on "
+                            + declaringClass.getName() + "." + field.getName()
+                            + " — no @Seed.Item with that key is on the classpath");
+        }
+        Object decoded = Leaves.decode(typeClass, text);
+        if (!(decoded instanceof Body body)) {
+            throw new IllegalStateException(
+                    "@Seed.IdentifiedBy type=" + idBy.type() + " — "
+                            + typeClass.getName() + ".fromText returned "
+                            + (decoded == null ? "null" : decoded.getClass().getName())
+                            + ", expected a Body subclass (Identifier)");
+        }
+        return body;
+    }
+
+    /**
+     * Build the IDENTIFIED_BY frame body with the typed Identifier body
+     * inlined as the VALUE binding's target.  Predicate is the {@link
+     * Identifier} archetype itself (grounded in CILI {@code i69788},
+     * "appellation"): "this seed is identified by this typed value."
+     * Bindings are THEME → seed and VALUE → the inlined identifier body.
+     */
+    private static Body buildIdentifiedByFrame(ItemRef seedIid, Body identifierBody) {
+        List<Binding> bindings = List.of(
+                new Binding(ItemRef.iid(ThematicRole.Theme.KEY), seedIid),
+                new Binding(ItemRef.iid(ThematicRole.Value.KEY), identifierBody));
+        return Body.of(ItemRef.iid(Identifier.KEY), bindings);
     }
 
     /**

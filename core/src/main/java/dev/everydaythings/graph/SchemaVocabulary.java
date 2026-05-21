@@ -1,6 +1,5 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.id.ItemRef;
 import dev.everydaythings.graph.language.*;
 
 import static dev.everydaythings.graph.Seed.*;
@@ -153,7 +152,7 @@ public final class SchemaVocabulary {
      * with role {@code Returns} on an operator's manifest declares the type
      * of value the operator produces when its frame is evaluated.
      *
-     * <p>Target convention: a {@link dev.everydaythings.graph.id.SchemaRef
+     * <p>Target convention: a {@link dev.everydaythings.graph.ref.SchemaRef
      * SchemaRef} (the {@code !} reference variant) pointing at a Value-
      * archetype — {@code Bool}, {@code Numeric}, {@code Color}, {@code Length},
      * {@code Quantity}, etc.  Reads as "the operator produces something
