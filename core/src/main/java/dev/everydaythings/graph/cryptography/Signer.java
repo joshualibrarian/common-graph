@@ -711,7 +711,7 @@ public class Signer extends Item {
      *       for first cut; ref-resolution comes later)</li>
      * </ul>
      */
-    @Seed.Handler(predicate = Encrypt.KEY)
+    @Seed.Handler(predicate = Encrypt.KEY, role = ThematicRole.Agent.KEY)
     public Frame handleEncrypt(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
 
@@ -774,7 +774,7 @@ public class Signer extends Item {
      * message from the peer).  Returns the plaintext bytes; no body is
      * republished.
      */
-    @Seed.Handler(predicate = Decrypt.KEY)
+    @Seed.Handler(predicate = Decrypt.KEY, role = ThematicRole.Agent.KEY)
     public byte[] handleDecrypt(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
 
