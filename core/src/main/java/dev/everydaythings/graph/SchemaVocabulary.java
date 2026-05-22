@@ -123,6 +123,32 @@ public final class SchemaVocabulary {
     }
 
     /**
+     * Presentation — qualifier on CONFIG bindings declaring the item's
+     * default visual presentation.  The binding target is a scene tree
+     * (declared scene Datums, as a {@link dev.everydaythings.graph.scene.SceneNode SceneNode}
+     * value).
+     *
+     * <p>Used as {@code CONFIG[PRESENTATION] → <scene>} on an item's signing
+     * record.  Lives on the record (not the manifest body) so presentation
+     * isn't identity-bearing — different attestations of the same item can
+     * carry different default scenes without rotating its VID.
+     */
+    @Seed.Item(key = Presentation.KEY)
+    public static final class Presentation {
+        public static final String KEY = "cg.qualifier:presentation";
+        private Presentation() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "qualifier on CONFIG record-bindings declaring an item's default visual scene";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "presentation";
+    }
+
+    /**
      * Ephemeral — value sememe for CONFIG[RETENTION] indicating that frames of
      * the marked predicate are not persisted by the librarian (no body or record
      * written to storage). Handlers still fire and response frames flow back to

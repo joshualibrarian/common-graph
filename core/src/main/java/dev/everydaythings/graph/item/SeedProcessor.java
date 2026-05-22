@@ -5,6 +5,8 @@ import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.canonical.Leaves;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.datum.Record;
+import dev.everydaythings.graph.value.Value;
 import dev.everydaythings.graph.value.identifier.Identifier;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.DatumRef;
@@ -208,9 +210,94 @@ public final class SeedProcessor {
         // IMPLEMENTS plus the language binding — they don't redeclare HANDLES.
         addHandlesBindings(cls, bindings);
 
-        librarian.persist(Body.of(
+        Body body = Body.of(
                 ItemRef.of(ItemRef.fromString(seedItem.head())),
-                bindings));
+                bindings);
+        librarian.persist(body);
+
+        // @Seed.RecordBinding fields — bindings that live on the manifest's
+        // signing record, not in the manifest body.  At seed time we have no
+        // signer for this vocabulary; the record is unsigned (trust by code
+        // provenance).  Only emit a record when there's something to put on it
+        // — items with no @Seed.RecordBinding fields keep the previous
+        // "manifest body, no record" shape.
+        List<Binding> recordBindings = collectRecordBindings(cls);
+        if (!recordBindings.isEmpty()) {
+            librarian.persist(Record.unsigned(
+                    DatumRef.of(body.datumId()),
+                    recordBindings));
+        }
+    }
+
+    /**
+     * Walk static {@link Seed.RecordBinding @Seed.RecordBinding}-annotated
+     * fields on {@code cls} and produce one {@link Binding} per annotation
+     * (the annotation is repeatable).  The field's value supplies the binding
+     * target; the annotation supplies role + qualifiers.
+     *
+     * <p>Supported field types:
+     * <ul>
+     *   <li>{@link ItemRef} — produces a reference binding</li>
+     *   <li>{@link Value} subclasses (SceneNode, Color, Length, ...) —
+     *       produces a literal/value binding via
+     *       {@link Binding#qualified(ItemRef, List, Object)}</li>
+     * </ul>
+     * Other types throw with the offending field's location for diagnosis.
+     */
+    private static List<Binding> collectRecordBindings(Class<?> cls) {
+        List<Binding> out = new ArrayList<>();
+        for (Field field : cls.getDeclaredFields()) {
+            Seed.RecordBinding[] anns = field.getAnnotationsByType(Seed.RecordBinding.class);
+            if (anns.length == 0) continue;
+            if (!Modifier.isStatic(field.getModifiers())) {
+                throw new IllegalStateException(
+                        "@Seed.RecordBinding requires a static field: "
+                                + cls.getName() + "." + field.getName());
+            }
+            field.setAccessible(true);
+            Object fieldValue;
+            try {
+                fieldValue = field.get(null);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(
+                        "Cannot read @Seed.RecordBinding field "
+                                + cls.getName() + "." + field.getName(), e);
+            }
+            if (fieldValue == null) {
+                throw new IllegalStateException(
+                        "@Seed.RecordBinding field " + cls.getName() + "." + field.getName()
+                                + " is null; record-binding targets must be non-null at seed time");
+            }
+            String context = cls.getName() + "." + field.getName() + " (@Seed.RecordBinding)";
+            for (Seed.RecordBinding ann : anns) {
+                out.add(buildRecordBinding(ann, fieldValue, context));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Build a single {@link Binding} from one {@code @Seed.RecordBinding}
+     * annotation + the field's value.
+     */
+    private static Binding buildRecordBinding(Seed.RecordBinding ann, Object fieldValue, String context) {
+        ItemRef role = ItemRef.fromString(ann.role());
+        List<CompoundKey.Qualifier> qualifiers = new ArrayList<>();
+        for (String qKey : ann.qualifiers()) {
+            qualifiers.add(new CompoundKey.Sememe(ItemRef.fromString(qKey)));
+        }
+        if (fieldValue instanceof ItemRef ref) {
+            return qualifiers.isEmpty()
+                    ? Binding.ref(role, ref)
+                    : Binding.qualified(role, qualifiers, ref);
+        }
+        if (fieldValue instanceof Value v) {
+            return Binding.qualified(role, qualifiers, v);
+        }
+        throw new IllegalStateException(
+                "Unsupported @Seed.RecordBinding field type at " + context
+                        + ": " + fieldValue.getClass().getName()
+                        + " — supported: ItemRef, Value subclasses");
     }
 
     /**

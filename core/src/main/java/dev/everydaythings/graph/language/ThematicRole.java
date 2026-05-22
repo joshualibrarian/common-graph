@@ -221,14 +221,6 @@ public final class ThematicRole {
         private Topic() {}
     }
 
-    /** Presentation/styling configuration. */
-    @Seed.Item(key = Presentation.KEY, head = ThematicRole.KEY)
-    @Seed.Gloss(english = "presentation or styling configuration")
-    public static final class Presentation {
-        public static final String KEY = "cg.role:presentation";
-        private Presentation() {}
-    }
-
     /** A referenced item (used in compound bindings to point at related items). */
     @Seed.Item(key = Referent.KEY, head = ThematicRole.KEY)
     @Seed.Gloss(english = "a referenced item — used in compound bindings to point at related items")

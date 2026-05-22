@@ -526,6 +526,7 @@ public class Signer extends Item {
         if (keys.isEmpty()) return false;
         byte[] signedBytes = HashTree.signingPayload(frame.body());
         for (Record record : frame.records()) {
+            if (!record.isSigned()) continue;
             VarSig sig = record.varsig();
             for (MultiKey key : keys) {
                 if (verifyWithResolvedAlgorithm(key, signedBytes, sig)) return true;

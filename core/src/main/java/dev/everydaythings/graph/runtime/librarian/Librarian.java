@@ -232,11 +232,11 @@ public class Librarian extends Signer {
     // ==================================================================================
 
     /** The encoding this Librarian uses, if any. Delegates to {@link Library#encoder}. */
-    public Optional<dev.everydaythings.graph.encoding.Encoding> encoder() {
+    public Optional<Encoding> encoder() {
         return library.encoder();
     }
 
-    private dev.everydaythings.graph.encoding.Encoding requireEncoder() {
+    private Encoding requireEncoder() {
         return library.encoder().orElseThrow(() -> new IllegalStateException(
                 "Librarian has no encoder (pure-in-memory Library); encode/decode not available"));
     }
@@ -414,17 +414,17 @@ public class Librarian extends Signer {
      * MATERIALIZED record + body pair in {@code objects/} and point
      * {@code .item/head} at the record's ContentRef.
      */
-    private static void mintLibrarianMetaDir(java.nio.file.Path path, Librarian librarian) {
-        java.nio.file.Path metaDir = path.resolve(".item");
+    private static void mintLibrarianMetaDir(Path path, Librarian librarian) {
+        Path metaDir = path.resolve(".item");
         try {
-            java.nio.file.Files.createDirectories(metaDir.resolve("objects"));
-            java.nio.file.Files.write(metaDir.resolve("iid"),   librarian.iid().toRefBytes());
-            dev.everydaythings.graph.encoding.Encoding encoding = librarian.encoder()
+            Files.createDirectories(metaDir.resolve("objects"));
+            Files.write(metaDir.resolve("iid"),   librarian.iid().toRefBytes());
+            Encoding encoding = librarian.encoder()
                     .orElseThrow(() -> new IllegalStateException("Librarian has no encoder"));
-            java.nio.file.Files.write(metaDir.resolve("codec"), encoding.encoding().toRefBytes());
+            Files.write(metaDir.resolve("codec"), encoding.encoding().toRefBytes());
             commitMaterializedManifest(librarian, metaDir, encoding);
-        } catch (java.io.IOException e) {
-            throw new java.io.UncheckedIOException(
+        } catch (IOException e) {
+            throw new UncheckedIOException(
                     "Failed to mint .item/ at " + metaDir, e);
         }
     }
@@ -1111,6 +1111,7 @@ public class Librarian extends Signer {
     private boolean isAuthorizedByThisLibrarian(Frame frame) {
         byte[] signedBytes = HashTree.signingPayload(frame.body());
         for (Record record : frame.records()) {
+            if (!record.isSigned()) continue;
             if (verifySignedAsIdentity(iid(), signedBytes, record.varsig())) {
                 return true;
             }
@@ -1139,6 +1140,25 @@ public class Librarian extends Signer {
      */
     public Optional<Frame> fetchFrame(DatumRef bodyId) {
         return library.fetchFrame(bodyId);
+    }
+
+    /**
+     * Walk the reverse-lookup index for bodies that carry a binding with the
+     * given {@code role} pointing at {@code target}, and return the fetched
+     * Body datums.  Useful for "find all frames addressed to iid X via role Y"
+     * style queries — e.g., {@code ITEM_VIEW} frames where the session
+     * (target) is referenced in their Location binding.
+     *
+     * <p>The caller filters by body head ({@code body.headRef()}) if a
+     * specific predicate is required.  Bodies whose CID is in the index but
+     * whose bytes are no longer available are silently skipped.
+     */
+    public List<Body> bodiesByReferenceBinding(ItemRef role, ItemRef target) {
+        List<Body> out = new ArrayList<>();
+        for (DatumRef bodyId : library.bodyCidsForReferenceBinding(role, target)) {
+            library.fetchBody(bodyId).ifPresent(out::add);
+        }
+        return out;
     }
 
     /**
@@ -1483,20 +1503,22 @@ public class Librarian extends Signer {
     }
 
     private boolean hasEphemeralRetention(Item predicate) {
-        return predicate.endorsedFramesByPredicate(
-                        ItemRef.iid(CoreVocabulary.Config.KEY))
-                .anyMatch(this::isRetentionEphemeral);
-    }
-
-    private boolean isRetentionEphemeral(Frame configFrame) {
-        return configFrame.body()
-                .binding(CompoundKey.of(
-                        ItemRef.iid(ThematicRole.Value.KEY),
-                        ItemRef.iid(SchemaVocabulary.Retention.KEY)))
-                .map(b -> b.target() instanceof ItemRef ir
+        Manifest manifest = predicate.current();
+        if (manifest == null) return false;
+        CompoundKey configRetention = CompoundKey.of(
+                ItemRef.iid(CoreVocabulary.Config.KEY),
+                new CompoundKey.Sememe(ItemRef.iid(SchemaVocabulary.Retention.KEY)));
+        ItemRef ephemeral = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
+        for (Record record : manifest.records()) {
+            for (Binding b : record.bindings(configRetention)) {
+                if (b.target() instanceof ItemRef ir
                         && !ir.isPinned()
-                        && ItemRef.iid(SchemaVocabulary.Ephemeral.KEY).equals(ir))
-                .orElse(false);
+                        && ephemeral.equals(ir)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

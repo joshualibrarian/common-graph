@@ -161,6 +161,7 @@ public final class AttestationChain {
         byte[] payload = HashTree.signingPayload(body);
         MultiKey pubkey = subjectPubkey.get();
         for (Record record : frame.records()) {
+            if (!record.isSigned()) continue;
             if (librarian.verify(pubkey, payload, record.varsig())) {
                 return true;
             }

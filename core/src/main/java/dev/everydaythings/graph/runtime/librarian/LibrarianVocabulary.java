@@ -60,10 +60,13 @@ public class LibrarianVocabulary {
         static final String englishNounLemma = "lookup";
 
         /**
-         * CONFIG[RETENTION] → Ephemeral: LOOKUP frames are not persisted.
+         * CONFIG[Retention] → Ephemeral: LOOKUP frames are not persisted.
+         * Lives on the predicate manifest's signing record (per the
+         * record-bindings architecture for CONFIG); the predicate's identity
+         * doesn't include retention policy — that's per-attestation metadata.
          */
-        @Seed.Frame(predicate = CoreVocabulary.Config.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {SchemaVocabulary.Retention.KEY}))
+        @Seed.RecordBinding(role = CoreVocabulary.Config.KEY,
+                            qualifiers = {SchemaVocabulary.Retention.KEY})
         static final ItemRef retention = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
     }
 

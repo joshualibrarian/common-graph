@@ -168,9 +168,11 @@ public final class Graph {
 
         // In-VM session: LocalSession against the same Librarian.  No parley
         // between session and librarian — direct in-process composition.
-        ItemRef sessionIid = ItemRef.random();
-        LocalSession session = new LocalSession(sessionIid, lib);
-        logger.info("LocalSession started in-VM.");
+        // mint() allocates the iid, registers with the librarian's cache, and
+        // publishes a librarian-signed ITEM_VIEW(self) bootstrap frame so
+        // startUi has at least one default view to enumerate.
+        LocalSession session = LocalSession.mint(lib);
+        logger.info("LocalSession started in-VM at iid {}.", session.iid().encodeText());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             logger.info("Graph shutting down.");

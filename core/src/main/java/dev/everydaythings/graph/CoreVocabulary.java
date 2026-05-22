@@ -4,6 +4,8 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.scene.SceneNode;
+import dev.everydaythings.graph.scene.SceneText;
 
 import static dev.everydaythings.graph.Seed.*;
 
@@ -212,6 +214,22 @@ public final class CoreVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "archetype";
+
+        /**
+         * Terminal default scene at the root of the {@code CONFIG[Presentation]}
+         * cascade.  Every other archetype's manifest body has head = Archetype
+         * (directly or via a chain); when nothing more specific is declared
+         * along the chain, the cascade falls through to here.
+         *
+         * <p>The literal "Common Graph item" is a deliberate placeholder.  If
+         * a user sees it in their UI, the archetype chain for that item
+         * neglected to declare a more specific scene.  Loud-but-rendering:
+         * tells you exactly which archetypes are missing declarations without
+         * breaking the render path.
+         */
+        @Seed.RecordBinding(role = Config.KEY,
+                            qualifiers = {SchemaVocabulary.Presentation.KEY})
+        static final SceneNode defaultScene = new SceneText("Common Graph item");
 
         // The previous "universal item-hood rule" lived here as an endorsed
         // EXPECTS frame, claiming every instance must carry ITEM_ID.  That's

@@ -1,11 +1,18 @@
 package dev.everydaythings.graph.ui;
 
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.session.Session;
+import dev.everydaythings.graph.runtime.session.SessionVocabulary;
+import dev.everydaythings.graph.scene.SceneCascade;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * UiSession — intermediate {@link Session} subclass that holds the UI
@@ -69,7 +76,49 @@ public abstract class UiSession extends Session {
             }
             surface = SurfaceRegistry.require(uiMode, this);
             surface.open();
+            enumerateItemViewWindows(surface);
             logger.info("{} UI started ({} surface)", getClass().getSimpleName(), uiMode);
+        }
+    }
+
+    /**
+     * Walk the librarian for {@code ITEM_VIEW} frames addressed to this
+     * session, build a {@link Window} from each, and attach it to
+     * {@code surface}.  Called once at {@link #startUi} after the surface
+     * opens; lives outside the dispatch path so initial-render is driven by
+     * the declarative ITEM_VIEW state, not by manual {@code addWindow}
+     * calls.
+     *
+     * <p>Each Window's scene supplier captures the Theme iid and calls
+     * {@link SceneCascade#sceneFor} on the live librarian, so re-renders
+     * pick up any change to the viewed item's declared scene (or its
+     * archetype's, on up the chain) without further wiring.
+     */
+    private void enumerateItemViewWindows(Surface intoSurface) {
+        Librarian lib = librarian();
+        ItemRef sessionIid = iid();
+        if (lib == null || sessionIid == null) return;
+
+        ItemRef locationRole = ItemRef.iid(ThematicRole.Location.KEY);
+        ItemRef themeRole = ItemRef.iid(ThematicRole.Theme.KEY);
+        ItemRef itemViewHead = ItemRef.iid(SessionVocabulary.ItemView.KEY);
+
+        int attached = 0;
+        for (Body body : lib.bodiesByReferenceBinding(locationRole, sessionIid)) {
+            if (!itemViewHead.equals(body.headRef())) continue;
+            ItemRef theme = body.binding(CompoundKey.of(themeRole))
+                    .map(Binding::target)
+                    .filter(t -> t instanceof ItemRef)
+                    .map(t -> (ItemRef) t)
+                    .orElse(null);
+            if (theme == null) continue;
+            Supplier<Body> sceneSupplier = () -> SceneCascade.sceneFor(theme, lib);
+            intoSurface.addWindow(Window.fromBody(body, sceneSupplier));
+            attached++;
+        }
+        if (attached > 0) {
+            logger.info("Attached {} window(s) from ITEM_VIEW frames addressed to {}",
+                    attached, sessionIid.encodeText());
         }
     }
 
@@ -133,5 +182,17 @@ public abstract class UiSession extends Session {
         synchronized (surfaceLock) {
             return surface != null && surface.isOpen();
         }
+    }
+
+    /**
+     * Snapshot of the windows currently attached to this session's surface.
+     * Empty list if the UI isn't running.  Returned list is a copy at the
+     * call site; subsequent surface mutations don't affect it.
+     */
+    public final java.util.List<Window> attachedWindows() {
+        Surface s;
+        synchronized (surfaceLock) { s = surface; }
+        if (s == null || !s.isOpen()) return java.util.List.of();
+        return s.windows();
     }
 }

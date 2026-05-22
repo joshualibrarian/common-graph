@@ -3,6 +3,8 @@ package dev.everydaythings.graph.ui;
 import dev.everydaythings.graph.runtime.session.Session;
 import dev.everydaythings.graph.scene.Painter;
 
+import java.util.List;
+
 /**
  * Surface — the host-side canvas a session paints on.
  *
@@ -75,6 +77,13 @@ public interface Surface extends AutoCloseable {
 
     /** True iff the surface is currently open and rendering. */
     boolean isOpen();
+
+    /**
+     * Snapshot of the windows currently attached to this surface.  Returned
+     * list is an immutable copy at the call site; subsequent
+     * {@link #addWindow}/{@link #removeWindow} calls don't affect it.
+     */
+    List<Window> windows();
 
     /**
      * Stop the loop, release the OS resource.  Idempotent.  After close,

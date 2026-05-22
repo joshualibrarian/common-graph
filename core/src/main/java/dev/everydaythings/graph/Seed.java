@@ -425,6 +425,62 @@ public class Seed {
     }
 
     /**
+     * Declares a binding to attach to the manifest's signing <i>record</i>
+     * (not to the manifest body, not as a separate endorsed frame).  Used for
+     * per-attestation metadata — the canonical case is {@code CONFIG} bindings
+     * declaring how the item should be treated (retention policy, presentation,
+     * replication preferences, ...).
+     *
+     * <p>The annotated static field's value becomes the binding's target.
+     * Supported field types follow the same mapping as {@link Property} —
+     * primitives and strings become literal targets; an {@code ItemRef} field
+     * becomes a reference target; a {@link dev.everydaythings.graph.value.Value
+     * Value} subclass field (e.g.,
+     * {@link dev.everydaythings.graph.scene.SceneNode SceneNode}) becomes a
+     * value target.
+     *
+     * <p>Bindings declared this way live on the record's binding list rather
+     * than in the manifest body.  This keeps presentation-and-policy data out
+     * of the manifest's identity hash — different attestations of the same
+     * manifest can carry different record-bindings without rotating the
+     * manifest's VID.
+     *
+     * <p>For seeded vocabulary, the record produced by the bootstrap path is
+     * <i>unsigned</i> (see {@link dev.everydaythings.graph.datum.Record#unsigned
+     * Record.unsigned}); trust derives from code provenance, not crypto.  For
+     * runtime-committed items, the record is signed by the committing party
+     * and carries the same record-binding shape.
+     *
+     * <pre>{@code
+     * @Seed.RecordBinding(role = CoreVocabulary.Config.KEY,
+     *                     qualifiers = {SchemaVocabulary.Retention.KEY})
+     * static final ItemRef retention = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
+     *
+     * @Seed.RecordBinding(role = CoreVocabulary.Config.KEY,
+     *                     qualifiers = {SchemaVocabulary.Presentation.KEY})
+     * static final SceneNode defaultScene = new SceneText("Common Graph item");
+     * }</pre>
+     */
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(RecordBinding.List.class)
+    public static @interface RecordBinding {
+
+        /** Canonical key of the binding's role sememe (the binding head). */
+        String role();
+
+        /** Canonical keys of qualifier sememes attached to this binding. */
+        String[] qualifiers() default {};
+
+        /** Container for repeated {@code @Seed.RecordBinding} annotations on the same field. */
+        @Target(ElementType.FIELD)
+        @Retention(RetentionPolicy.RUNTIME)
+        @interface List {
+            RecordBinding[] value();
+        }
+    }
+
+    /**
      * Declares that this Java class IS the item identified by the given canonical key.
      *
      * <p>Two modes:

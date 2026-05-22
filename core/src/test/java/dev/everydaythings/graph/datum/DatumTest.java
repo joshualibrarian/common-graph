@@ -265,11 +265,32 @@ class DatumTest {
         }
 
         @Test
-        @DisplayName("rejects empty signature")
-        void rejectsEmptySig() {
+        @DisplayName("empty signature produces an unsigned record")
+        void emptySignatureMeansUnsigned() {
             DatumRef bodyId = DatumRef.of("body".getBytes());
-            assertThatThrownBy(() -> Record.of(DatumRef.of(bodyId), List.of(), new byte[0]))
-                    .isInstanceOf(IllegalArgumentException.class);
+            Record record = Record.of(DatumRef.of(bodyId), List.of(), new byte[0]);
+            assertThat(record.isSigned()).isFalse();
+            assertThat(record.signature()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Record.unsigned() builds the same shape as Record.of(.., new byte[0])")
+        void unsignedFactoryMatchesEmptyByteForm() {
+            DatumRef bodyId = DatumRef.of("body".getBytes());
+            Record viaFactory = Record.unsigned(DatumRef.of(bodyId), List.of());
+            Record viaEmptyBytes = Record.of(DatumRef.of(bodyId), List.of(), new byte[0]);
+            assertThat(viaFactory).isEqualTo(viaEmptyBytes);
+            assertThat(viaFactory.isSigned()).isFalse();
+        }
+
+        @Test
+        @DisplayName("varsig() throws on an unsigned record")
+        void varsigThrowsWhenUnsigned() {
+            DatumRef bodyId = DatumRef.of("body".getBytes());
+            Record unsigned = Record.unsigned(DatumRef.of(bodyId), List.of());
+            assertThatThrownBy(unsigned::varsig)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("unsigned");
         }
     }
 

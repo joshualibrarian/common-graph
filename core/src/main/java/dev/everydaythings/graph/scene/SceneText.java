@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.scene;
 
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.BodyBinder;
@@ -13,6 +14,7 @@ import dev.everydaythings.graph.quality.TypographyVocabulary;
 import dev.everydaythings.graph.value.Length;
 import dev.everydaythings.graph.value.Numeric;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -117,6 +119,18 @@ public class SceneText extends SceneNode {
     public SceneText(Body body) {
         super(ItemRef.iid(KEY), body.bindings());
         BodyBinder.bind(this, body);
+    }
+
+    /**
+     * Convenience constructor for a SceneText carrying a literal string and
+     * nothing else.  Equivalent to building a {@link Body} with a single
+     * {@code Text} binding and passing it to {@link #SceneText(Body)}.
+     */
+    public SceneText(String text) {
+        this(Body.of(ItemRef.iid(KEY), List.of(
+                Binding.literal(
+                        ItemRef.iid(SceneVocabulary.Text.KEY),
+                        Objects.requireNonNull(text, "text")))));
     }
 
     /** Typed view: dispatched from {@link SceneNode#from(Body)} on SceneText-headed bodies. */

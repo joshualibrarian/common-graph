@@ -1,7 +1,10 @@
 package dev.everydaythings.graph.ui;
 
 import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.runtime.session.SessionVocabulary;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -70,6 +73,52 @@ public final class Window {
         this.position      = Objects.requireNonNull(position, "position");
         this.expanded      = expanded;
         this.size          = Objects.requireNonNull(size, "size");
+    }
+
+    /**
+     * Build a Window from an {@code ITEM_VIEW} frame body.
+     *
+     * <p>Reads {@code Theme} as the window's {@link #itemRef()} — the item being
+     * viewed.  Required; an {@code ITEM_VIEW} body without a Theme binding is
+     * ill-formed and the call throws {@link IllegalArgumentException}.
+     *
+     * <p>Other ITEM_VIEW bindings ({@code Location[device]:Point} for handle
+     * anchor, {@code Attribute[Expanded]:Bool}, {@code Attribute[Size]:Size})
+     * are deliberately not read yet.  Their targets are unit-bearing values
+     * ({@code Point}, {@code Size} of {@code Length} components) and the
+     * presenter-side translator that turns them into surface-local
+     * {@link Position} / {@link Size} (cells for TUI, pixels for desktop) is
+     * still being built.  Until that lands, defaults apply: {@link Position#ORIGIN},
+     * {@code expanded = true}, {@link Size#UNBOUNDED}.  The minimal bootstrap
+     * frame written by {@code LocalSession.mint} carries none of those
+     * bindings; this factory handles it cleanly with defaults.
+     *
+     * <p>The {@code sceneSupplier} is the caller's responsibility — the Window's
+     * scene is derived from the item being viewed, not from the ITEM_VIEW
+     * frame itself.  {@link UiSession#startUi} (or whatever enumerates frames)
+     * is the natural source.
+     *
+     * @throws IllegalArgumentException if {@code itemViewBody}'s head is not
+     *         {@link SessionVocabulary.ItemView} or it carries no Theme binding
+     */
+    public static Window fromBody(Body itemViewBody, Supplier<Body> sceneSupplier) {
+        Objects.requireNonNull(itemViewBody, "itemViewBody");
+        Objects.requireNonNull(sceneSupplier, "sceneSupplier");
+
+        ItemRef expectedHead = ItemRef.iid(SessionVocabulary.ItemView.KEY);
+        if (!expectedHead.equals(itemViewBody.headRef())) {
+            throw new IllegalArgumentException(
+                    "Expected ITEM_VIEW body (head=" + expectedHead
+                            + ") but got head=" + itemViewBody.headRef());
+        }
+
+        ItemRef theme = itemViewBody
+                .binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .map(b -> b.target() instanceof ItemRef ir ? ir : null)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "ITEM_VIEW body has no Theme binding (or Theme target is not an ItemRef)"));
+
+        return new Window(theme, sceneSupplier);
     }
 
     public ItemRef itemRef()              { return itemRef; }
