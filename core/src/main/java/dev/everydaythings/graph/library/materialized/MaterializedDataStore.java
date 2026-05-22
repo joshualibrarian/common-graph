@@ -1,11 +1,9 @@
 package dev.everydaythings.graph.library.materialized;
 
-import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.encoding.EncodingRegistry;
 import dev.everydaythings.graph.library.data.DataStore;
 import dev.everydaythings.graph.ref.ContentRef;
-import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.HashID;
 import dev.everydaythings.graph.ref.ItemRef;
 import lombok.extern.log4j.Log4j2;
@@ -15,13 +13,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
 
 /**
  * MaterializedDataStore — a {@link DataStore} backed by an on-disk
@@ -52,13 +45,15 @@ import java.util.stream.Stream;
  * directory, transfer it, unzip — the recipient now has a working
  * MaterializedDataStore.
  *
- * <h2>Index</h2>
+ * <h2>Indexing</h2>
  *
- * <p>The {@link DatumRef}-to-{@link ContentRef} index (semantic identity
- * → on-disk realization) is built lazily by walking {@code objects/} on
- * first need, decoding each blob to ask its DatumRef, accumulating.
- * Cheap for small stores; can be cached to a {@code .item/datum-index}
- * file later when stores grow beyond casual sizes.
+ * <p>This store is content-only — it does NOT maintain a
+ * {@code DatumRef → ContentRef} mapping.  That mapping is an indexing
+ * concern; it lives on the
+ * {@link dev.everydaythings.graph.library.index.RefIndexStore RefIndexStore}
+ * (which Library composes alongside this store).  Library encodes Datums
+ * before calling {@link #putContent} and reads them back via
+ * {@link #getContent} guided by the index.
  */
 @Log4j2
 public final class MaterializedDataStore implements DataStore {
@@ -77,8 +72,6 @@ public final class MaterializedDataStore implements DataStore {
     private final Encoding encoding;
 
     private volatile ContentRef head;
-    private final ConcurrentMap<DatumRef, Set<ContentRef>> datumIndex = new ConcurrentHashMap<>();
-    private volatile boolean indexLoaded;
 
     private MaterializedDataStore(Path root,
                                    ItemRef iid,
@@ -186,61 +179,13 @@ public final class MaterializedDataStore implements DataStore {
     }
 
     // ==================================================================================
-    // DataStore — Datum API
+    // DataStore — Content-blob API
     // ==================================================================================
 
     @Override
     public Optional<Encoding> encoder() {
         return Optional.of(encoding);
     }
-
-    @Override
-    public DatumRef put(Datum datum) {
-        Objects.requireNonNull(datum, "datum");
-        byte[] bytes = encoding.encode(datum);
-        ContentRef cid = writeBytes(bytes);
-        DatumRef did = datum.datumId();
-        datumIndex.computeIfAbsent(did, k -> ConcurrentHashMap.newKeySet()).add(cid);
-        return did;
-    }
-
-    @Override
-    public Optional<Datum> get(DatumRef datumId) {
-        Objects.requireNonNull(datumId, "datumId");
-        loadIndex();
-        Set<ContentRef> cids = datumIndex.get(datumId);
-        if (cids == null || cids.isEmpty()) return Optional.empty();
-        // For first cut: any one CID is fine.  Multiple CIDs per DatumRef
-        // appear when the same semantic datum has multiple wire forms
-        // (full + redacted); strategy for picking lands later.
-        ContentRef cid = cids.iterator().next();
-        return readDatum(cid);
-    }
-
-    @Override
-    public boolean has(DatumRef datumId) {
-        Objects.requireNonNull(datumId, "datumId");
-        loadIndex();
-        Set<ContentRef> cids = datumIndex.get(datumId);
-        return cids != null && !cids.isEmpty();
-    }
-
-    @Override
-    public boolean delete(DatumRef datumId) {
-        Objects.requireNonNull(datumId, "datumId");
-        loadIndex();
-        Set<ContentRef> cids = datumIndex.remove(datumId);
-        if (cids == null) return false;
-        boolean any = false;
-        for (ContentRef cid : cids) {
-            any |= deleteFile(cid);
-        }
-        return any;
-    }
-
-    // ==================================================================================
-    // DataStore — Content-blob API
-    // ==================================================================================
 
     @Override
     public ContentRef putContent(byte[] bytes) {
@@ -278,8 +223,8 @@ public final class MaterializedDataStore implements DataStore {
 
     @Override
     public void close() {
-        datumIndex.clear();
-        indexLoaded = false;
+        // No resources to release beyond filesystem handles, which the JDK
+        // releases when this object is GC'd.  No-op for now.
     }
 
     // ==================================================================================
@@ -310,53 +255,8 @@ public final class MaterializedDataStore implements DataStore {
         }
     }
 
-    private Optional<Datum> readDatum(ContentRef cid) {
-        Path file = objectsDir.resolve(cid.encodeText());
-        if (!Files.isRegularFile(file)) return Optional.empty();
-        try {
-            byte[] bytes = Files.readAllBytes(file);
-            Object decoded = encoding.decode(bytes);
-            return decoded instanceof Datum d ? Optional.of(d) : Optional.empty();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     private static ItemRef readItemRef(Path file) throws IOException {
         byte[] bytes = Files.readAllBytes(file);
         return (ItemRef) HashID.fromRefBytes(bytes);
-    }
-
-    /**
-     * Lazily build the {@link DatumRef} → {@link ContentRef} index by
-     * walking {@code objects/} and decoding each blob.  Idempotent; runs
-     * at most once per store unless explicitly cleared.
-     */
-    private synchronized void loadIndex() {
-        if (indexLoaded) return;
-        Set<ContentRef> alreadySeen = new HashSet<>();
-        try (Stream<Path> files = Files.list(objectsDir)) {
-            files.filter(Files::isRegularFile)
-                 .filter(p -> !p.getFileName().toString().endsWith(".tmp"))
-                 .forEach(p -> indexOne(p, alreadySeen));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        indexLoaded = true;
-    }
-
-    private void indexOne(Path file, Set<ContentRef> alreadySeen) {
-        try {
-            ContentRef cid = ContentRef.fromText(file.getFileName().toString());
-            if (!alreadySeen.add(cid)) return;
-            byte[] bytes = Files.readAllBytes(file);
-            Object decoded = encoding.decode(bytes);
-            if (decoded instanceof Datum d) {
-                datumIndex.computeIfAbsent(d.datumId(), k -> ConcurrentHashMap.newKeySet()).add(cid);
-            }
-        } catch (Exception e) {
-            // Files we can't decode are content blobs (or corrupt); skip.
-            logger.debug("indexOne skipping {} ({})", file, e.toString());
-        }
     }
 }

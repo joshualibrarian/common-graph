@@ -46,23 +46,24 @@ class LibrarianAnonymousTest {
     }
 
     @Test
-    @DisplayName("anonymous() carries a Library but has no encoder (PureMapLibrary)")
+    @DisplayName("anonymous() carries a Library with its default encoder")
     void carriesLibrary() {
         Librarian lib = Librarian.anonymous();
         assertThat(lib.library()).isNotNull();
-        // PureMapLibrary holds live Datums; no serialization, no encoder.
-        assertThat(lib.encoder()).isEmpty();
+        // After the CONTENT_BY_DATUM index refactor, every DataStore
+        // (including PureMapDataStore) declares an encoder — Library does
+        // the Datum/byte encode-decode itself rather than delegating to a
+        // live-object store.
+        assertThat(lib.encoder()).isPresent();
     }
 
     @Test
-    @DisplayName("anonymous() Library has no encoder (pure-map data store)")
-    void backendHasNoEncoder() {
+    @DisplayName("anonymous() Library has the default encoder available")
+    void backendHasEncoder() {
         Librarian lib = Librarian.anonymous();
-        // The anonymous-mode Library is composed of a PureMapDataStore (no
-        // encoder) + SkipList indexes. Library itself is the same concrete
-        // class either way; we identify the mode by the data store's encoder
-        // absence.
-        assertThat(lib.library().encoder()).isEmpty();
+        // PureMapDataStore defaults its encoder to CgCbor so Library has
+        // a uniform encode/decode path across all backends.
+        assertThat(lib.library().encoder()).isPresent();
     }
 
     @Test

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.library.index;
 
 import dev.everydaythings.graph.datum.Datum;
+import dev.everydaythings.graph.ref.ContentRef;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
 
@@ -36,6 +37,19 @@ public interface RefIndexStore extends AutoCloseable {
     /** Reverse of {@link #index} — remove all entries this Datum's indexing wrote. */
     void unindex(Datum datum, DatumRef id);
 
+    /**
+     * Index the {@link DatumRef} → {@link ContentRef} mapping — the semantic
+     * identity to its specific wire-form realization.  Multiple realizations
+     * per Datum are supported: the same semantic Datum can exist in multiple
+     * encoded forms (full + redacted, or different codecs).  Each {@code put}
+     * adds one entry to the multimap; existing entries for the same pair are
+     * left in place.
+     */
+    void indexDatumContent(DatumRef datumId, ContentRef contentRef);
+
+    /** Reverse of {@link #indexDatumContent} — remove a single (datumId, contentRef) entry. */
+    void unindexDatumContent(DatumRef datumId, ContentRef contentRef);
+
     // ==================================================================================
     // Query API
     // ==================================================================================
@@ -54,6 +68,14 @@ public interface RefIndexStore extends AutoCloseable {
      * for {@code role} pointing at {@code target} as a reference.
      */
     List<DatumRef> bodiesByReferenceBinding(ItemRef role, ItemRef target);
+
+    /**
+     * The set of {@link ContentRef} realizations registered for the given
+     * {@link DatumRef} via {@link #indexDatumContent}.  Multiple realizations
+     * arise when the same semantic Datum exists in different wire forms;
+     * most lookups return a single-element list.
+     */
+    List<ContentRef> contentsForDatum(DatumRef datumId);
 
     // ==================================================================================
     // Column schema (used by byte-backed backends; in-memory backends ignore)
@@ -89,7 +111,15 @@ public interface RefIndexStore extends AutoCloseable {
         /**
          * Records-by-body head-index: key = {@code body-CID | record-CID}, value = empty.
          */
-        RECORDS_BY_BODY("records_by_body", null, 10, KeyEncoder.RAW);
+        RECORDS_BY_BODY("records_by_body", null, 10, KeyEncoder.RAW),
+
+        /**
+         * {@link DatumRef} → {@link ContentRef} index: key = {@code DatumRef-bytes
+         * | ContentRef-bytes}, value = empty (reserved for future metadata).
+         * Most Datums have one wire form, so most prefix scans yield a single
+         * entry; multi-realization (full + redacted) yields multiple.
+         */
+        CONTENT_BY_DATUM("content_by_datum", null, 10, KeyEncoder.RAW);
 
         private final String schemaName;
         private final Integer prefixLen;

@@ -77,6 +77,22 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
         unindexBindings(datum, id);
     }
 
+    @Override
+    default void indexDatumContent(DatumRef datumId, ContentRef contentRef) {
+        Objects.requireNonNull(datumId, "datumId");
+        Objects.requireNonNull(contentRef, "contentRef");
+        byte[] key = concat(datumId.encodeBinary(), contentRef.encodeBinary());
+        db(RefIndexStore.Column.CONTENT_BY_DATUM).key(key).put(EMPTY_VALUE);
+    }
+
+    @Override
+    default void unindexDatumContent(DatumRef datumId, ContentRef contentRef) {
+        Objects.requireNonNull(datumId, "datumId");
+        Objects.requireNonNull(contentRef, "contentRef");
+        byte[] key = concat(datumId.encodeBinary(), contentRef.encodeBinary());
+        db(RefIndexStore.Column.CONTENT_BY_DATUM).key(key).delete();
+    }
+
     private void indexBindings(Datum datum, HashID id) {
         Encoding enc = rawEncoder();
         for (Binding b : datum.bindings()) {
@@ -145,6 +161,18 @@ public interface RefIndexByteStore extends RefIndexStore, ByteStore<RefIndexStor
             bodyIds.add(new DatumRef(bodyIdBytes));
         });
         return List.copyOf(bodyIds);
+    }
+
+    @Override
+    default List<ContentRef> contentsForDatum(DatumRef datumId) {
+        Objects.requireNonNull(datumId, "datumId");
+        byte[] prefix = datumId.encodeBinary();
+        List<ContentRef> cids = new ArrayList<>();
+        forEach(RefIndexStore.Column.CONTENT_BY_DATUM, prefix, (key, value) -> {
+            byte[] cidBytes = Arrays.copyOfRange(key, prefix.length, key.length);
+            cids.add(new ContentRef(cidBytes));
+        });
+        return List.copyOf(cids);
     }
 
     // ==================================================================================

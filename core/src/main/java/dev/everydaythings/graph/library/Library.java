@@ -234,7 +234,11 @@ public final class Library implements AutoCloseable {
 
     public DatumRef put(Datum datum) {
         Objects.requireNonNull(datum, "datum");
-        DatumRef id = data.put(datum);
+        DatumRef id = datum.datumId();
+        Encoding enc = requiredEncoder();
+        byte[] bytes = enc.encode(datum);
+        ContentRef cid = data.putContent(bytes);
+        index.indexDatumContent(id, cid);
         index.index(datum, id);
         tokens.index(datum, id);
         if (datum instanceof Body) knownLanguagesCache = null;
@@ -258,25 +262,31 @@ public final class Library implements AutoCloseable {
         // bytes. Otherwise it's a raw content blob; just delete.
         Optional<byte[]> bytesOpt = data.getContent(cid);
         if (bytesOpt.isEmpty()) return false;
-        Datum d = data instanceof DataByteStore dbs ? dbs.decodeDatum(bytesOpt.get()) : null;
+        Datum d = decodeDatum(bytesOpt.get());
         if (d != null) {
-            index.unindex(d, d.datumId());
-            tokens.unindex(d, d.datumId());
-            return data.delete(d.datumId());
+            DatumRef id = d.datumId();
+            index.unindexDatumContent(id, cid);
+            index.unindex(d, id);
+            tokens.unindex(d, id);
         }
         return data.deleteContent(cid);
     }
 
     public boolean has(DatumRef datumId) {
-        return data.has(datumId);
+        return !index.contentsForDatum(datumId).isEmpty();
     }
 
     public boolean delete(DatumRef datumId) {
-        Datum d = data.get(datumId).orElse(null);
+        Datum d = fetchDatum(datumId).orElse(null);
         if (d == null) return false;
+        boolean any = false;
+        for (ContentRef cid : index.contentsForDatum(datumId)) {
+            index.unindexDatumContent(datumId, cid);
+            any |= data.deleteContent(cid);
+        }
         index.unindex(d, datumId);
         tokens.unindex(d, datumId);
-        return data.delete(datumId);
+        return any;
     }
 
     // ==================================================================================
@@ -284,15 +294,39 @@ public final class Library implements AutoCloseable {
     // ==================================================================================
 
     public Optional<Datum> fetchDatum(DatumRef datumId) {
-        return data.get(datumId);
+        Objects.requireNonNull(datumId, "datumId");
+        for (ContentRef cid : index.contentsForDatum(datumId)) {
+            Optional<byte[]> bytes = data.getContent(cid);
+            if (bytes.isEmpty()) continue;
+            Datum d = decodeDatum(bytes.get());
+            if (d == null) continue;
+            d.bindSource(cid);
+            return Optional.of(d);
+        }
+        return Optional.empty();
     }
 
     public Optional<Body> fetchBody(DatumRef datumId) {
-        return data.get(datumId).filter(Body.class::isInstance).map(Body.class::cast);
+        return fetchDatum(datumId).filter(Body.class::isInstance).map(Body.class::cast);
     }
 
     public Optional<Record> fetchRecord(DatumRef datumId) {
-        return data.get(datumId).filter(Record.class::isInstance).map(Record.class::cast);
+        return fetchDatum(datumId).filter(Record.class::isInstance).map(Record.class::cast);
+    }
+
+    private Encoding requiredEncoder() {
+        return data.encoder().orElseThrow(() -> new IllegalStateException(
+                "DataStore " + data.getClass().getSimpleName()
+                        + " has no encoder; Library requires one for Datum encode/decode"));
+    }
+
+    private Datum decodeDatum(byte[] bytes) {
+        try {
+            Object decoded = requiredEncoder().decode(bytes);
+            return decoded instanceof Datum d ? d : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     public Optional<Frame> fetchFrame(DatumRef bodyId) {
@@ -397,12 +431,7 @@ public final class Library implements AutoCloseable {
      * {@link DataByteStore}.
      */
     public List<ContentRef> contentIdsForDatum(DatumRef datumId) {
-        if (!(data instanceof DataByteStore bds)) {
-            throw new UnsupportedOperationException(
-                    "contentIdsForDatum requires a DataByteStore; data store is "
-                            + data.getClass().getSimpleName());
-        }
-        return bds.contentIdsForDatum(datumId);
+        return index.contentsForDatum(datumId);
     }
 
     // ==================================================================================

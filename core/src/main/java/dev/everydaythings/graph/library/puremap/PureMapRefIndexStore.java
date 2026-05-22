@@ -6,6 +6,7 @@ import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.ref.CompoundKey;
+import dev.everydaythings.graph.ref.ContentRef;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.library.index.RefIndexStore;
@@ -13,6 +14,7 @@ import dev.everydaythings.graph.library.index.RefIndexStore;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -26,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class PureMapRefIndexStore implements RefIndexStore {
 
     private final Map<DatumRef, Datum> datums = new ConcurrentHashMap<>();
+    private final Map<DatumRef, Set<ContentRef>> contentByDatum = new ConcurrentHashMap<>();
 
     PureMapRefIndexStore() {}
 
@@ -48,6 +51,23 @@ public final class PureMapRefIndexStore implements RefIndexStore {
     public void unindex(Datum datum, DatumRef id) {
         Objects.requireNonNull(id, "id");
         datums.remove(id);
+    }
+
+    @Override
+    public void indexDatumContent(DatumRef datumId, ContentRef contentRef) {
+        Objects.requireNonNull(datumId, "datumId");
+        Objects.requireNonNull(contentRef, "contentRef");
+        contentByDatum.computeIfAbsent(datumId, k -> ConcurrentHashMap.newKeySet()).add(contentRef);
+    }
+
+    @Override
+    public void unindexDatumContent(DatumRef datumId, ContentRef contentRef) {
+        Objects.requireNonNull(datumId, "datumId");
+        Objects.requireNonNull(contentRef, "contentRef");
+        Set<ContentRef> cids = contentByDatum.get(datumId);
+        if (cids == null) return;
+        cids.remove(contentRef);
+        if (cids.isEmpty()) contentByDatum.remove(datumId);
     }
 
     // ==================================================================================
@@ -83,6 +103,13 @@ public final class PureMapRefIndexStore implements RefIndexStore {
     }
 
     @Override
+    public List<ContentRef> contentsForDatum(DatumRef datumId) {
+        Objects.requireNonNull(datumId, "datumId");
+        Set<ContentRef> cids = contentByDatum.get(datumId);
+        return cids == null ? List.of() : List.copyOf(cids);
+    }
+
+    @Override
     public List<DatumRef> bodiesByReferenceBinding(ItemRef role, ItemRef target) {
         Objects.requireNonNull(role, "role");
         Objects.requireNonNull(target, "target");
@@ -106,5 +133,6 @@ public final class PureMapRefIndexStore implements RefIndexStore {
     @Override
     public void close() {
         datums.clear();
+        contentByDatum.clear();
     }
 }

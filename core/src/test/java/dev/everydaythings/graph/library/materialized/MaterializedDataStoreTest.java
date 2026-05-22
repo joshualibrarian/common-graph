@@ -1,14 +1,9 @@
 package dev.everydaythings.graph.library.materialized;
 
-import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.encoding.EncodingRegistry;
-import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.ContentRef;
-import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,7 +13,6 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,14 +25,6 @@ class MaterializedDataStoreTest {
     private final EncodingRegistry registry = EncodingRegistry.defaultRegistry();
     private final ItemRef itemIid   = ItemRef.iid("cg.test:materialized-item");
     private final ItemRef codecRef  = ItemRef.iid(Encoding.CgCborV1.KEY);
-
-    private Body simpleBody() {
-        return Body.of(
-                itemIid,
-                List.of(Binding.literal(
-                        ItemRef.iid(ThematicRole.Value.KEY),
-                        "hello-materialized")));
-    }
 
     @Nested
     @DisplayName("Mint")
@@ -94,65 +80,6 @@ class MaterializedDataStoreTest {
             assertThatThrownBy(() -> MaterializedDataStore.open(tmp, registry))
                     .isInstanceOf(IOException.class)
                     .hasMessageContaining(".item/");
-        }
-    }
-
-    @Nested
-    @DisplayName("Datum API round-trip")
-    class DatumApi {
-
-        @Test
-        @DisplayName("put/get round-trip preserves the Datum")
-        void putGetRoundTrip(@TempDir Path tmp) throws IOException {
-            MaterializedDataStore store = MaterializedDataStore.mint(tmp, itemIid, encoding);
-            Body original = simpleBody();
-            DatumRef stored = store.put(original);
-
-            Optional<Datum> retrieved = store.get(stored);
-            assertThat(retrieved).isPresent();
-            assertThat(retrieved.get().datumId()).isEqualTo(stored);
-        }
-
-        @Test
-        @DisplayName("has reports stored Datum")
-        void hasReportsStored(@TempDir Path tmp) throws IOException {
-            MaterializedDataStore store = MaterializedDataStore.mint(tmp, itemIid, encoding);
-            DatumRef stored = store.put(simpleBody());
-            assertThat(store.has(stored)).isTrue();
-        }
-
-        @Test
-        @DisplayName("Unknown Datum returns empty")
-        void unknownReturnsEmpty(@TempDir Path tmp) throws IOException {
-            MaterializedDataStore store = MaterializedDataStore.mint(tmp, itemIid, encoding);
-            DatumRef bogus = simpleBody().datumId();
-            assertThat(store.get(bogus)).isEmpty();
-            assertThat(store.has(bogus)).isFalse();
-        }
-
-        @Test
-        @DisplayName("delete removes the Datum")
-        void deleteRemoves(@TempDir Path tmp) throws IOException {
-            MaterializedDataStore store = MaterializedDataStore.mint(tmp, itemIid, encoding);
-            DatumRef stored = store.put(simpleBody());
-            assertThat(store.delete(stored)).isTrue();
-            assertThat(store.has(stored)).isFalse();
-            assertThat(store.delete(stored)).isFalse();   // second delete is no-op
-        }
-
-        @Test
-        @DisplayName("Datum survives close + reopen via lazy index rebuild")
-        void datumSurvivesReopen(@TempDir Path tmp) throws IOException {
-            MaterializedDataStore created = MaterializedDataStore.mint(tmp, itemIid, encoding);
-            Body original = simpleBody();
-            DatumRef stored = created.put(original);
-            created.close();
-
-            MaterializedDataStore reopened = MaterializedDataStore.open(tmp, registry);
-            assertThat(reopened.has(stored)).isTrue();
-            Optional<Datum> retrieved = reopened.get(stored);
-            assertThat(retrieved).isPresent();
-            assertThat(retrieved.get().datumId()).isEqualTo(stored);
         }
     }
 

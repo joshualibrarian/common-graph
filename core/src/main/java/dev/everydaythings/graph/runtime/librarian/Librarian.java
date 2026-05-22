@@ -23,6 +23,7 @@ import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.network.transport.TransportRegistry;
 import dev.everydaythings.graph.runtime.*;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.library.materialized.MaterializedDataStore;
 import dev.everydaythings.graph.item.SeedProcessor;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ContentRef;
@@ -400,7 +401,7 @@ public class Librarian extends Signer {
                     dev.everydaythings.graph.cryptography.vault.JwksFileVault.create(vaultDir);
             Librarian librarian = new Librarian(stage, vault, Library.atPath(path), Optional.of(path));
             librarian.presence = presence;
-            mintLibrarianMetaDir(path, librarian);
+            materializeLibrarian(path, librarian);
             return librarian;
         } catch (RuntimeException e) {
             presence.close();
@@ -409,141 +410,104 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Write {@code <path>/.item/iid} + {@code .item/codec} + {@code .item/objects/}
-     * for the librarian-as-item, then commit the librarian's manifest as a
-     * MATERIALIZED record + body pair in {@code objects/} and point
-     * {@code .item/head} at the record's ContentRef.
+     * Materialize the librarian-as-item to its filesystem root via
+     * {@link MaterializedDataStore}.  Mints {@code <path>/.item/}, builds the
+     * librarian's slim manifest body, signs a MATERIALIZED record, persists
+     * both bodies into the store, and sets the boot pointer.
+     *
+     * <p>The librarian-specific work is purely the manifest construction +
+     * signing; the filesystem-layout knowledge lives in MaterializedDataStore.
      */
-    private static void mintLibrarianMetaDir(Path path, Librarian librarian) {
-        Path metaDir = path.resolve(".item");
-        try {
-            Files.createDirectories(metaDir.resolve("objects"));
-            Files.write(metaDir.resolve("iid"),   librarian.iid().toRefBytes());
-            Encoding encoding = librarian.encoder()
-                    .orElseThrow(() -> new IllegalStateException("Librarian has no encoder"));
-            Files.write(metaDir.resolve("codec"), encoding.encoding().toRefBytes());
-            commitMaterializedManifest(librarian, metaDir, encoding);
+    private static void materializeLibrarian(Path path, Librarian librarian) {
+        Encoding encoding = librarian.encoder()
+                .orElseThrow(() -> new IllegalStateException("Librarian has no encoder"));
+        try (MaterializedDataStore store = MaterializedDataStore.mint(
+                path, librarian.iid(), encoding)) {
+            commitMaterializedManifest(librarian, store, encoding);
         } catch (IOException e) {
             throw new UncheckedIOException(
-                    "Failed to mint .item/ at " + metaDir, e);
+                    "Failed to mint .item/ at " + path.resolve(".item"), e);
         }
     }
 
     /**
-     * Materialize the librarian's manifest:
-     * <ol>
-     *   <li>Build a slim body: {@code head = Librarian.ARCHETYPE,
-     *       bindings = [ITEM_ID → librarian-iid]}.</li>
-     *   <li>Encode body, compute its ContentRef.</li>
-     *   <li>Sign the body's signing payload via the vault.</li>
-     *   <li>Build a MATERIALIZED record: {@code head = body's ContentRef,
-     *       bindings = [(ACT) → @Materialized]}.</li>
-     *   <li>Encode record, compute its ContentRef.</li>
-     *   <li>Write body bytes to {@code .item/objects/<body-cid>}.</li>
-     *   <li>Write record bytes to {@code .item/objects/<record-cid>}.</li>
-     *   <li>Write record's ContentRef to {@code .item/head} (boot pointer).</li>
-     * </ol>
-     *
-     * <p>The MATERIALIZED ACT marks the record as a byte-level commitment to
-     * the body's exact stored form, not its semantic Merkle identity.  Boot
-     * via {@link #load(java.nio.file.Path)} walks this chain back without
-     * needing a DatumRef→ContentRef index.
+     * Build + sign + persist the librarian's MATERIALIZED manifest into the
+     * given store, then update the store's head pointer.  The MATERIALIZED ACT
+     * marks the record as a byte-level commitment to the body's exact stored
+     * form, not its semantic Merkle identity.  Boot walks this chain back
+     * without needing a DatumRef→ContentRef index.
      */
     private static void commitMaterializedManifest(
             Librarian librarian,
-            java.nio.file.Path metaDir,
-            dev.everydaythings.graph.encoding.Encoding encoding) throws java.io.IOException {
+            MaterializedDataStore store,
+            Encoding encoding) {
 
-        // 1. Build the slim manifest body.
         Body body = Body.of(
                 Librarian.ARCHETYPE,
-                java.util.List.of(Binding.ref(Manifest.ITEM_ID, librarian.iid())));
+                List.of(Binding.ref(Manifest.ITEM_ID, librarian.iid())));
 
-        // 2. Encode body, compute its ContentRef.
         byte[] bodyBytes = encoding.encode(body);
-        ContentRef bodyCid = ContentRef.of(bodyBytes);
+        ContentRef bodyCid = store.putContent(bodyBytes);
 
-        // 3. Sign over the body's signing payload (head + bindings, walked).
-        byte[] payload = HashTree.signingPayload(body);
         VarSig sig = librarian.vault().orElseThrow(
-                () -> new IllegalStateException("Librarian has no vault — cannot materialize manifest"))
-                .sign(payload);
+                () -> new IllegalStateException(
+                        "Librarian has no vault — cannot materialize manifest"))
+                .sign(HashTree.signingPayload(body));
 
-        // 4. Build the MATERIALIZED record — head is body's ContentRef.
         Binding actBinding = Binding.ref(
                 ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Act.KEY),
                 ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Materialized.KEY));
-        Record record = Record.of(bodyCid, java.util.List.of(actBinding), sig);
+        Record record = Record.of(bodyCid, List.of(actBinding), sig);
 
-        // 5. Encode record, compute its ContentRef.
-        byte[] recordBytes = encoding.encode(record);
-        ContentRef recordCid = ContentRef.of(recordBytes);
-
-        // 6-7. Write body + record bytes to .item/objects/.
-        java.nio.file.Path objectsDir = metaDir.resolve("objects");
-        java.nio.file.Files.write(objectsDir.resolve(bodyCid.encodeText()), bodyBytes);
-        java.nio.file.Files.write(objectsDir.resolve(recordCid.encodeText()), recordBytes);
-
-        // 8. Write boot pointer.
-        java.nio.file.Files.write(metaDir.resolve("head"), recordCid.toRefBytes());
+        ContentRef recordCid = store.putContent(encoding.encode(record));
+        store.setHead(recordCid);
     }
 
     /**
-     * Walk the materialized manifest chain at {@code <path>/.item/}:
-     * read {@code head}, fetch the record by its ContentRef, verify it is
-     * a MATERIALIZED record, fetch its body by ContentRef, verify the
-     * signature.  Returns the loaded manifest body.
+     * Walk the materialized manifest at {@code <path>/.item/}: open via
+     * {@link MaterializedDataStore#open}, follow head → record → body,
+     * verify the record's ACT is MATERIALIZED, return the body.  Signature
+     * verification is deferred until index-bootstrap is wired into load
+     * (see task #276 follow-up).
      */
-    private static Body loadMaterializedManifest(
-            Vault vault,
-            java.nio.file.Path metaDir,
-            dev.everydaythings.graph.encoding.Encoding encoding) throws java.io.IOException {
+    private static Body loadMaterializedManifest(Path path, Encoding encoding) {
+        try (MaterializedDataStore store = MaterializedDataStore.open(
+                path, dev.everydaythings.graph.encoding.EncodingRegistry.defaultRegistry())) {
 
-        java.nio.file.Path headFile = metaDir.resolve("head");
-        if (!java.nio.file.Files.isRegularFile(headFile)) {
-            throw new IllegalStateException(
-                    "No .item/head at " + metaDir + " — librarian materialization incomplete");
+            ContentRef recordCid = store.head().orElseThrow(() -> new IllegalStateException(
+                    "No .item/head at " + path.resolve(".item")
+                            + " — librarian materialization incomplete"));
+
+            byte[] recordBytes = store.getContent(recordCid).orElseThrow(() -> new IllegalStateException(
+                    "Materialized record " + recordCid + " is missing from " + path.resolve(".item/objects")));
+            Object decodedRecord = encoding.decode(recordBytes);
+            if (!(decodedRecord instanceof Record record)) {
+                throw new IllegalStateException(
+                        ".item/head points at " + recordCid + " which is not a Record");
+            }
+
+            ItemRef actRole = ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Act.KEY);
+            ItemRef materialized = ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Materialized.KEY);
+            boolean isMaterialized = record.bindings().stream()
+                    .anyMatch(b -> actRole.equals(b.role()) && materialized.equals(b.target()));
+            if (!isMaterialized) {
+                throw new IllegalStateException(
+                        "Manifest record at " + recordCid + " is not a MATERIALIZED record");
+            }
+
+            ContentRef bodyCid = record.contentRefHead();
+            byte[] bodyBytes = store.getContent(bodyCid).orElseThrow(() -> new IllegalStateException(
+                    "Materialized body " + bodyCid + " is missing from " + path.resolve(".item/objects")));
+            Object decodedBody = encoding.decode(bodyBytes);
+            if (!(decodedBody instanceof Body body)) {
+                throw new IllegalStateException(
+                        "Body at " + bodyCid + " is not a Body");
+            }
+            return body;
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "Failed to load materialized manifest at " + path.resolve(".item"), e);
         }
-        ContentRef recordCid = ContentRef.fromBinary(java.nio.file.Files.readAllBytes(headFile));
-
-        java.nio.file.Path objectsDir = metaDir.resolve("objects");
-        byte[] recordBytes = java.nio.file.Files.readAllBytes(
-                objectsDir.resolve(recordCid.encodeText()));
-        Object decoded = encoding.decode(recordBytes);
-        if (!(decoded instanceof Record record)) {
-            throw new IllegalStateException(
-                    ".item/head points at " + recordCid + " which is not a Record");
-        }
-
-        // Verify the ACT is MATERIALIZED.
-        ItemRef actRole = ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Act.KEY);
-        ItemRef materialized = ItemRef.iid(dev.everydaythings.graph.cryptography.RecordVocabulary.Materialized.KEY);
-        boolean isMaterialized = record.bindings().stream()
-                .anyMatch(b -> actRole.equals(b.role())
-                        && materialized.equals(b.target()));
-        if (!isMaterialized) {
-            throw new IllegalStateException(
-                    "Manifest record at " + recordCid + " is not a MATERIALIZED record");
-        }
-
-        // Fetch the body by ContentRef from the record's head.
-        ContentRef bodyCid = record.contentRefHead();
-        byte[] bodyBytes = java.nio.file.Files.readAllBytes(
-                objectsDir.resolve(bodyCid.encodeText()));
-        Object decodedBody = encoding.decode(bodyBytes);
-        if (!(decodedBody instanceof Body body)) {
-            throw new IllegalStateException(
-                    "Body at " + bodyCid + " is not a Body");
-        }
-
-        // Signature verification deferred — VarSig.verify needs librarian
-        // context to resolve algorithms, but the librarian's index isn't
-        // populated this early in load().  The vault round-trip proves
-        // identity preservation; full audit-time verification of the
-        // manifest record will land when index-bootstrap is wired into
-        // load.  See task #276 follow-up notes.
-
-        return body;
     }
 
     /**
@@ -590,16 +554,11 @@ public class Librarian extends Signer {
             librarian.presence = presence;
 
             // Walk the materialized manifest chain — verifies head→record→body
-            // signature with the loaded vault's identity.  Throws if the chain
+            // shape with the loaded vault's identity.  Throws if the chain
             // doesn't verify.
-            try {
-                Encoding encoding = librarian.encoder()
-                        .orElseThrow(() -> new IllegalStateException("Librarian has no encoder"));
-                loadMaterializedManifest(vault, itemDir, encoding);
-            } catch (IOException e) {
-                throw new UncheckedIOException(
-                        "Failed to load materialized manifest at " + itemDir, e);
-            }
+            Encoding encoding = librarian.encoder()
+                    .orElseThrow(() -> new IllegalStateException("Librarian has no encoder"));
+            loadMaterializedManifest(path, encoding);
 
             return librarian;
         } catch (RuntimeException e) {
