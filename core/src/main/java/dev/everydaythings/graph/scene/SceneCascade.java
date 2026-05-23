@@ -1,7 +1,5 @@
 package dev.everydaythings.graph.scene;
 
-import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Record;
@@ -17,13 +15,12 @@ import java.util.Set;
 /**
  * Walks the archetype chain looking up an item's declared scene.
  *
- * <p>The cascade reads {@code CONFIG[Presentation]} bindings from the
- * <i>records</i> attesting each manifest in the chain.  Record bindings —
+ * <p>The cascade reads {@link SceneVocabulary.Scene Scene} role bindings from
+ * the <i>records</i> attesting each manifest in the chain.  Record bindings —
  * rather than manifest-body bindings — keep presentation out of the
  * manifest's identity hash: different attestations of the same manifest can
  * carry different default scenes without rotating the VID.  See
- * {@link dev.everydaythings.graph.Seed.RecordBinding} for the seed-time
- * declaration mechanism.
+ * {@link Scene} for the seed-time declaration mechanism.
  *
  * <p>The walk follows each manifest's {@code body.head()} upward: an
  * instance's manifest body has the archetype as its head; the archetype's
@@ -40,7 +37,7 @@ import java.util.Set;
  *
  * <p>The walk terminates at:
  * <ul>
- *   <li><b>A match</b> — return the first {@code CONFIG[Presentation]} target found.</li>
+ *   <li><b>A match</b> — return the first {@code Scene} role target found.</li>
  *   <li><b>Self-referential head</b> — when a manifest body's head equals
  *       the current iid (Archetype's self-typing), the chain root has been
  *       reached and the walk stops.</li>
@@ -49,10 +46,10 @@ import java.util.Set;
  * </ul>
  *
  * <p>Throws {@link IllegalStateException} when no scene declaration is found
- * anywhere in the chain.  This is a loud failure by design —
- * {@link CoreVocabulary.Archetype} carries a terminal placeholder scene that
- * every walk falls through to.  Reaching this exception means the seed
- * declaration on Archetype was lost or never ran.
+ * anywhere in the chain.  This is a loud failure by design — the root
+ * Archetype carries a terminal placeholder scene that every walk falls
+ * through to.  Reaching this exception means the seed declaration on
+ * Archetype was lost or never ran.
  *
  * <p>Signer selection (when a manifest has multiple records from different
  * signers): currently "first record wins."  Slice-2 manifests have one
@@ -63,9 +60,8 @@ public final class SceneCascade {
 
     private SceneCascade() {}
 
-    private static final CompoundKey CONFIG_PRESENTATION = CompoundKey.of(
-            ItemRef.iid(CoreVocabulary.Config.KEY),
-            new CompoundKey.Sememe(ItemRef.iid(SchemaVocabulary.Presentation.KEY)));
+    private static final CompoundKey SCENE_ROLE_KEY =
+            CompoundKey.of(ItemRef.iid(SceneVocabulary.Scene.KEY));
 
     /**
      * Walk the archetype chain starting at {@code iid} and return the first
@@ -99,21 +95,22 @@ public final class SceneCascade {
             current = nextHead;
         }
         throw new IllegalStateException(
-                "No CONFIG[Presentation] declared in archetype chain for " + iid
-                        + " — the cascade should always terminate at Archetype's "
-                        + "default scene; check that Archetype's @Seed.RecordBinding "
-                        + "is intact and the librarian was bootstrapped.");
+                "No Scene role binding declared in archetype chain for " + iid
+                        + " — the cascade should always terminate at the root "
+                        + "Archetype's default scene; check that Archetype's "
+                        + "@Scene declaration is intact and the librarian was "
+                        + "bootstrapped.");
     }
 
     /**
-     * Read the first {@code CONFIG[Presentation]} binding's target from the
-     * manifest's records.  Returns null when nothing is found (caller
-     * continues the cascade walk).
+     * Read the first {@code Scene} role binding's target from the manifest's
+     * records.  Returns null when nothing is found (caller continues the
+     * cascade walk).
      */
     private static Body readPresentation(Manifest manifest) {
         if (manifest == null) return null;
         for (Record record : manifest.records()) {
-            for (Binding b : record.bindings(CONFIG_PRESENTATION)) {
+            for (Binding b : record.bindings(SCENE_ROLE_KEY)) {
                 if (b.target() instanceof Body body) return body;
             }
         }

@@ -1,10 +1,15 @@
 package dev.everydaythings.graph.runtime.session;
 
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.scene.Scene;
+import dev.everydaythings.graph.scene.SceneVocabulary;
 import dev.everydaythings.graph.scene.VariableResolver;
 import lombok.extern.log4j.Log4j2;
 
@@ -13,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 
 /**
@@ -83,6 +88,22 @@ public class Session extends Item {
     /** IID of the CodeItem for the server-side Java embodiment. */
     public static final ItemRef CODE_IID = ItemRef.fromString(CODE_KEY);
 
+    /**
+     * Default scene for Session instances.  Declared on Session-the-archetype's
+     * record so that {@link dev.everydaythings.graph.scene.SceneCascade SceneCascade}
+     * picks it up for any session-instance whose chain reaches here.
+     * Per-instance overrides on a session item's own record would supersede.
+     *
+     * <p>Placeholder text for now; eventually replaced by a workspace scene
+     * (chrome + per-window content) once Variable resolution + composite
+     * scene support land.
+     */
+    @Scene.Text
+    public static class DefaultScene {
+        @Scene.Property(role = SceneVocabulary.Text.KEY)
+        static String text = "Common Graph session";
+    }
+
     @Override
     public ItemRef archetype() {
         return ItemRef.iid(KEY);
@@ -105,14 +126,18 @@ public class Session extends Item {
     private final ConcurrentMap<ItemRef, Supplier<Object>> variables = new ConcurrentHashMap<>();
 
     /**
-     * Counter for {@code ITEM_VIEW} frames the dispatch routed to this
-     * code-item's handler.  Slice-2 plumbing observation point — lets tests
-     * verify that the {@link #handleItemView} handler is actually invoked
-     * end-to-end through the Librarian's IMPLEMENTS-based dispatch.  Slice 3
-     * replaces this with real per-session state mutation + a listener
-     * mechanism that {@code UiSession} subscribes to.
+     * Listeners notified when this session's view-state changes — i.e., when
+     * an {@code ITEM_VIEW} frame addressed to this session arrives at
+     * {@link #handleItemView}.  The session itself doesn't cache view-state;
+     * the Library is the source of truth (the index has all ITEM_VIEW frames
+     * addressed to this session via their Location binding).  Listeners
+     * typically re-walk the index to reconcile their local picture
+     * (e.g., {@code UiSession} updates its Surface's window list).
+     *
+     * <p>{@link CopyOnWriteArrayList} for safe concurrent iteration: dispatch
+     * may be firing a notification while a UI thread (de)registers a listener.
      */
-    private static final AtomicLong itemViewHandlerInvocations = new AtomicLong();
+    private final List<Runnable> viewStateListeners = new CopyOnWriteArrayList<>();
 
     /** Runtime constructor — bound to a librarian. */
     public Session(ItemRef iid, Librarian librarian) {
@@ -168,49 +193,148 @@ public class Session extends Item {
     }
 
     // ==================================================================================
-    // ITEM_VIEW handler — slice-2 plumbing stub
+    // View-state mutation — open / close views
     // ==================================================================================
 
     /**
-     * Handler for incoming {@code ITEM_VIEW} frames.  Slice-2 plumbing only:
-     * logs the frame arrival, increments the invocation counter, returns nothing.
+     * Open a view of {@code itemIid} on this session.  Publishes a minimal
+     * {@code ITEM_VIEW} frame ({@code Theme = itemIid, Location = this.iid()})
+     * via the librarian.  The frame is signed by the librarian, persisted,
+     * indexed, and routed back to {@link #handleItemView} — listeners fire,
+     * any attached {@code UiSession} reconciles its surface.
      *
-     * <p>Steady-state behavior (slice 3+):
-     * <ul>
-     *   <li>Extract the target session IID from the frame's {@code Location}
-     *       binding; if it isn't this librarian's known session, ignore.</li>
-     *   <li>Read the frame's bindings (Theme = item, Location[device]:Point,
-     *       Attribute[Expanded]:Bool, Attribute[Size]:Size) into Window-shaped
-     *       intent.</li>
-     *   <li>Mutate the session's runtime view-state — add a new Window,
-     *       update an existing one (supersedence via FOLLOWS), or remove one.</li>
-     *   <li>Notify any attached {@code UiSession} to reconcile its Surface's
-     *       Window list against the new state.</li>
-     * </ul>
+     * <p>For richer views (specific display, expanded/collapsed state,
+     * explicit size), publish the ITEM_VIEW frame directly with the
+     * additional bindings.  This helper is the minimal-shape convenience.
      *
-     * <p>Today it does none of those — see {@link #itemViewHandlerInvocations}
-     * for the test observation point.
+     * @throws IllegalStateException if this session has no librarian
      */
-    @Seed.Handler(predicate = SessionVocabulary.ItemView.KEY)
+    public void openView(ItemRef itemIid) {
+        Objects.requireNonNull(itemIid, "itemIid");
+        if (librarian == null) {
+            throw new IllegalStateException("Session has no librarian; cannot openView");
+        }
+        Body body = Body.of(
+                ItemRef.iid(SessionVocabulary.ItemView.KEY),
+                java.util.List.of(
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), itemIid),
+                        Binding.ref(ItemRef.iid(ThematicRole.Location.KEY), iid())));
+        librarian.assembleFrame(body, librarian);
+    }
+
+    /**
+     * Close any open views of {@code itemIid} on this session.  Publishes a
+     * minimal {@code CLOSE} frame ({@code Theme = itemIid, Location = this.iid()}).
+     * Reconciliation filters out ITEM_VIEW frames whose Theme matches a
+     * CLOSE frame's Theme, so the corresponding windows disappear.
+     *
+     * @throws IllegalStateException if this session has no librarian
+     */
+    public void closeView(ItemRef itemIid) {
+        Objects.requireNonNull(itemIid, "itemIid");
+        if (librarian == null) {
+            throw new IllegalStateException("Session has no librarian; cannot closeView");
+        }
+        Body body = Body.of(
+                ItemRef.iid(SessionVocabulary.Close.KEY),
+                java.util.List.of(
+                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), itemIid),
+                        Binding.ref(ItemRef.iid(ThematicRole.Location.KEY), iid())));
+        librarian.assembleFrame(body, librarian);
+    }
+
+    // ==================================================================================
+    // View-state listeners — observers of ITEM_VIEW arrivals
+    // ==================================================================================
+
+    /**
+     * Register a listener to be notified whenever an {@code ITEM_VIEW} frame
+     * is delivered to this session.  Listeners typically re-walk the
+     * librarian's index to reconcile their local picture of the session's
+     * windows; the Library is the source of truth, so the listener doesn't
+     * receive a diff — just a "something changed, re-check" signal.
+     *
+     * <p>Listeners run on the dispatch thread (synchronously inside
+     * {@link #handleItemView}).  Exceptions thrown by listeners are caught
+     * and logged; one bad listener doesn't break the chain.
+     */
+    public void addViewStateListener(Runnable listener) {
+        Objects.requireNonNull(listener, "listener");
+        viewStateListeners.add(listener);
+    }
+
+    /** Remove a previously-registered view-state listener.  No-op if not registered. */
+    public void removeViewStateListener(Runnable listener) {
+        if (listener == null) return;
+        viewStateListeners.remove(listener);
+    }
+
+    // ==================================================================================
+    // ITEM_VIEW handler
+    // ==================================================================================
+
+    /**
+     * Handler for incoming {@code ITEM_VIEW} frames addressed to this session.
+     * Dispatch routes here based on the frame's {@code Location} binding
+     * (declared via {@code role = ThematicRole.Location.KEY} below): the
+     * dispatcher's {@code liveInstanceOf(Session.KEY, location-iid)} walk
+     * finds this specific session instance.
+     *
+     * <p>This handler doesn't itself cache view-state — the Library's
+     * {@code FRAME_BY_TARGET}-index on {@code Location → sessionIid} already
+     * holds every ITEM_VIEW frame addressed to us, indexed and queryable.
+     * The handler's job is to <i>notify</i> registered listeners that
+     * something changed; observers like {@code UiSession} react by re-walking
+     * the index to update their projection.
+     *
+     * <p>The frame body itself is persisted ahead of dispatch by the librarian's
+     * submit path; nothing in this handler needs to write it again.
+     *
+     * <p>Supersedence (an ITEM_VIEW frame {@code FOLLOWS}-ing a prior one),
+     * CLOSE handling, and frame-binding interpretation are slice-4+ work.
+     */
+    @Seed.Handler(predicate = SessionVocabulary.ItemView.KEY, role = ThematicRole.Location.KEY)
     public List<Frame> handleItemView(Frame request) {
-        long n = itemViewHandlerInvocations.incrementAndGet();
-        logger.info("[Session handler] ITEM_VIEW frame received (invocation #{}) — head={}",
-                n, request.body().headRef());
+        logger.debug("[Session {}] ITEM_VIEW frame received — body head={}",
+                iid(), request.body().headRef());
+        notifyViewStateListeners();
         return List.of();
     }
 
     /**
-     * How many {@code ITEM_VIEW} frames have been routed to
-     * {@link #handleItemView} across all dispatches in this JVM.  Slice-2
-     * observation point for tests.  Resettable for test isolation.
+     * Handler for {@code CLOSE} frames addressed to this session.  Dispatch
+     * routes here via {@code role = ThematicRole.Location.KEY} the same way
+     * {@link #handleItemView} works.
+     *
+     * <p>The CLOSE frame's {@code Theme} names the item whose view should be
+     * closed.  Like ITEM_VIEW, this handler doesn't itself mutate a cache —
+     * the Library indexes the CLOSE frame, and observers (typically a
+     * {@code UiSession}) derive the open-view set by walking ITEM_VIEW frames
+     * for this session minus any whose Theme has been CLOSEd.
+     *
+     * <p>Per-device close (multi-monitor mirroring close one mirror but not
+     * another) lands when device-qualified Location on ITEM_VIEW lands.
      */
-    public static long itemViewHandlerInvocations() {
-        return itemViewHandlerInvocations.get();
+    @Seed.Handler(predicate = SessionVocabulary.Close.KEY, role = ThematicRole.Location.KEY)
+    public List<Frame> handleClose(Frame request) {
+        logger.debug("[Session {}] CLOSE frame received — body head={}",
+                iid(), request.body().headRef());
+        notifyViewStateListeners();
+        return List.of();
     }
 
-    /** Reset the {@code ITEM_VIEW} handler invocation counter — for test isolation. */
-    public static void resetItemViewHandlerInvocations() {
-        itemViewHandlerInvocations.set(0);
+    /**
+     * Fire each registered listener.  Exceptions are caught + logged so one
+     * misbehaving observer doesn't prevent the others from running.
+     */
+    private void notifyViewStateListeners() {
+        for (Runnable listener : viewStateListeners) {
+            try {
+                listener.run();
+            } catch (RuntimeException e) {
+                logger.warn("[Session {}] view-state listener threw: {}", iid(), e.toString(), e);
+            }
+        }
     }
 
     // TODO: workspace state (focus, subscriptions, view state)

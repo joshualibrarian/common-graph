@@ -215,13 +215,16 @@ public final class SeedProcessor {
                 bindings);
         librarian.persist(body);
 
-        // @Seed.RecordBinding fields — bindings that live on the manifest's
-        // signing record, not in the manifest body.  At seed time we have no
-        // signer for this vocabulary; the record is unsigned (trust by code
-        // provenance).  Only emit a record when there's something to put on it
-        // — items with no @Seed.RecordBinding fields keep the previous
-        // "manifest body, no record" shape.
+        // @Seed.RecordBinding fields + @Scene.* scene declarations — both
+        // produce bindings on the manifest's signing record, not in the
+        // manifest body.  At seed time we have no signer for this vocabulary;
+        // the record is unsigned (trust by code provenance).  Only emit a
+        // record when there's something to put on it — items with no
+        // record-level declarations keep the previous "manifest body, no
+        // record" shape.
         List<Binding> recordBindings = collectRecordBindings(cls);
+        recordBindings.addAll(
+                dev.everydaythings.graph.scene.SceneProcessor.sceneRecordBindingsFor(cls));
         if (!recordBindings.isEmpty()) {
             librarian.persist(Record.unsigned(
                     DatumRef.of(body.datumId()),

@@ -36,6 +36,114 @@ import static dev.everydaythings.graph.Seed.*;
 public final class SceneVocabulary {
 
     // ==================================================================================
+    // Record-binding roles — top-level scene declarations on an item's record.
+    // ==================================================================================
+
+    /**
+     * Scene — record-binding role naming a scene-tree {@link dev.everydaythings.graph.datum.Body Body}
+     * to apply to the item this record points to.  One Scene binding per
+     * record (the default presentation for instances of this archetype).
+     *
+     * <p>Resolved by {@link SceneCascade} walking the archetype chain looking
+     * for the first {@code Scene → <body>} record binding.  Per-instance
+     * overrides land on the instance's own record; the cascade short-circuits
+     * at the most-specific entry that declares it.
+     */
+    @Seed.Item(key = Scene.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Scene {
+        public static final String KEY = "cg.role:scene";
+        private Scene() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "record-binding role declaring the scene-tree to apply to the item this record points to";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "scene";
+    }
+
+    /**
+     * Style — record-binding role naming a single style declaration (a
+     * pattern + properties-to-apply) that the resolver merges onto matching
+     * scene nodes during the cascade.  Multiple Style bindings per record
+     * are supported (indexed for precedence when the matches overlap).
+     *
+     * <p>A style body has the {@link SceneStyle} archetype as its head, one
+     * {@link Pattern} binding whose target is a query body (the match
+     * pattern), and additional bindings that name the properties to apply.
+     */
+    @Seed.Item(key = Style.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Style {
+        public static final String KEY = "cg.role:style";
+        private Style() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "record-binding role declaring a style — a query pattern + the properties to apply to matches";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "style";
+    }
+
+    /**
+     * SceneStyle — the archetype for style bodies.  Distinct from the
+     * structural {@code SceneContainer}/{@code SceneText}/{@code SceneBody}
+     * archetypes: style bodies don't get rendered themselves; they describe
+     * what to apply to nodes that match their {@link Pattern} binding.
+     *
+     * <p>Style body shape:
+     * <pre>
+     * Body{
+     *   head:    SceneStyle
+     *   Pattern: Body{ head: ?SceneNode  ... match patterns ... }
+     *   &lt;property bindings to apply to matches&gt;
+     * }
+     * </pre>
+     */
+    @Seed.Item(key = SceneStyle.KEY)
+    public static final class SceneStyle {
+        public static final String KEY = "cg.archetype:scene-style";
+        private SceneStyle() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the archetype for style bodies — pattern + properties to apply to matching scene nodes";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "scene style";
+    }
+
+    /**
+     * Pattern — binding role on a {@link SceneStyle} body whose target is the
+     * query body to match against scene nodes.  Sibling property bindings
+     * on the same SceneStyle are the assertions applied to each match.
+     */
+    @Seed.Item(key = Pattern.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Pattern {
+        public static final String KEY = "cg.role:pattern";
+        private Pattern() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "binding role on a scene-style body holding the query pattern to match against scene nodes";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "pattern";
+    }
+
+    // ==================================================================================
     // Identity — selectors and identifiers for nodes.
     // ==================================================================================
 

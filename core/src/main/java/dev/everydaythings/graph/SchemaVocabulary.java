@@ -99,23 +99,27 @@ public final class SchemaVocabulary {
     }
 
     /**
-     * Retention — qualifier on CONFIG bindings declaring how the system should
-     * treat the frame for persistence.
+     * Retention — record-binding role declaring how the system should treat
+     * frames of the carrying body for persistence.
      *
-     * <p>Used as {@code CONFIG[RETENTION] → @Ephemeral} on predicate manifests
-     * to mark a predicate's frames as non-persisted (queries, transient UI
-     * events, scene updates, keystrokes, etc.). Absence of any RETENTION binding
-     * is the default — the frame is retained.
+     * <p>Used as {@code Retention → @Ephemeral} on predicate manifests'
+     * records to mark a predicate's frames as non-persisted (queries,
+     * transient UI events, scene updates, keystrokes, etc.).  Absence of any
+     * Retention binding is the default — the frame is retained.
+     *
+     * <p>(Earlier this was {@code CONFIG[Retention]} with Retention as a
+     * qualifier on a CONFIG-headed binding.  Direct-role is simpler: same
+     * data, one less wrapper.)
      */
     @Seed.Item(key = Retention.KEY)
     public static final class Retention {
-        public static final String KEY = "cg.qualifier:retention";
+        public static final String KEY = "cg.role:retention";
         private Retention() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
-                "qualifier on CONFIG bindings declaring the frame's persistence policy";
+                "record-binding role declaring a predicate's frame-persistence policy";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
@@ -123,39 +127,14 @@ public final class SchemaVocabulary {
     }
 
     /**
-     * Presentation — qualifier on CONFIG bindings declaring the item's
-     * default visual presentation.  The binding target is a scene tree
-     * (declared scene Datums, as a {@link dev.everydaythings.graph.scene.SceneNode SceneNode}
-     * value).
-     *
-     * <p>Used as {@code CONFIG[PRESENTATION] → <scene>} on an item's signing
-     * record.  Lives on the record (not the manifest body) so presentation
-     * isn't identity-bearing — different attestations of the same item can
-     * carry different default scenes without rotating its VID.
-     */
-    @Seed.Item(key = Presentation.KEY)
-    public static final class Presentation {
-        public static final String KEY = "cg.qualifier:presentation";
-        private Presentation() {}
-
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "qualifier on CONFIG record-bindings declaring an item's default visual scene";
-
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishNounLemma = "presentation";
-    }
-
-    /**
-     * Ephemeral — value sememe for CONFIG[RETENTION] indicating that frames of
+     * Ephemeral — value sememe for the {@code Retention} record binding,
+     * indicating that frames of
      * the marked predicate are not persisted by the librarian (no body or record
      * written to storage). Handlers still fire and response frames flow back to
      * the submitter; nothing is durably recorded.
      *
-     * <p>Used as the target of {@code CONFIG[RETENTION] → @Ephemeral} on a
-     * predicate's manifest body. Default retention (no binding) is durable.
+     * <p>Used as the target of {@code Retention → @Ephemeral} on a
+     * predicate's manifest record. Default retention (no binding) is durable.
      */
     @Seed.Item(key = Ephemeral.KEY)
     public static final class Ephemeral {

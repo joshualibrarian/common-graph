@@ -4,8 +4,8 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.scene.SceneNode;
-import dev.everydaythings.graph.scene.SceneText;
+import dev.everydaythings.graph.scene.Scene;
+import dev.everydaythings.graph.scene.SceneVocabulary;
 
 import static dev.everydaythings.graph.Seed.*;
 
@@ -109,31 +109,10 @@ public final class CoreVocabulary {
         static final String englishVerbLemma = "follow";
     }
 
-    /**
-     * Config — the binding head for configuration / policy / preference data
-     * carried alongside an item's substantive content.
-     *
-     * <p>Lives on manifest bodies (item-level config), frame body bindings
-     * (per-instance config), or record bindings (per-attestation config).
-     * The qualifier list narrows the config dimension (e.g.,
-     * {@code CONFIG[PRESENTATION]}, {@code CONFIG[REPLICATION]}).
-     */
-    @Seed.Item(key = Config.KEY)
-    public static final class Config {
-        public static final String KEY = "cg.structural:config";
-        private Config() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the binding head whose target is configuration, policy, or preference "
-                        + "data; qualifiers narrow the config dimension";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY,
-                  qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String[] englishNounLemmas = {"config", "configuration"};
-    }
+    // Note: the previous Config sememe (cg.structural:config) is retired.
+    // Configuration-style declarations now use direct binding roles whose
+    // sememe IS the dimension (Retention, Scene, Style, etc.) — no CONFIG
+    // wrapper.  See SchemaVocabulary.Retention and SceneVocabulary.Scene/Style.
 
     // ==================================================================================
     // Foundational predicates — declarative item-level metadata via endorsed frames
@@ -227,9 +206,11 @@ public final class CoreVocabulary {
          * tells you exactly which archetypes are missing declarations without
          * breaking the render path.
          */
-        @Seed.RecordBinding(role = Config.KEY,
-                            qualifiers = {SchemaVocabulary.Presentation.KEY})
-        static final SceneNode defaultScene = new SceneText("Common Graph item");
+        @Scene.Text
+        public static class DefaultScene {
+            @Scene.Property(role = SceneVocabulary.Text.KEY)
+            static String text = "Common Graph item";
+        }
 
         // The previous "universal item-hood rule" lived here as an endorsed
         // EXPECTS frame, claiming every instance must carry ITEM_ID.  That's

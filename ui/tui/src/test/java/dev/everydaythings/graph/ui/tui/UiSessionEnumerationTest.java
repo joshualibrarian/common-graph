@@ -22,10 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>The bootstrap frame written by {@link LocalSession#mint} carries
  * {@code Theme=sessionIid, Location=sessionIid}; the cascade for
- * {@code sessionIid} walks Session-archetype → Archetype and returns
- * Archetype's terminal placeholder scene.  After startUi, the surface
- * should hold exactly one window whose itemRef matches the session's iid
- * and whose scene supplier yields that placeholder body.
+ * {@code sessionIid} hits Session-archetype's own declared scene
+ * (CONFIG[Presentation] → SceneText("Common Graph session")) and stops.
+ * After startUi, the surface should hold exactly one window whose itemRef
+ * matches the session's iid and whose scene supplier yields that scene.
  */
 class UiSessionEnumerationTest {
 
@@ -64,10 +64,10 @@ class UiSessionEnumerationTest {
             Window window = session.attachedWindows().get(0);
             Body scene = window.sceneSupplier().get();
 
-            // Session has no own CONFIG[Presentation]; cascade falls through
-            // Session-archetype → Archetype → terminal SceneText.
+            // Session-archetype declares its own CONFIG[Presentation] — the
+            // cascade short-circuits there with the Session-specific scene.
             assertThat(scene.headRef())
-                    .as("Cascade falls through to Archetype's SceneText placeholder")
+                    .as("Cascade resolves to a SceneText body")
                     .isEqualTo(ItemRef.iid(SceneText.KEY));
         } finally {
             session.stopUi();

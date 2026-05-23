@@ -1,13 +1,16 @@
 package dev.everydaythings.graph.ui;
 
+import dev.everydaythings.graph.datum.Body;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.session.Session;
 import dev.everydaythings.graph.runtime.session.SessionVocabulary;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,11 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DisplayName("LocalSession.mint — session bootstrap at mint time")
 class LocalSessionMintTest {
-
-    @BeforeEach
-    void resetCounter() {
-        Session.resetItemViewHandlerInvocations();
-    }
 
     @Test
     @DisplayName("mint registers the session in the librarian cache")
@@ -39,20 +37,22 @@ class LocalSessionMintTest {
     }
 
     @Test
-    @DisplayName("mint publishes a bootstrap ITEM_VIEW frame routed to the Session handler")
+    @DisplayName("mint publishes an ITEM_VIEW(self) bootstrap frame to the index")
     void mintPublishesBootstrapItemView() {
         Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
         lib.bootstrap();
 
-        long before = Session.itemViewHandlerInvocations();
-        LocalSession.mint(lib);
-        long after = Session.itemViewHandlerInvocations();
+        LocalSession session = LocalSession.mint(lib);
 
-        // assembleFrame persists then dispatches; if the handler counter
-        // moved, the bootstrap ITEM_VIEW was both persisted and routed.
-        assertThat(after - before)
-                .as("mint should publish exactly one ITEM_VIEW(self) bootstrap frame")
-                .isEqualTo(1);
+        // The bootstrap frame is addressed to the session via Location =
+        // sessionIid.  Query the index for bodies referencing the session
+        // through Location and confirm one of them has the ITEM_VIEW head.
+        List<Body> located = lib.bodiesByReferenceBinding(
+                ItemRef.iid(ThematicRole.Location.KEY), session.iid());
+        ItemRef itemViewHead = ItemRef.iid(SessionVocabulary.ItemView.KEY);
+        assertThat(located)
+                .as("Library should index at least one ITEM_VIEW body for the session")
+                .anyMatch(body -> itemViewHead.equals(body.headRef()));
     }
 
     @Test

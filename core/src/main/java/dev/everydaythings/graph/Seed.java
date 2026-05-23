@@ -452,14 +452,13 @@ public class Seed {
      * and carries the same record-binding shape.
      *
      * <pre>{@code
-     * @Seed.RecordBinding(role = CoreVocabulary.Config.KEY,
-     *                     qualifiers = {SchemaVocabulary.Retention.KEY})
+     * @Seed.RecordBinding(role = SchemaVocabulary.Retention.KEY)
      * static final ItemRef retention = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
-     *
-     * @Seed.RecordBinding(role = CoreVocabulary.Config.KEY,
-     *                     qualifiers = {SchemaVocabulary.Presentation.KEY})
-     * static final SceneNode defaultScene = new SceneText("Common Graph item");
      * }</pre>
+     *
+     * <p>(Scene declarations use the dedicated {@code @Scene.*} annotations
+     * rather than {@code @Seed.RecordBinding} directly — see
+     * {@link dev.everydaythings.graph.scene.Scene Scene}.)
      */
     @Target(ElementType.FIELD)
     @Retention(RetentionPolicy.RUNTIME)

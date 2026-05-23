@@ -1464,12 +1464,11 @@ public class Librarian extends Signer {
     private boolean hasEphemeralRetention(Item predicate) {
         Manifest manifest = predicate.current();
         if (manifest == null) return false;
-        CompoundKey configRetention = CompoundKey.of(
-                ItemRef.iid(CoreVocabulary.Config.KEY),
-                new CompoundKey.Sememe(ItemRef.iid(SchemaVocabulary.Retention.KEY)));
+        CompoundKey retentionRole = CompoundKey.of(
+                ItemRef.iid(SchemaVocabulary.Retention.KEY));
         ItemRef ephemeral = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
         for (Record record : manifest.records()) {
-            for (Binding b : record.bindings(configRetention)) {
+            for (Binding b : record.bindings(retentionRole)) {
                 if (b.target() instanceof ItemRef ir
                         && !ir.isPinned()
                         && ephemeral.equals(ir)) {

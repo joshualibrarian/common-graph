@@ -58,12 +58,6 @@ public final class Manifest extends AttributedBody {
     /** ItemRef of the structural ENDORSES sememe. */
     public static final ItemRef ENDORSES = ItemRef.iid(CoreVocabulary.Endorses.KEY);
 
-    /** Canonical key for the CONFIG structural sememe. */
-    public static final String CONFIG_KEY = CoreVocabulary.Config.KEY;
-
-    /** ItemRef of the structural CONFIG sememe. */
-    public static final ItemRef CONFIG = ItemRef.iid(CoreVocabulary.Config.KEY);
-
     /** Canonical key for the HANDLES sememe — used as a binding role on
      *  archetype manifests to declare which predicates the archetype receives. */
     public static final String HANDLES_KEY = CoreVocabulary.Handles.KEY;

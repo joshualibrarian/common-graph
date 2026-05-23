@@ -8,10 +8,14 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.session.Session;
 import dev.everydaythings.graph.runtime.session.SessionVocabulary;
+import dev.everydaythings.graph.scene.ContextChain;
 import dev.everydaythings.graph.scene.SceneCascade;
+import dev.everydaythings.graph.scene.SceneResolver;
 import lombok.extern.log4j.Log4j2;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -50,6 +54,7 @@ public abstract class UiSession extends Session {
 
     private final Object surfaceLock = new Object();
     private Surface surface;
+    private Runnable viewStateListener;
 
     protected UiSession(ItemRef iid, Librarian librarian) {
         super(iid, librarian);
@@ -77,17 +82,42 @@ public abstract class UiSession extends Session {
             surface = SurfaceRegistry.require(uiMode, this);
             surface.open();
             enumerateItemViewWindows(surface);
+            // Subscribe to view-state changes so subsequent ITEM_VIEW frames
+            // (added/closed/repositioned) reconcile the surface's window list
+            // automatically.  stopUi removes this listener.
+            viewStateListener = this::reconcileWindows;
+            addViewStateListener(viewStateListener);
             logger.info("{} UI started ({} surface)", getClass().getSimpleName(), uiMode);
         }
+    }
+
+    /**
+     * Re-walk the librarian's ITEM_VIEW frames and reconcile the surface's
+     * window list against them.  Called by the view-state listener when
+     * {@link Session#handleItemView} fires.  Clears the surface's current
+     * windows, then re-enumerates from the index — the Library is the source
+     * of truth, so we don't track diffs; we just rebuild the projection.
+     *
+     * <p>O(N) in the number of ITEM_VIEW frames per reconciliation.  For
+     * small workspaces this is cheap; if it becomes a bottleneck, a diff-based
+     * reconciler can replace it without changing the listener contract.
+     */
+    private void reconcileWindows() {
+        Surface s;
+        synchronized (surfaceLock) { s = surface; }
+        if (s == null || !s.isOpen()) return;
+        for (Window existing : s.windows()) {
+            s.removeWindow(existing);
+        }
+        enumerateItemViewWindows(s);
     }
 
     /**
      * Walk the librarian for {@code ITEM_VIEW} frames addressed to this
      * session, build a {@link Window} from each, and attach it to
      * {@code surface}.  Called once at {@link #startUi} after the surface
-     * opens; lives outside the dispatch path so initial-render is driven by
-     * the declarative ITEM_VIEW state, not by manual {@code addWindow}
-     * calls.
+     * opens, and again from {@link #reconcileWindows} on each view-state
+     * notification.
      *
      * <p>Each Window's scene supplier captures the Theme iid and calls
      * {@link SceneCascade#sceneFor} on the live librarian, so re-renders
@@ -102,17 +132,33 @@ public abstract class UiSession extends Session {
         ItemRef locationRole = ItemRef.iid(ThematicRole.Location.KEY);
         ItemRef themeRole = ItemRef.iid(ThematicRole.Theme.KEY);
         ItemRef itemViewHead = ItemRef.iid(SessionVocabulary.ItemView.KEY);
+        ItemRef closeHead = ItemRef.iid(SessionVocabulary.Close.KEY);
+
+        // The Library is the source of truth; we derive "open views" =
+        // ITEM_VIEW frames addressed to this session, minus any whose Theme
+        // has been CLOSEd.  One reverse-lookup pulls both predicates
+        // (everything with Location → sessionIid); we partition by head.
+        Set<ItemRef> closedThemes = new HashSet<>();
+        java.util.List<Body> itemViews = new java.util.ArrayList<>();
+        for (Body body : lib.bodiesByReferenceBinding(locationRole, sessionIid)) {
+            ItemRef head = body.headRef();
+            if (itemViewHead.equals(head)) {
+                itemViews.add(body);
+            } else if (closeHead.equals(head)) {
+                readReferenceTarget(body, themeRole).ifPresent(closedThemes::add);
+            }
+        }
 
         int attached = 0;
-        for (Body body : lib.bodiesByReferenceBinding(locationRole, sessionIid)) {
-            if (!itemViewHead.equals(body.headRef())) continue;
-            ItemRef theme = body.binding(CompoundKey.of(themeRole))
-                    .map(Binding::target)
-                    .filter(t -> t instanceof ItemRef)
-                    .map(t -> (ItemRef) t)
-                    .orElse(null);
+        for (Body body : itemViews) {
+            ItemRef theme = readReferenceTarget(body, themeRole).orElse(null);
             if (theme == null) continue;
-            Supplier<Body> sceneSupplier = () -> SceneCascade.sceneFor(theme, lib);
+            if (closedThemes.contains(theme)) continue;
+            Supplier<Body> sceneSupplier = () -> {
+                Body declared = SceneCascade.sceneFor(theme, lib);
+                ContextChain chain = contextChainFor(theme);
+                return SceneResolver.resolve(declared, chain);
+            };
             intoSurface.addWindow(Window.fromBody(body, sceneSupplier));
             attached++;
         }
@@ -120,6 +166,39 @@ public abstract class UiSession extends Session {
             logger.info("Attached {} window(s) from ITEM_VIEW frames addressed to {}",
                     attached, sessionIid.encodeText());
         }
+    }
+
+    /**
+     * Build the context chain a {@link SceneResolver} consults when resolving
+     * a Window's scene for the item at {@code contextItemIid}.
+     *
+     * <p>Chain order is most-specific first: the context item, then this
+     * session, then the librarian.  User-level variables (when actor/user
+     * machinery lands) slot between context-item and session.  Missing
+     * entries (e.g., the context item isn't locally materialized) drop out
+     * of the chain via {@link ContextChain}'s null-filtering.
+     */
+    private ContextChain contextChainFor(ItemRef contextItemIid) {
+        Librarian lib = librarian();
+        dev.everydaythings.graph.item.Item contextItem = lib != null
+                ? lib.fetchItem(contextItemIid).orElse(null)
+                : null;
+        return new ContextChain(java.util.Arrays.asList(
+                contextItem,    // most-specific
+                this,           // session
+                lib));          // librarian
+    }
+
+    /**
+     * Read a binding's reference target as an {@link ItemRef} from
+     * {@code body}'s simple-key (no qualifiers) binding for {@code role}.
+     * Empty when missing or the target is not a reference.
+     */
+    private static java.util.Optional<ItemRef> readReferenceTarget(Body body, ItemRef role) {
+        return body.binding(CompoundKey.of(role))
+                .map(Binding::target)
+                .filter(t -> t instanceof ItemRef)
+                .map(t -> (ItemRef) t);
     }
 
     /**
@@ -162,14 +241,21 @@ public abstract class UiSession extends Session {
     }
 
     /**
-     * Stop the UI: close the surface, release its OS resource.
-     * Idempotent.  Safe to call before {@link #startUi} too (no-op).
+     * Stop the UI: unsubscribe from session view-state notifications, close
+     * the surface, release its OS resource.  Idempotent.  Safe to call before
+     * {@link #startUi} too (no-op).
      */
     public final void stopUi() {
         Surface toClose;
+        Runnable listenerToRemove;
         synchronized (surfaceLock) {
             toClose = surface;
+            listenerToRemove = viewStateListener;
             surface = null;
+            viewStateListener = null;
+        }
+        if (listenerToRemove != null) {
+            removeViewStateListener(listenerToRemove);
         }
         if (toClose != null) {
             toClose.close();

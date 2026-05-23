@@ -1,15 +1,9 @@
 package dev.everydaythings.graph.ui;
 
-import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.session.Session;
-import dev.everydaythings.graph.runtime.session.SessionVocabulary;
 import lombok.extern.log4j.Log4j2;
-
-import java.util.List;
 
 /**
  * The in-VM client embodiment of a {@link Session}.
@@ -77,12 +71,8 @@ public class LocalSession extends UiSession {
         LocalSession session = new LocalSession(sessionIid, librarian);
         librarian.register(session);
 
-        Body bootstrapView = Body.of(
-                ItemRef.iid(SessionVocabulary.ItemView.KEY),
-                List.of(
-                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), sessionIid),
-                        Binding.ref(ItemRef.iid(ThematicRole.Location.KEY), sessionIid)));
-        librarian.assembleFrame(bootstrapView, librarian);
+        // The bootstrap view is the session viewing itself.
+        session.openView(sessionIid);
 
         return session;
     }
