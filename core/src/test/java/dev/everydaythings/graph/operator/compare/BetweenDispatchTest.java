@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.operator.compare;
 
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Item;
@@ -7,8 +8,11 @@ import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.SubmitResult;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
+import dev.everydaythings.graph.value.Bool;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,18 +28,21 @@ import static org.assertj.core.api.Assertions.assertThat;
  *       {@code IMPLEMENTS → @between}, finds the Between Java instance,
  *       hands the frame to {@link ItemStage#deliver} which calls
  *       {@code receive(frame)} on the instance.</li>
- *   <li>Between's {@code receive} extracts the operands and returns a Boolean.</li>
+ *   <li>Operator.receive wraps the Boolean primitive into a value-body
+ *       Frame ({@code Body{ head=Bool, atomicContent=true|false }}) so
+ *       dispatch can propagate it as a response.</li>
  * </ol>
  *
  * <p>This proves the full IMPLEMENTS-based dispatch path, the universal
- * {@code Item.receive(Frame)} contract, and the Stage delivery primitive
- * work together.  Polyglot dispatch (a Python implementation of BETWEEN
- * routed through the same path) is the next chunk.
+ * {@code Item.receive(Frame)} contract, the value-body return convention,
+ * and the Stage delivery primitive work together.
  */
 class BetweenDispatchTest {
 
+    private static final ItemRef BOOL_ARCHETYPE = ItemRef.iid(Bool.KEY);
+
     @Test
-    @DisplayName("Between.receive(frame) returns true when THEME lies in [SOURCE, GOAL]")
+    @DisplayName("Between.receive wraps true in a Bool value-body when THEME lies in [SOURCE, GOAL]")
     void receiveInRange() {
         Librarian librarian = Librarian.ephemeral(ItemStage.javaOnly());
         librarian.bootstrap();
@@ -49,12 +56,13 @@ class BetweenDispatchTest {
                 .with(ItemRef.iid(ThematicRole.Theme.KEY), 128L)
                 .build();
 
-        Object result = librarian.stage().deliver(between, frame);
-        assertThat(result).isEqualTo(true);
+        Body valueBody = singleValueBody(librarian.stage().deliver(between, frame));
+        assertThat(valueBody.headRef()).isEqualTo(BOOL_ARCHETYPE);
+        assertThat(valueBody.atomicContent()).contains(true);
     }
 
     @Test
-    @DisplayName("Between.receive(frame) returns false when THEME is outside [SOURCE, GOAL]")
+    @DisplayName("Between.receive wraps false in a Bool value-body when THEME is outside [SOURCE, GOAL]")
     void receiveOutOfRange() {
         Librarian librarian = Librarian.ephemeral(ItemStage.javaOnly());
         librarian.bootstrap();
@@ -67,12 +75,13 @@ class BetweenDispatchTest {
                 .with(ItemRef.iid(ThematicRole.Theme.KEY), 200L)
                 .build();
 
-        Object result = librarian.stage().deliver(between, frame);
-        assertThat(result).isEqualTo(false);
+        Body valueBody = singleValueBody(librarian.stage().deliver(between, frame));
+        assertThat(valueBody.headRef()).isEqualTo(BOOL_ARCHETYPE);
+        assertThat(valueBody.atomicContent()).contains(false);
     }
 
     @Test
-    @DisplayName("Librarian.submit dispatches a BETWEEN frame via IMPLEMENTS reverse-lookup without error")
+    @DisplayName("Librarian.submit dispatches a BETWEEN frame and surfaces the value-body response")
     void submitDispatchesViaImplements() {
         Librarian librarian = Librarian.ephemeral(ItemStage.javaOnly());
         librarian.bootstrap();
@@ -83,18 +92,18 @@ class BetweenDispatchTest {
                 .with(ItemRef.iid(ThematicRole.Theme.KEY), 128L)
                 .build();
 
-        // Submit goes through the IMPLEMENTS-based dispatch path; the Boolean
-        // result Between.receive returns isn't wrapped as a Frame, so the
-        // response list is empty.  What matters here is that dispatch found
-        // the right code item via IMPLEMENTS and called it without throwing —
-        // proving the universal-dispatch pipeline is live.
         SubmitResult result = librarian.submit(frame);
         assertThat(result.submitted()).isSameAs(frame);
-        assertThat(result.responses()).isEmpty();
+        assertThat(result.responses())
+                .as("Submit should surface the Bool value-body response from Between")
+                .hasSize(1);
+        Body valueBody = result.responses().get(0).body();
+        assertThat(valueBody.headRef()).isEqualTo(BOOL_ARCHETYPE);
+        assertThat(valueBody.atomicContent()).contains(true);
     }
 
     @Test
-    @DisplayName("Between.receive returns null when an operand binding is absent (partial application)")
+    @DisplayName("Between.receive returns an empty response list when an operand binding is absent (partial application)")
     void receivePartial() {
         Librarian librarian = Librarian.ephemeral(ItemStage.javaOnly());
         librarian.bootstrap();
@@ -108,6 +117,17 @@ class BetweenDispatchTest {
                 .build();
 
         Object result = librarian.stage().deliver(between, frame);
-        assertThat(result).isNull();
+        assertThat(result)
+                .as("Partial-application returns an empty list (nothing to substitute)")
+                .isEqualTo(List.of());
+    }
+
+    /** Extract the single value-body Frame from a List<Frame> return; fail clearly otherwise. */
+    @SuppressWarnings("unchecked")
+    private static Body singleValueBody(Object deliveryResult) {
+        assertThat(deliveryResult).isInstanceOf(List.class);
+        List<Frame> frames = (List<Frame>) deliveryResult;
+        assertThat(frames).hasSize(1);
+        return frames.get(0).body();
     }
 }

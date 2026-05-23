@@ -47,11 +47,22 @@ class SceneCascadeTest {
 
         Body scene = SceneCascade.sceneFor(ItemRef.iid(Session.KEY), lib);
 
-        // Session declares CONFIG[Presentation] → SceneText("Common Graph session")
-        // on its own record, so the walk stops there rather than climbing
-        // up to Archetype's "Common Graph item" terminal.
+        // Session declares its own scene on its archetype's record, so the
+        // walk stops there rather than climbing up to Archetype's terminal.
+        // The Text binding's target is a TypeRef (?-mode variable ref); the
+        // resolver substitutes the actual string at render time — the cascade
+        // returns the DECLARED form, with the unresolved variable in place.
         assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneText.KEY));
-        assertThat(readText(scene)).contains("Common Graph session");
+        assertThat(textTarget(scene))
+                .as("Session's scene references the greeting variable via a ?-mode TypeRef")
+                .isInstanceOf(dev.everydaythings.graph.ref.TypeRef.class);
+    }
+
+    /** Read SceneText's Text binding target as-is (could be String, TypeRef, etc.). */
+    private static Object textTarget(Body sceneTextBody) {
+        return sceneTextBody.binding(CompoundKey.of(ItemRef.iid(SceneVocabulary.Text.KEY)))
+                .map(Binding::target)
+                .orElseThrow();
     }
 
     @Test

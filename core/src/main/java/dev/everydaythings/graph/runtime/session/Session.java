@@ -7,6 +7,7 @@ import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.scene.Scene;
 import dev.everydaythings.graph.scene.SceneVocabulary;
@@ -88,20 +89,40 @@ public class Session extends Item {
     /** IID of the CodeItem for the server-side Java embodiment. */
     public static final ItemRef CODE_IID = ItemRef.fromString(CODE_KEY);
 
+    /** Canonical key for the session-greeting variable — the title displayed for a session window. */
+    private static final String GREETING_KEY = "cg.var:session-greeting";
+
+    /**
+     * Greeting text bound on the Session archetype's record.  The default
+     * scene below references this via a {@code ?}-mode TypeRef target;
+     * the resolver looks up the variable on the context chain (which walks
+     * the archetype chain), finds this binding here, and substitutes the
+     * string into the rendered scene.
+     *
+     * <p>This is the simplest possible end-to-end variable demonstration:
+     * one literal string on the archetype's record; one ?-ref in the scene.
+     * Per-session-instance overrides on the instance's record would
+     * short-circuit the cascade and supersede this default.
+     */
+    @Seed.RecordBinding(role = GREETING_KEY)
+    static final String greeting = "Common Graph session";
+
     /**
      * Default scene for Session instances.  Declared on Session-the-archetype's
      * record so that {@link dev.everydaythings.graph.scene.SceneCascade SceneCascade}
      * picks it up for any session-instance whose chain reaches here.
      * Per-instance overrides on a session item's own record would supersede.
      *
-     * <p>Placeholder text for now; eventually replaced by a workspace scene
-     * (chrome + per-window content) once Variable resolution + composite
-     * scene support land.
+     * <p>References the {@link #greeting} variable via a {@code ?}-mode
+     * TypeRef target on the Text binding — exercises the SceneResolver's
+     * variable-substitution path end-to-end.  Eventually replaced by a
+     * workspace scene (chrome + per-window content) once composite scene
+     * support lands.
      */
     @Scene.Text
     public static class DefaultScene {
         @Scene.Property(role = SceneVocabulary.Text.KEY)
-        static String text = "Common Graph session";
+        static TypeRef text = TypeRef.iid(GREETING_KEY);
     }
 
     @Override

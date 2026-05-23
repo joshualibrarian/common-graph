@@ -3,9 +3,12 @@ package dev.everydaythings.graph.scene;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.DatumNode;
+import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.TypeRef;
+import dev.everydaythings.graph.runtime.SubmitResult;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -73,7 +76,12 @@ public final class SceneResolver {
             if (resolved.isEmpty()) return binding;
             Object newTarget = resolved.get();
             if (newTarget instanceof Body subBody) {
-                newTarget = substituteVariables(subBody, chain);
+                // The bound target is a Body — first recursively substitute
+                // any nested ?-mode refs, then try evaluating it as an
+                // operator frame (if dispatch produces a value-body response,
+                // unwrap to the primitive atomic content).
+                Body recursed = substituteVariables(subBody, chain);
+                newTarget = tryEvaluateAsOperator(recursed, chain).orElse(recursed);
             }
             return new Binding(binding.key(), newTarget, binding.index());
         }
@@ -83,6 +91,47 @@ public final class SceneResolver {
             return new Binding(binding.key(), resolvedSub, binding.index());
         }
         return binding;
+    }
+
+    /**
+     * Try to dispatch {@code body} as an operator frame.  If dispatch returns
+     * a value-body response (the convention from {@link
+     * dev.everydaythings.graph.operator.Operator Operator}), unwrap to its
+     * atomic content (the actual primitive value).  Returns empty when
+     * dispatch produces no response (body isn't dispatchable, or operator
+     * partial-applied) — caller falls back to using the body literally.
+     *
+     * <p>Skips bodies whose head is itself in {@code ?}-mode (queries) or
+     * whose head is a known scene-structure archetype (Container / Text /
+     * Body / SceneStyle / TypeRef heads) — those aren't operators and
+     * shouldn't trigger dispatch.
+     */
+    private static Optional<Object> tryEvaluateAsOperator(Body body, ContextChain chain) {
+        if (!(body.head() instanceof ItemRef)) return Optional.empty();
+        if (isStructuralSceneBody(body.headRef())) return Optional.empty();
+
+        Librarian lib = chain.librarian().orElse(null);
+        if (lib == null) return Optional.empty();
+
+        SubmitResult result = lib.submit(Frame.of(body, List.of()));
+        List<Frame> responses = result.responses();
+        if (responses.isEmpty()) return Optional.empty();
+
+        // Convention: operator responses are value-bodies (head names the
+        // result-archetype, atomic content carries the primitive).  Return
+        // the atomic content if present; otherwise the whole body.
+        Body responseBody = responses.get(0).body();
+        if (responseBody.isAtomic()) {
+            return responseBody.atomicContent();
+        }
+        return Optional.of(responseBody);
+    }
+
+    private static boolean isStructuralSceneBody(ItemRef headIid) {
+        return ItemRef.iid(SceneContainer.KEY).equals(headIid)
+                || ItemRef.iid(SceneText.KEY).equals(headIid)
+                || ItemRef.iid(SceneBody.KEY).equals(headIid)
+                || ItemRef.iid(SceneVocabulary.SceneStyle.KEY).equals(headIid);
     }
 
     // ==================================================================================

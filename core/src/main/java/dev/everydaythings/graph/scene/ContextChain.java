@@ -7,6 +7,7 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.runtime.librarian.Librarian;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,47 +72,123 @@ public final class ContextChain {
 
     /**
      * Walk the chain looking for a record binding whose compound key
-     * (role + qualifiers) matches {@code key}.  Returns the binding's target
-     * on the first match.
+     * (role + qualifiers) matches {@code key}.  For each chain entry, also
+     * walks its archetype chain (via {@code manifest.body().head()} upward)
+     * so archetype-declared bindings reach instance-level lookups.  Returns
+     * the binding's target on the first match anywhere.
      */
     public Optional<Object> lookupByCompoundKey(CompoundKey key) {
         Objects.requireNonNull(key, "key");
         for (Item item : entries) {
-            Manifest manifest = item.current();
-            if (manifest == null) continue;
-            for (Record record : manifest.records()) {
-                Optional<Binding> hit = record.binding(key);
-                if (hit.isPresent()) {
-                    return Optional.ofNullable(hit.get().target());
+            Librarian lib = item.librarian();
+            Optional<Object> hit = walkArchetypeChainForBinding(item, lib, key);
+            if (hit.isPresent()) return hit;
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Walk an item's manifest record bindings, then its archetype's, then
+     * its archetype's archetype's, etc., looking for a binding matching
+     * {@code key}.  Same walk as {@code SceneCascade.sceneFor} — same
+     * archetype-chain semantics, applied to a different role.
+     */
+    private static Optional<Object> walkArchetypeChainForBinding(
+            Item start, Librarian lib, CompoundKey key) {
+        Item current = start;
+        ItemRef currentIid = start.iid();
+        java.util.Set<ItemRef> visited = new java.util.HashSet<>();
+        while (current != null && currentIid != null && visited.add(currentIid)) {
+            Manifest manifest = current.current();
+            if (manifest != null) {
+                for (Record record : manifest.records()) {
+                    Optional<Binding> hit = record.binding(key);
+                    if (hit.isPresent()) {
+                        return Optional.ofNullable(hit.get().target());
+                    }
                 }
+                ItemRef nextHead = manifest.body().headRef();
+                if (nextHead == null || nextHead.equals(currentIid)) break;
+                currentIid = nextHead;
+                current = lib != null ? lib.fetchItem(currentIid).orElse(null) : null;
+            } else {
+                // No manifest on this instance — fall to its archetype via the
+                // Java archetype() override (mirrors what body.head() would be).
+                ItemRef archetype = current.archetype();
+                if (archetype == null || archetype.equals(currentIid)) break;
+                currentIid = archetype;
+                current = lib != null ? lib.fetchItem(currentIid).orElse(null) : null;
             }
         }
         return Optional.empty();
     }
 
     /**
+     * The first {@link Librarian} reachable through any chain entry.
+     * Used by the resolver to dispatch operator-frame targets during
+     * resolution.  Empty when no chain entry has a librarian (shouldn't
+     * happen in real usage — the chain always includes the librarian — but
+     * keeps the API honest for unit-test contexts).
+     */
+    public Optional<Librarian> librarian() {
+        for (Item item : entries) {
+            Librarian lib = item.librarian();
+            if (lib != null) return Optional.of(lib);
+        }
+        return Optional.empty();
+    }
+
+    /**
      * Collect every {@link SceneVocabulary.Style Style} record binding seen
-     * along the chain.  Returns the targets (the style bodies themselves), in
-     * chain-order (most-specific first) and within each entry, in their
-     * binding-index order.  The resolver uses this list to apply cascading
-     * style rules to the scene tree.
+     * along the chain.  For each chain entry, walks its archetype chain
+     * collecting Style bindings at every level.  Returns the targets (the
+     * style bodies themselves), in chain-order (most-specific first), then
+     * within each entry / archetype-level, in binding-index order.  The
+     * resolver uses this list to apply cascading style rules to the scene
+     * tree.
      */
     public List<Body> collectStyles() {
         CompoundKey styleKey = CompoundKey.of(ItemRef.iid(SceneVocabulary.Style.KEY));
         List<Body> out = new ArrayList<>();
         for (Item item : entries) {
-            Manifest manifest = item.current();
-            if (manifest == null) continue;
-            for (Record record : manifest.records()) {
-                List<Binding> matches = new ArrayList<>(record.bindings(styleKey));
-                matches.sort((a, b) -> Long.compare(
-                        a.index() == null ? 0L : a.index(),
-                        b.index() == null ? 0L : b.index()));
-                for (Binding b : matches) {
-                    if (b.target() instanceof Body body) out.add(body);
-                }
-            }
+            collectStylesAlongArchetypeChain(item, item.librarian(), styleKey, out);
         }
         return out;
+    }
+
+    /**
+     * Walk an item's archetype chain (same head-walk as
+     * {@link #walkArchetypeChainForBinding}), accumulating every Style
+     * binding seen at each level, in declaration-index order within each
+     * level.
+     */
+    private static void collectStylesAlongArchetypeChain(
+            Item start, Librarian lib, CompoundKey styleKey, List<Body> out) {
+        Item current = start;
+        ItemRef currentIid = start.iid();
+        java.util.Set<ItemRef> visited = new java.util.HashSet<>();
+        while (current != null && currentIid != null && visited.add(currentIid)) {
+            Manifest manifest = current.current();
+            if (manifest != null) {
+                for (Record record : manifest.records()) {
+                    List<Binding> matches = new ArrayList<>(record.bindings(styleKey));
+                    matches.sort((a, b) -> Long.compare(
+                            a.index() == null ? 0L : a.index(),
+                            b.index() == null ? 0L : b.index()));
+                    for (Binding b : matches) {
+                        if (b.target() instanceof Body body) out.add(body);
+                    }
+                }
+                ItemRef nextHead = manifest.body().headRef();
+                if (nextHead == null || nextHead.equals(currentIid)) break;
+                currentIid = nextHead;
+                current = lib != null ? lib.fetchItem(currentIid).orElse(null) : null;
+            } else {
+                ItemRef archetype = current.archetype();
+                if (archetype == null || archetype.equals(currentIid)) break;
+                currentIid = archetype;
+                current = lib != null ? lib.fetchItem(currentIid).orElse(null) : null;
+            }
+        }
     }
 }

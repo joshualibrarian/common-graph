@@ -4,6 +4,7 @@ package dev.everydaythings.graph.operator;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.GrammaticalFeature;
@@ -16,6 +17,10 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.ParseContext;
+import dev.everydaythings.graph.value.Bool;
+import dev.everydaythings.graph.value.Numeric;
+
+import java.util.List;
 
 /**
  * Abstract base for notation-bearing predicates that evaluate to a value.
@@ -67,11 +72,45 @@ public abstract class Operator extends Item {
 
     /**
      * Universal handler entrypoint for operators.  Final — routes to
-     * {@link #evaluate(Frame)}.  Subclasses override evaluate, not this.
+     * {@link #evaluate(Frame)} and wraps the primitive result in a
+     * value-body Frame so dispatch can propagate the answer back to callers.
+     *
+     * <p>The wrapping convention (agreed 2026-05-23): the response is a Frame
+     * with a single atomic Body whose head names the result-archetype
+     * ({@link Numeric}, {@link Bool}, …) and whose atomic content carries
+     * the primitive.  Receivers inspect the head to know the type, read
+     * {@code body.atomicContent()} for the value.  Returning null (partial
+     * application) yields an empty response list — nothing to substitute.
+     *
+     * <p>Subclasses override {@link #evaluate(Frame)} with the math; they
+     * keep returning primitives ({@link Number}, {@link Boolean}, ...) and
+     * never touch the wrapping convention.
      */
     @Override
     public final Object receive(Frame frame) {
-        return evaluate(frame);
+        Object result = evaluate(frame);
+        if (result == null) return List.of();
+        return List.of(wrapResult(result));
+    }
+
+    /**
+     * Wrap a primitive result into a value-body Frame.  Unsupported types
+     * trigger an explicit exception rather than silent drop — surfaces gaps
+     * in the value-archetype coverage.
+     */
+    private static Frame wrapResult(Object result) {
+        Body valueBody;
+        if (result instanceof Number) {
+            valueBody = Body.ofAtomic(ItemRef.iid(Numeric.KEY), result);
+        } else if (result instanceof Boolean) {
+            valueBody = Body.ofAtomic(ItemRef.iid(Bool.KEY), result);
+        } else {
+            throw new IllegalStateException(
+                    "Operator returned unsupported result type "
+                            + result.getClass().getName()
+                            + " — extend Operator.wrapResult to cover it.");
+        }
+        return Frame.of(valueBody, List.of());
     }
 
     /**

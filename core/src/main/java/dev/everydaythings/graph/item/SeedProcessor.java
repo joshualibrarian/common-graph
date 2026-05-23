@@ -188,6 +188,13 @@ public final class SeedProcessor {
             validateRuntimeClass(cls, "@Embodies");
             bindings.add(Manifest.implementation(cls));
             bindings.add(Manifest.implementsArchetype(ItemRef.fromString(seedItem.key())));
+            // Self-handling: a single-level Embodies asserts "this archetype IS
+            // its own runtime form" — meaning this predicate handles itself
+            // (the operator pattern: ADD handles ADD, Between handles Between).
+            // Write HANDLES → self so the two-hop dispatch (HANDLES-archetype
+            // → IMPLEMENTS-code-item) finds this code-item when frames headed
+            // by the predicate arrive.
+            bindings.add(Manifest.handles(ItemRef.fromString(seedItem.key())));
         }
 
         for (DatumRef frameCid : buildEndorsedFrames(librarian, cls)) {
@@ -294,13 +301,24 @@ public final class SeedProcessor {
                     ? Binding.ref(role, ref)
                     : Binding.qualified(role, qualifiers, ref);
         }
+        if (fieldValue instanceof dev.everydaythings.graph.ref.TypeRef tref) {
+            return qualifiers.isEmpty()
+                    ? Binding.ref(role, tref)
+                    : Binding.qualified(role, qualifiers, tref);
+        }
         if (fieldValue instanceof Value v) {
             return Binding.qualified(role, qualifiers, v);
         }
+        if (fieldValue instanceof String s) {
+            return Binding.literal(role, s);
+        }
+        if (fieldValue instanceof Long || fieldValue instanceof Integer
+                || fieldValue instanceof Boolean || fieldValue instanceof byte[]) {
+            return Binding.literal(role, fieldValue);
+        }
         throw new IllegalStateException(
                 "Unsupported @Seed.RecordBinding field type at " + context
-                        + ": " + fieldValue.getClass().getName()
-                        + " — supported: ItemRef, Value subclasses");
+                        + ": " + fieldValue.getClass().getName());
     }
 
     /**

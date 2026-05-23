@@ -6,6 +6,7 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
@@ -200,6 +201,74 @@ class SceneResolverTest {
             assertThat(resolved.binding(CompoundKey.of(TEXT_ROLE)).orElseThrow().target())
                     .as("Literal ItemRef target survives resolution unchanged")
                     .isEqualTo(literalTarget);
+        }
+    }
+
+    @Nested
+    @DisplayName("Operator dispatch")
+    class OperatorDispatch {
+
+        @Test
+        @DisplayName("?-mode target resolving to an operator frame dispatches and substitutes the result")
+        void operatorFrameResolves() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            // Variable target: a Between frame (true when 128 is in [0, 255]).
+            ItemRef variableRole = ItemRef.iid("cg.test:in-range");
+            Body betweenFrame = Body.of(
+                    ItemRef.iid(dev.everydaythings.graph.operator.compare.Between.KEY),
+                    List.of(
+                            Binding.literal(ItemRef.iid(ThematicRole.Source.KEY), 0L),
+                            Binding.literal(ItemRef.iid(ThematicRole.Goal.KEY), 255L),
+                            Binding.literal(ItemRef.iid(ThematicRole.Theme.KEY), 128L)));
+
+            Item ctxItem = itemWithRecordBindings(lib,
+                    ItemRef.iid("cg.test:ctx-operator"),
+                    List.of(new Binding(CompoundKey.of(variableRole), betweenFrame, null)));
+            ContextChain chain = new ContextChain(List.of(ctxItem));
+
+            Body scene = Body.of(
+                    ItemRef.iid(SceneText.KEY),
+                    List.of(Binding.ref(TEXT_ROLE,
+                            dev.everydaythings.graph.ref.TypeRef.iid("cg.test:in-range"))));
+
+            Body resolved = SceneResolver.resolve(scene, chain);
+
+            assertThat(resolved.binding(CompoundKey.of(TEXT_ROLE)).orElseThrow().target())
+                    .as("Resolver should dispatch Between and substitute its Bool result (true)")
+                    .isEqualTo(true);
+        }
+
+        @Test
+        @DisplayName("?-mode target resolving to a non-operator body passes through as-is")
+        void nonOperatorBodyPassesThrough() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            // Variable target: a SceneText body — not an operator; should pass through.
+            ItemRef variableRole = ItemRef.iid("cg.test:embedded-scene");
+            Body sceneTextValue = Body.of(
+                    ItemRef.iid(SceneText.KEY),
+                    List.of(Binding.literal(TEXT_ROLE, "literal-scene-text")));
+
+            Item ctxItem = itemWithRecordBindings(lib,
+                    ItemRef.iid("cg.test:ctx-nonop"),
+                    List.of(new Binding(CompoundKey.of(variableRole), sceneTextValue, null)));
+            ContextChain chain = new ContextChain(List.of(ctxItem));
+
+            Body scene = Body.of(
+                    ItemRef.iid(SceneText.KEY),
+                    List.of(Binding.ref(ItemRef.iid("cg.test:slot"),
+                            dev.everydaythings.graph.ref.TypeRef.iid("cg.test:embedded-scene"))));
+
+            Body resolved = SceneResolver.resolve(scene, chain);
+
+            Object target = resolved.binding(CompoundKey.of(ItemRef.iid("cg.test:slot")))
+                    .orElseThrow().target();
+            assertThat(target)
+                    .as("Non-operator body resolves to the body itself, not dispatched")
+                    .isInstanceOf(Body.class);
         }
     }
 
