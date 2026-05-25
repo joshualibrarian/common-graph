@@ -206,10 +206,42 @@ public final class CoreVocabulary {
          * tells you exactly which archetypes are missing declarations without
          * breaking the render path.
          */
-        @Scene.Text
+        @Scene.Text(schemaRole = SceneVocabulary.Scene.KEY)
         public static class DefaultScene {
             @Scene.Property(role = SceneVocabulary.Text.KEY)
             static String text = "Common Graph item";
+        }
+
+        /**
+         * Terminal default Handle scene — the compact / glanceable form
+         * every archetype falls through to when no more specific
+         * {@code !Scene[Handle]} declaration exists in the chain.  Renders
+         * inside chains, lists, swarm dots, breadcrumbs — anywhere the
+         * item shows up in a small visual representation.  Same loud-but-
+         * rendering placeholder strategy as {@link DefaultScene}.
+         */
+        @Scene.Text(schemaRole = SceneVocabulary.Scene.KEY,
+                    qualifiers = {SceneVocabulary.Handle.KEY})
+        public static class DefaultHandle {
+            @Scene.Property(role = SceneVocabulary.Text.KEY)
+            static String text = "[item]";
+        }
+
+        /**
+         * Terminal default Aura scene — the per-item overlay framework
+         * every archetype falls through to when no more specific
+         * {@code !Scene[Aura]} declaration exists.  Empty container by
+         * default: nothing renders unless the session explicitly activates
+         * the aura for an item (a notification arrived, a chain is open
+         * here, a drag preview is anchored).  Per-archetype overrides
+         * (e.g., a Chess game declaring a richer aura framework) supersede
+         * this in the cascade.
+         */
+        @Scene.Container(schemaRole = SceneVocabulary.Scene.KEY,
+                         qualifiers = {SceneVocabulary.Aura.KEY})
+        public static class DefaultAura {
+            // No properties, no children.  Activation + content is the
+            // session's job at render time, not the archetype's.
         }
 
         // The previous "universal item-hood rule" lived here as an endorsed

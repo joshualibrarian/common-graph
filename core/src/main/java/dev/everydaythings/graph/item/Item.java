@@ -223,10 +223,9 @@ public class Item {
         // Default implementation: dispatch via reflection to a
         // @Seed.Handler-annotated method whose predicate() matches the
         // frame's head AND whose signature is exactly {@code (Frame) → Object}.
-        // Multi-arg handlers (Librarian's lookup(String, Integer) etc.) are
-        // skipped here — those are handled by the legacy reflection path
-        // in {@code Librarian.dispatchViaLegacyHandlesFrames} which knows
-        // how to extract args.  Subclasses with bespoke routing
+        // The single-arg shape is the universal contract; handlers that
+        // need additional inputs read them out of the frame's bindings
+        // inside the method body.  Subclasses with bespoke routing
         // (Operator → evaluate) override this entirely.
         if (frame == null) return null;
         ItemRef predicate = frame.body().headRef();

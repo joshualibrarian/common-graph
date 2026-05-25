@@ -17,11 +17,13 @@ import dev.everydaythings.graph.cryptography.AlgorithmCache;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary;
 import dev.everydaythings.graph.encoding.Encoding;
+import dev.everydaythings.graph.encoding.EncodingRegistry;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.network.parley.Parley;
 import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.network.transport.TransportRegistry;
 import dev.everydaythings.graph.runtime.*;
+import dev.everydaythings.graph.scene.ContextChain;
 import dev.everydaythings.graph.item.Manifest;
 import dev.everydaythings.graph.library.materialized.MaterializedDataStore;
 import dev.everydaythings.graph.item.SeedProcessor;
@@ -41,6 +43,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
 import dev.everydaythings.graph.value.UnixEndpoint;
 import lombok.Getter;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -68,7 +71,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Seed.Item(key = Librarian.KEY)
 @Seed.Embodies(key = Librarian.CODE_KEY, archetype = Librarian.KEY)
-@lombok.extern.log4j.Log4j2
+@Log4j2
 public class Librarian extends Signer {
 
     /** Canonical key for Librarian-the-archetype. */
@@ -103,7 +106,7 @@ public class Librarian extends Signer {
      * construction time — Librarians don't create their own Stage.
      */
     @Getter
-    private final dev.everydaythings.graph.runtime.stage.ItemStage stage;
+    private final ItemStage stage;
 
     /** The local storage manager (always present). Owns the encoder. */
     @Getter
@@ -117,6 +120,15 @@ public class Librarian extends Signer {
      * anonymous librarians (no data dir to claim).
      */
     private LibrarianPresence presence;
+
+    /**
+     * Parley listener attached to this librarian's lifecycle, if any.  Bound
+     * by {@link #startInVm(LibrarianOptions)} when the configuration has a
+     * data dir (so other clients can attach over the Unix socket).  Closed
+     * on {@link #close()} before the library, so new connections stop being
+     * accepted before resources are released.
+     */
+    private Transport.Listener parleyListener;
 
     /**
      * Filesystem footprint, if any. Empty for in-memory librarians; present for
@@ -142,8 +154,7 @@ public class Librarian extends Signer {
      * register here as they ship.
      */
     @Getter
-    private final dev.everydaythings.graph.encoding.EncodingRegistry encodings =
-            dev.everydaythings.graph.encoding.EncodingRegistry.defaultRegistry();
+    private final EncodingRegistry encodings = EncodingRegistry.defaultRegistry();
 
     /**
      * Item cache: one canonical instance per IID. {@link #fetchItem} consults this
@@ -151,18 +162,6 @@ public class Librarian extends Signer {
      * {@link Item#commit} auto-registers, so a committed item is always findable.
      */
     private final Map<ItemRef, Item> itemCache = new ConcurrentHashMap<>();
-
-    /**
-     * Identity-only constructor (no signing capability) — convenience overload
-     * that defaults Stage to {@link ItemStage#javaOnly()}.
-     *
-     * @deprecated Stage should always be explicit.  Use
-     *             {@link #Librarian(ItemStage, ItemRef, Library, Optional)}.
-     */
-    @Deprecated
-    public Librarian(ItemRef iid, Library library, Optional<Path> rootPath) {
-        this(ItemStage.javaOnly(), iid, library, rootPath);
-    }
 
     /**
      * Identity-only constructor — no vault, no signing capability.  Used when
@@ -174,19 +173,7 @@ public class Librarian extends Signer {
         this.stage = Objects.requireNonNull(stage, "stage");
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
-    }
-
-    /**
-     * Vault-supplied constructor — convenience overload that defaults Stage to
-     * {@link ItemStage#javaOnly()}.
-     *
-     * @deprecated Stage should always be explicit.  Use
-     *             {@link #Librarian(ItemStage, Vault, Library, Optional)} or
-     *             {@link #fromVault(ItemStage, Vault, Library, Optional)}.
-     */
-    @Deprecated
-    public Librarian(Vault vault, Library library, Optional<Path> rootPath) {
-        this(ItemStage.javaOnly(), vault, library, rootPath);
+        registerSelfIfIdentified();
     }
 
     /**
@@ -209,6 +196,7 @@ public class Librarian extends Signer {
         this.rootPath = Objects.requireNonNull(rootPath, "rootPath");
         bindLibrarian(this);
         selfIncept();
+        registerSelfIfIdentified();
     }
 
     /**
@@ -222,6 +210,17 @@ public class Librarian extends Signer {
         this.library = Objects.requireNonNull(library, "library");
         this.rootPath = Optional.empty();
         bindLibrarian(this);
+        // No registerSelfIfIdentified: anonymous librarian has null iid.
+    }
+
+    /**
+     * Add this librarian to its own item cache so dispatch's
+     * {@link #liveInstanceOf} and {@link ContextChain#findInstanceOf} can
+     * find it as a live instance of {@code Librarian.KEY}.  No-op for
+     * anonymous librarians (iid is null).
+     */
+    private void registerSelfIfIdentified() {
+        if (iid() != null) register(this);
     }
 
     // ==================================================================================
@@ -262,17 +261,6 @@ public class Librarian extends Signer {
     // ==================================================================================
 
     /**
-     * Ephemeral signed Librarian on a Java-only Stage.  Convenience that
-     * defaults Stage.
-     *
-     * @deprecated use {@link #ephemeral(ItemStage)} for an explicit Stage.
-     */
-    @Deprecated
-    public static Librarian ephemeral() {
-        return ephemeral(ItemStage.javaOnly());
-    }
-
-    /**
      * Create an ephemeral signed Librarian on the given Stage — full identity
      * and signing capability, everything in memory.
      *
@@ -296,26 +284,20 @@ public class Librarian extends Signer {
                 Optional.empty());
     }
 
-    // (anonymous() factory below)
-
     /**
-     * Backwards-compatible alias for {@link #ephemeral()}.
-     *
-     * @deprecated use {@link #ephemeral()} for signed in-memory mode, or
-     *             {@link #anonymous()} for the no-identity / no-signing variant.
+     * Ephemeral signed Librarian on a Java-only Stage — the test-and-tooling
+     * convenience.  Equivalent to {@code ephemeral(ItemStage.javaOnly())}.
+     * Most call sites that don't care about polyglot want this.
      */
-    @Deprecated
     public static Librarian inMemory() {
-        return ephemeral();
+        return ephemeral(ItemStage.javaOnly());
     }
 
     /**
-     * Create an anonymous Librarian — no identity, no vault, no inception, on
-     * a Java-only Stage.  Convenience that defaults Stage.
-     *
-     * @deprecated use {@link #anonymous(ItemStage)} for an explicit Stage.
+     * Create an anonymous Librarian on a Java-only Stage — no identity, no
+     * vault, no inception.  Convenience for the test-and-tooling case;
+     * equivalent to {@code anonymous(ItemStage.javaOnly())}.
      */
-    @Deprecated
     public static Librarian anonymous() {
         return anonymous(ItemStage.javaOnly());
     }
@@ -349,23 +331,11 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Create a fresh persistent Librarian at the given filesystem path.
-     *
-     * <p>Full production startup: generates a fresh vault, opens a byte-backed
-     * Library at the path (writing the {@code .librarian/format} marker on
-     * first use), and publishes the four-datum genesis (INCEPTION body+record
-     * on the signing track + the Librarian's own item manifest body+record).
-     *
-     * <p>Persistence is currently partial — the filesystem footprint is the
-     * format marker only. RocksDB-backed data stores are pending in cleanup;
-     * until they land, the data itself stays in-memory and is lost when the
-     * Librarian closes. The factory shape and marker contract, however, are
-     * the API the system commits to.
-     *
-     * @throws IllegalStateException if a marker already exists for a
-     *                               different encoder
+     * Create a fresh persistent Librarian at the given path on a Java-only
+     * Stage.  Convenience for the test-and-tooling case; equivalent to
+     * {@code fresh(ItemStage.javaOnly(), path)}.  See {@link
+     * #fresh(ItemStage, Path)} for full bring-up details.
      */
-    @Deprecated
     public static Librarian fresh(java.nio.file.Path path) {
         return fresh(ItemStage.javaOnly(), path);
     }
@@ -576,11 +546,36 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Close this librarian: releases the presence lock (so another process
-     * can take over the data dir), closes the library, deletes the pidfile.
+     * The Parley listener attached to this librarian, if one was bound via
+     * {@link #setParleyListener(Transport.Listener)} (typically by
+     * {@link #startInVm(LibrarianOptions)}).  Null for librarians that
+     * never bound a listener (ephemeral, anonymous, in-memory test
+     * harnesses).
+     */
+    public Transport.Listener parleyListener() {
+        return parleyListener;
+    }
+
+    /**
+     * Attach a Parley listener to this librarian's lifecycle.  The listener
+     * is closed on {@link #close()} before the library, so new connections
+     * are refused before resources go away.  Pass {@code null} to detach.
+     */
+    public void setParleyListener(Transport.Listener listener) {
+        this.parleyListener = listener;
+    }
+
+    /**
+     * Close this librarian: closes the attached Parley listener if any
+     * (refusing new connections), then the library, then releases the
+     * presence lock so another process can take over the data dir.
      * Idempotent.
      */
     public void close() {
+        if (parleyListener != null) {
+            try { parleyListener.close(); } catch (RuntimeException ignored) {}
+            parleyListener = null;
+        }
         try { library.close(); } catch (RuntimeException ignored) {}
         if (presence != null) {
             presence.close();
@@ -601,64 +596,96 @@ public class Librarian extends Signer {
     // Apache Commons Daemon lifecycle methods.
 
     /**
-     * Direct CLI entry. Parses {@link LibrarianOptions}, brings up an
-     * ItemStage, constructs a persistent Librarian (load if {@code .item/}
-     * exists, else fresh), binds the Parley listener on the configured
-     * Unix socket, and blocks until interrupted.
+     * Start a Librarian in this VM from {@link LibrarianOptions}.  Bundles
+     * every step needed to go from raw options to a fully running librarian:
      *
-     * <p>Requires a Transport implementation (currently
-     * {@code :bridges:unix} for the default Unix-socket endpoint) on the
-     * classpath at runtime; the implementation is discovered via
-     * {@link dev.everydaythings.graph.network.transport.TransportRegistry
-     * TransportRegistry} (ServiceLoader).
+     * <ol>
+     *   <li>Bring up an {@link ItemStage} (polyglot detection).</li>
+     *   <li>Decide ephemeral vs. persistent based on {@code opts.path}.</li>
+     *   <li>For persistent: {@link #load(ItemStage, Path) load} if
+     *       {@code .item/} exists, else {@link #fresh(ItemStage, Path) fresh}.</li>
+     *   <li>{@link #bootstrap()} so seed vocab is available regardless of
+     *       fresh-vs-loaded (idempotent on loaded — re-runs produce identical
+     *       content-addressed bodies).</li>
+     *   <li>For persistent: bind a Parley {@link Transport.Listener} on the
+     *       configured Unix socket and attach it via
+     *       {@link #setParleyListener(Transport.Listener)} so it closes with
+     *       the librarian.</li>
+     * </ol>
+     *
+     * <p>This is the shared bring-up that both {@link #main(String[])} and
+     * {@code Graph}'s embedded mode call.  All librarian-side startup logic
+     * lives here so Graph stays a thin composer of librarian + session.
+     *
+     * <p>The returned Librarian owns its listener (if any); closing the
+     * Librarian closes the listener too.  Callers just register a single
+     * shutdown hook on {@link #close()}.
+     *
+     * <p>Requires a Transport implementation on the classpath at runtime
+     * (currently {@code :bridges:unix} for the default Unix-socket endpoint),
+     * discovered via {@link TransportRegistry} (ServiceLoader).
      */
-    public static void main(String[] args) {
-        LibrarianOptions opts = new LibrarianOptions();
-        new picocli.CommandLine(opts).parseArgs(args);
-
+    public static Librarian startInVm(LibrarianOptions opts) {
         ItemStage stage = new ItemStage();
         logger.info("ItemStage up. Polyglot: {}",
                 stage.polyglotAvailable()
                         ? "GraalVM " + stage.polyglotLanguages()
                         : "Java-only");
 
-        java.nio.file.Path dataDir = opts.effectivePath();
-        Librarian lib;
         if (opts.path == null) {
             // No --lib-path: ephemeral, in-memory librarian.  No parley
             // listener — there's no data dir to publish a socket in.
-            lib = Librarian.ephemeral(stage);
+            Librarian lib = Librarian.ephemeral(stage);
+            lib.bootstrap();
             logger.info("Librarian (ephemeral) running. IID: {}", lib.iid().encodeText());
-            blockUntilInterrupted(lib, null);
-            return;
+            return lib;
         }
 
         // Persistent librarian: load if .item/ exists, else fresh.
+        Path dataDir = opts.effectivePath();
         boolean existing = Files.isDirectory(dataDir.resolve(".item"));
-        lib = existing ? Librarian.load(stage, dataDir) : Librarian.fresh(stage, dataDir);
+        Librarian lib = existing ? Librarian.load(stage, dataDir) : Librarian.fresh(stage, dataDir);
+        // Bootstrap on both fresh and loaded.  Fresh needs it.  Loaded is a
+        // no-op via content-addressing (the seed bodies are already persisted
+        // from the first run), so calling unconditionally keeps the contract
+        // simple: "a started librarian has seed vocab available."
+        lib.bootstrap();
         logger.info("Librarian ({}) at {}. IID: {}",
                 existing ? "loaded" : "fresh", dataDir, lib.iid().encodeText());
 
-        // Bind Parley listener on the configured Unix socket.
+        // Bind Parley listener on the configured Unix socket; attach to the
+        // librarian's lifecycle so close() takes it down.
         Path socketPath = opts.effectiveSocketPath();
         UnixEndpoint endpoint = UnixEndpoint.of(socketPath.toString());
         Transport transport = TransportRegistry.require(endpoint);
         Parley parley = new Parley(lib);
         ItemRef cgCbor = ItemRef.iid(Encoding.CgCborV1.KEY);
         Transport.Listener listener = parley.listen(transport, endpoint, cgCbor, java.util.Set.of(cgCbor));
+        lib.setParleyListener(listener);
         logger.info("Parley listening at {}", socketPath);
 
-        blockUntilInterrupted(lib, listener);
+        return lib;
     }
 
-    private static void blockUntilInterrupted(Librarian lib, Transport.Listener listener) {
+    /**
+     * Direct CLI entry.  Parses {@link LibrarianOptions}, calls
+     * {@link #startInVm(LibrarianOptions)}, and blocks until interrupted.
+     * All librarian bring-up lives in {@code startInVm} — this method just
+     * stitches options parsing, shutdown hook registration, and blocking.
+     */
+    public static void main(String[] args) {
+        LibrarianOptions opts = new LibrarianOptions();
+        new picocli.CommandLine(opts).parseArgs(args);
+
+        Librarian lib = startInVm(opts);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             logger.info("Librarian shutting down.");
-            if (listener != null) {
-                try { listener.close(); } catch (RuntimeException ignored) {}
-            }
-            try { lib.close(); } catch (RuntimeException ignored) {}
+            lib.close();
         }, "Librarian-shutdown"));
+        blockUntilInterrupted();
+    }
+
+    private static void blockUntilInterrupted() {
         try {
             Thread.currentThread().join();
         } catch (InterruptedException e) {
@@ -818,8 +845,26 @@ public class Librarian extends Signer {
      * fields a remote caller would receive.
      */
     @Seed.Handler(predicate = LibrarianVocabulary.Lookup.KEY)
-    public List<Frame> lookup(String token, Integer limit) {
-        Objects.requireNonNull(token, "token");
+    public List<Frame> lookup(Frame lookupFrame) {
+        Objects.requireNonNull(lookupFrame, "lookupFrame");
+
+        String token = lookupFrame.body()
+                .binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .map(Binding::target)
+                .filter(t -> t instanceof String)
+                .map(String.class::cast)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "LOOKUP frame missing required THEME (token) string binding"));
+
+        Integer limit = lookupFrame.body()
+                .binding(CompoundKey.of(
+                        ItemRef.iid(ThematicRole.Attribute.KEY),
+                        ItemRef.iid(SchemaVocabulary.Limit.KEY)))
+                .map(Binding::target)
+                .filter(t -> t instanceof Long)
+                .map(t -> ((Long) t).intValue())
+                .orElse(null);
+
         List<TokenPosting> postings = (limit == null)
                 ? library.lookupToken(token)
                 : library.lookupTokenPrefix(token, limit);
@@ -1343,11 +1388,10 @@ public class Librarian extends Signer {
 
         Frame frame = Frame.of(body, List.of(record));
         notifyReferencedItems(frame);
-        // Also run @Handler dispatch so callers that use the old assembleFrame
-        // path still get full actor-model behavior. submit() does the same on
-        // its newer entry path.
+        // Run @Handler dispatch so callers using this older assembleFrame
+        // entry get the same actor-model behavior submit() does.
         ItemRef predicateIid = ((ItemRef) body.head()).iid();
-        dispatchToHandlers(frame, predicateIid);
+        dispatchToHandlers(frame, predicateIid, ContextChain.singleton(this));
         return frame;
     }
 
@@ -1407,9 +1451,28 @@ public class Librarian extends Signer {
         }
 
         notifyReferencedItems(frame);
-        List<Frame> responses = dispatchToHandlers(frame, predicateIid);
+        List<Frame> responses = dispatchToHandlers(
+                frame, predicateIid, ContextChain.singleton(this));
 
         return SubmitResult.of(frame, responses);
+    }
+
+    /**
+     * Chain-aware dispatch without persistence.  Builds no records, fires no
+     * referenced-item notifications — just runs the frame through the same
+     * two-hop {@code HANDLES → IMPLEMENTS} resolution that {@link #submit}
+     * uses, with the supplied {@link ContextChain} available for chain-routed
+     * handlers (those whose {@code @Seed.Handler} declares no {@code role=}).
+     *
+     * <p>This is the universal entry point reached via
+     * {@link ContextChain#dispatch(Frame)}; {@link #submit(Frame)} is the
+     * persist-then-dispatch convenience wrapper built on top.
+     */
+    public List<Frame> dispatch(Frame frame, ContextChain chain) {
+        Objects.requireNonNull(frame, "frame");
+        Objects.requireNonNull(chain, "chain");
+        if (!(frame.body().head() instanceof ItemRef headRef)) return List.of();
+        return dispatchToHandlers(frame, headRef.iid(), chain);
     }
 
     /**
@@ -1480,46 +1543,20 @@ public class Librarian extends Signer {
     }
 
     /**
-     * Dispatch a frame to whatever code implements its head predicate.  Two
-     * paths, tried in order:
+     * Dispatch a frame to whatever code implements its head predicate via
+     * the universal IMPLEMENTS two-hop walk: archetypes that
+     * {@code HANDLES → @predicate}, then code items that
+     * {@code IMPLEMENTS → @archetype}, routed to a live instance (or freshly
+     * materialized) via {@link ItemStage#deliver}.
      *
-     * <ol>
-     *   <li><b>IMPLEMENTS reverse-lookup</b> — find code items whose manifest
-     *       carries {@code IMPLEMENTS → @<predicateIid>}.  This is the new
-     *       universal path: every code item (Java, Python, Clojure, …)
-     *       declares what it implements as data; dispatch goes through
-     *       {@link ItemStage#deliver}.  Used by self-handling operators
-     *       (Add, Between) and any future polyglot code item.</li>
-     *   <li><b>Legacy endorsed-HANDLES-frames</b> — fall through when no
-     *       IMPLEMENTS hit.  This is the original Librarian-only path that
-     *       walks the librarian CodeItem's endorsed HANDLES frames and
-     *       reflects on the method named by their INSTRUMENT binding.  Still
-     *       feeds Librarian's CREATE / DELETE / LOOKUP handlers until those
-     *       migrate to the universal pattern.</li>
-     * </ol>
+     * <p>Every concrete handler in the system — operators (Add, Between),
+     * archetype methods (Session.handleItemView, Signer.encrypt), and the
+     * librarian's own CREATE / DELETE / LOOKUP — reaches its code through
+     * this one path.  See {@link #dispatchViaImplements} for the routing
+     * variants (role-routed via Pivot, chain-routed, singleton fallback).
      */
-    private List<Frame> dispatchToHandlers(Frame frame, ItemRef predicateIid) {
-        List<Frame> viaImpls = dispatchViaImplements(frame, predicateIid);
-        if (!viaImpls.isEmpty() || hasImplementer(predicateIid)) {
-            return viaImpls;
-        }
-        return dispatchViaLegacyHandlesFrames(frame, predicateIid);
-    }
-
-    /**
-     * Whether any code item in storage declares {@code IMPLEMENTS → @predicateIid}
-     * directly (the self-handling case: operators whose archetype is also
-     * their own predicate).  Used to distinguish "the new IMPLEMENTS-based
-     * path found and consumed something" from "no IMPLEMENTS match — fall
-     * through to legacy for Librarian-style reflective handlers."
-     *
-     * <p>Two-hop archetype HANDLES → predicate matches are NOT counted here —
-     * those go through {@link #dispatchViaImplements}'s archetype walk, but
-     * when that walk produces nothing (e.g., handler returns empty), we
-     * still want legacy fall-through for LOOKUP and friends.
-     */
-    private boolean hasImplementer(ItemRef predicateIid) {
-        return !library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, predicateIid).isEmpty();
+    private List<Frame> dispatchToHandlers(Frame frame, ItemRef predicateIid, ContextChain chain) {
+        return dispatchViaImplements(frame, predicateIid, chain);
     }
 
     /**
@@ -1537,18 +1574,31 @@ public class Librarian extends Signer {
      * {@code HANDLES → some-other-predicate}, and code items declare
      * {@code IMPLEMENTS → archetype}.  The two-hop walk follows that chain.
      *
-     * <p><b>Instance routing</b>: each code item's HANDLES frame body for
-     * the predicate may declare a {@code Pivot → role-iid} binding.  When
-     * present, the dispatcher reads the incoming frame's
-     * {@code binding[role-iid]} to find the target instance's IID, then
-     * looks up the live instance of the archetype at that IID via
-     * {@link #liveInstanceOf}.  When absent (operators), singleton
-     * dispatch.
+     * <p><b>Instance routing</b> takes one of three shapes, picked per
+     * handler:
+     * <ul>
+     *   <li><b>Role-routed</b> — the code item's HANDLES frame body declares
+     *       {@code Pivot → role-iid}.  The dispatcher reads the incoming
+     *       frame's {@code binding[role-iid]} for the target instance IID
+     *       and looks up the live instance of the archetype at that IID via
+     *       {@link #liveInstanceOf}, materializing fresh from the
+     *       IMPLEMENTATION binding if no live one exists.</li>
+     *   <li><b>Chain-routed</b> — no Pivot binding present.  The dispatcher
+     *       walks {@code chain} (most-specific first) for a live instance of
+     *       the handler's archetype.  This is what lets context-bound
+     *       handlers reach their owner: e.g. a chess-game in the chain
+     *       receives a Move frame because chess HANDLES Move.</li>
+     *   <li><b>Singleton fallback</b> — chain-routed lookup yields nothing.
+     *       Falls back to a cache scan ({@code liveInstanceOf(archetype,
+     *       null)}) so operator code-items already cached are reused, then
+     *       to materializing a fresh instance keyed by the archetype IID.
+     *       Operators (self-handling, code-item singletons) live here.</li>
+     * </ul>
      *
      * <p>Returns an empty list when no path leads to a deliverable item, or
      * when the chosen item's {@code receive} returns nothing.
      */
-    private List<Frame> dispatchViaImplements(Frame frame, ItemRef predicateIid) {
+    private List<Frame> dispatchViaImplements(Frame frame, ItemRef predicateIid, ContextChain chain) {
         // Step 1: archetypes that HANDLES this predicate.
         List<DatumRef> archetypeManifestCids =
                 library.bodyCidsForReferenceBinding(Manifest.HANDLES, predicateIid);
@@ -1570,23 +1620,21 @@ public class Librarian extends Signer {
             Manifest codeManifest = fetchManifest(chosenCodeCid).orElse(null);
             if (codeManifest == null) continue;
 
-            // Read PIVOT role from the code item's HANDLES frame body for
-            // this predicate (if any).  When present, names the role on the
-            // incoming frame whose target identifies the live instance.
+            // PIVOT present → role-routed; absent → chain-routed (with
+            // singleton fallback when nothing in the chain matches).
             ItemRef pivotRole = readPivotFromCodeManifest(codeManifest, predicateIid);
-            ItemRef instanceIid = (pivotRole != null)
-                    ? readBindingAsRef(frame, pivotRole).orElse(null)
-                    : null;
-
-            // Live instance first; otherwise materialize fresh using the
-            // code-item's IMPLEMENTATION binding to find the Java class and
-            // construct it with the target instance-IID (not the code-item's
-            // own IID — fetchItem(codeIid) returns a bare Item per the
-            // code-archetype shortcut in hydrateItem).
-            Item target = liveInstanceOf(archetypeIid, instanceIid).orElse(null);
-            if (target == null) {
-                ItemRef ctorIid = instanceIid != null ? instanceIid : archetypeIid;
-                target = instantiateFromCodeManifest(codeManifest, ctorIid);
+            Item target;
+            if (pivotRole != null) {
+                ItemRef instanceIid = readBindingAsRef(frame, pivotRole).orElse(null);
+                target = liveInstanceOf(archetypeIid, instanceIid).orElse(null);
+                if (target == null) {
+                    ItemRef ctorIid = instanceIid != null ? instanceIid : archetypeIid;
+                    target = instantiateFromCodeManifest(codeManifest, ctorIid);
+                }
+            } else {
+                target = chain.findInstanceOf(archetypeIid)
+                        .or(() -> liveInstanceOf(archetypeIid, null))
+                        .orElseGet(() -> instantiateFromCodeManifest(codeManifest, archetypeIid));
             }
             if (target == null) continue;
 
@@ -1670,130 +1718,6 @@ public class Librarian extends Signer {
             return out;
         }
         return List.of();
-    }
-
-    /**
-     * Legacy dispatch: fetch the {@link #CODE_IID CodeItem} for this Librarian
-     * implementation, walk its endorsed HANDLES frames, find one whose THEME
-     * matches the incoming predicate, read its INSTRUMENT text literal as the
-     * Java method name to invoke, reflect on the method, and call it.
-     *
-     * <p>The {@code @Handler} Java annotation is the seed-time hint that
-     * generates the HANDLES frames + CodeItem manifest during {@link #bootstrap}.
-     * This path is the one Librarian's own CREATE / DELETE / LOOKUP handlers
-     * still use; it will retire once those move to the universal
-     * IMPLEMENTS-based pattern.
-     */
-    private List<Frame> dispatchViaLegacyHandlesFrames(Frame frame, ItemRef predicateIid) {
-        Item codeItem = fetchItem(CODE_IID).orElse(null);
-        if (codeItem == null) return List.of();
-
-        Iterator<Frame> it = codeItem
-                .endorsedFramesByPredicate(ItemRef.iid(CoreVocabulary.Handles.KEY))
-                .iterator();
-        while (it.hasNext()) {
-            Frame handlesFrame = it.next();
-            if (!themeMatches(handlesFrame, predicateIid)) continue;
-
-            String methodName = readInstrumentText(handlesFrame);
-            if (methodName == null) continue;
-
-            java.lang.reflect.Method m = findHandlerMethod(methodName);
-            if (m == null) continue;
-
-            try {
-                Object[] args = extractHandlerArgs(m, frame);
-                Object result = m.invoke(this, args);
-                return unwrapResponses(result);
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(
-                        "Handler invocation failed for predicate " + predicateIid, e);
-            }
-        }
-        return List.of();
-    }
-
-    /** Whether a HANDLES frame's THEME binding targets the given predicate. */
-    private static boolean themeMatches(Frame handlesFrame, ItemRef predicateIid) {
-        return handlesFrame.body()
-                .binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
-                .map(b -> extractReferencedIidFromTarget(b.target()))
-                .filter(predicateIid::equals)
-                .isPresent();
-    }
-
-    /** Read the INSTRUMENT binding's text literal from a HANDLES frame. */
-    private static String readInstrumentText(Frame handlesFrame) {
-        return handlesFrame.body()
-                .binding(CompoundKey.of(ItemRef.iid(ThematicRole.Instrument.KEY)))
-                .map(Binding::target)
-                .filter(t -> t instanceof String)
-                .map(String.class::cast)
-                .orElse(null);
-    }
-
-    /**
-     * Find a {@link Seed.Handler}-annotated method on {@code Librarian.class} by
-     * name. Walking the declared methods costs O(N) where N is small; for now
-     * this is fine and avoids caching state.
-     */
-    private static java.lang.reflect.Method findHandlerMethod(String name) {
-        for (java.lang.reflect.Method m : Librarian.class.getDeclaredMethods()) {
-            if (m.isAnnotationPresent(Seed.Handler.class) && m.getName().equals(name)) {
-                return m;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Phase 1 parameter extraction for handlers. Maps frame bindings to method
-     * parameters by simple type-and-role conventions:
-     * <ul>
-     *   <li>{@code String} ← THEME binding's text literal</li>
-     *   <li>{@code Integer} ← ATTRIBUTE[LIMIT] binding's integer literal (null if absent)</li>
-     * </ul>
-     * A more general scheme (role→position from HANDLES metadata) will land
-     * later.
-     */
-    private static Object[] extractHandlerArgs(java.lang.reflect.Method m, Frame frame) {
-        Class<?>[] paramTypes = m.getParameterTypes();
-        Object[] args = new Object[paramTypes.length];
-        for (int i = 0; i < paramTypes.length; i++) {
-            Class<?> pt = paramTypes[i];
-            if (pt == String.class) {
-                args[i] = readThemeText(frame);
-            } else if (pt == Integer.class) {
-                args[i] = readLimitInteger(frame);
-            } else if (pt == Frame.class) {
-                args[i] = frame;
-            } else {
-                throw new IllegalStateException(
-                        "Unsupported handler param type for now: " + pt.getName());
-            }
-        }
-        return args;
-    }
-
-    private static String readThemeText(Frame frame) {
-        return frame.body()
-                .binding(CompoundKey.of(
-                        ItemRef.iid(ThematicRole.Theme.KEY)))
-                .map(Binding::target)
-                .filter(t -> t instanceof String)
-                .map(String.class::cast)
-                .orElse(null);
-    }
-
-    private static Integer readLimitInteger(Frame frame) {
-        return frame.body()
-                .binding(CompoundKey.of(
-                        ItemRef.iid(ThematicRole.Attribute.KEY),
-                        ItemRef.iid(SchemaVocabulary.Limit.KEY)))
-                .map(Binding::target)
-                .filter(t -> t instanceof Long)
-                .map(t -> ((Long) t).intValue())
-                .orElse(null);
     }
 
     private void notifyReferencedItems(Frame frame) {

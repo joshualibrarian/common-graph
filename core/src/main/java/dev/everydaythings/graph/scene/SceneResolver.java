@@ -7,9 +7,6 @@ import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.TypeRef;
-import dev.everydaythings.graph.runtime.SubmitResult;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -47,91 +44,29 @@ public final class SceneResolver {
     private static final ItemRef SCENE_NODE_ARCHETYPE = ItemRef.iid(SceneNode.KEY);
 
     public static Body resolve(Body declaredScene, ContextChain chain) {
-        Objects.requireNonNull(declaredScene, "declaredScene");
-        Objects.requireNonNull(chain, "chain");
-
-        Body afterVariables = substituteVariables(declaredScene, chain);
-        List<Body> styles = chain.collectStyles();
-        if (styles.isEmpty()) return afterVariables;
-        return applyStyles(afterVariables, styles);
-    }
-
-    // ==================================================================================
-    // Pass 1 — variable substitution
-    // ==================================================================================
-
-    private static Body substituteVariables(Body body, ContextChain chain) {
-        if (body.isAtomic()) return body;
-        List<DatumNode> resolved = new ArrayList<>();
-        for (Binding b : body.bindings()) {
-            resolved.add(substituteBinding(b, chain));
-        }
-        return Body.of(body.head(), resolved);
-    }
-
-    private static Binding substituteBinding(Binding binding, ContextChain chain) {
-        Object target = binding.target();
-        if (target instanceof TypeRef typeRef) {
-            Optional<Object> resolved = chain.lookupByRole(typeRef.iid());
-            if (resolved.isEmpty()) return binding;
-            Object newTarget = resolved.get();
-            if (newTarget instanceof Body subBody) {
-                // The bound target is a Body — first recursively substitute
-                // any nested ?-mode refs, then try evaluating it as an
-                // operator frame (if dispatch produces a value-body response,
-                // unwrap to the primitive atomic content).
-                Body recursed = substituteVariables(subBody, chain);
-                newTarget = tryEvaluateAsOperator(recursed, chain).orElse(recursed);
-            }
-            return new Binding(binding.key(), newTarget, binding.index());
-        }
-        if (target instanceof Body subBody) {
-            Body resolvedSub = substituteVariables(subBody, chain);
-            if (resolvedSub == subBody) return binding;
-            return new Binding(binding.key(), resolvedSub, binding.index());
-        }
-        return binding;
+        return resolve(declaredScene, chain, new String[0]);
     }
 
     /**
-     * Try to dispatch {@code body} as an operator frame.  If dispatch returns
-     * a value-body response (the convention from {@link
-     * dev.everydaythings.graph.operator.Operator Operator}), unwrap to its
-     * atomic content (the actual primitive value).  Returns empty when
-     * dispatch produces no response (body isn't dispatchable, or operator
-     * partial-applied) — caller falls back to using the body literally.
-     *
-     * <p>Skips bodies whose head is itself in {@code ?}-mode (queries) or
-     * whose head is a known scene-structure archetype (Container / Text /
-     * Body / SceneStyle / TypeRef heads) — those aren't operators and
-     * shouldn't trigger dispatch.
+     * Resolve a declared scene against this chain, applying the
+     * {@code Style[qualifierKeys...]} cascade.  Empty qualifier list
+     * (default) applies the unqualified Style cascade — the right thing
+     * when rendering the default Scene of an item.  Pass
+     * {@code SceneVocabulary.Aura.KEY} when rendering an Aura form so
+     * Style[Aura] declarations apply.
      */
-    private static Optional<Object> tryEvaluateAsOperator(Body body, ContextChain chain) {
-        if (!(body.head() instanceof ItemRef)) return Optional.empty();
-        if (isStructuralSceneBody(body.headRef())) return Optional.empty();
+    public static Body resolve(Body declaredScene, ContextChain chain, String... qualifierKeys) {
+        Objects.requireNonNull(declaredScene, "declaredScene");
+        Objects.requireNonNull(chain, "chain");
 
-        Librarian lib = chain.librarian().orElse(null);
-        if (lib == null) return Optional.empty();
+        // Pass 1 — variable substitution + operator dispatch + collection-splat,
+        // all unified in ContextChain.resolveBody.
+        Body afterVariables = chain.resolveBody(declaredScene);
 
-        SubmitResult result = lib.submit(Frame.of(body, List.of()));
-        List<Frame> responses = result.responses();
-        if (responses.isEmpty()) return Optional.empty();
-
-        // Convention: operator responses are value-bodies (head names the
-        // result-archetype, atomic content carries the primitive).  Return
-        // the atomic content if present; otherwise the whole body.
-        Body responseBody = responses.get(0).body();
-        if (responseBody.isAtomic()) {
-            return responseBody.atomicContent();
-        }
-        return Optional.of(responseBody);
-    }
-
-    private static boolean isStructuralSceneBody(ItemRef headIid) {
-        return ItemRef.iid(SceneContainer.KEY).equals(headIid)
-                || ItemRef.iid(SceneText.KEY).equals(headIid)
-                || ItemRef.iid(SceneBody.KEY).equals(headIid)
-                || ItemRef.iid(SceneVocabulary.SceneStyle.KEY).equals(headIid);
+        // Pass 2 — style cascade.
+        List<Body> styles = chain.collectStyles(qualifierKeys);
+        if (styles.isEmpty()) return afterVariables;
+        return applyStyles(afterVariables, styles);
     }
 
     // ==================================================================================

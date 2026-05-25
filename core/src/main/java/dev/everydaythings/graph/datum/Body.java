@@ -25,19 +25,17 @@ import java.util.Optional;
  * <ul>
  *   <li><b>Structured</b> (the common form): head plus a list of bindings.
  *       Propositional frames, manifest bodies, multi-field value bodies
- *       (Color, PostalAddress).  CBOR encoding:
- *       {@code [Tag-6(head), [bindings]]}.</li>
+ *       (Color, PostalAddress).</li>
  *   <li><b>Atomic</b>: head plus a single leaf value (text, integer, instant,
  *       byte[], boolean, rational, ...).  Used for typed value-atoms whose
  *       content has no internal structure to bind — EmailAddress, ISBN,
- *       standalone numeric values, etc.  CBOR encoding:
- *       {@code [Tag-6(head), leaf-value]} (slot 2 is anything-but-an-array).</li>
+ *       standalone numeric values, etc.</li>
  * </ul>
  *
- * <p>The encoder distinguishes the two forms by the CBOR type of the second
- * slot: an array means structured (bindings); anything else means atomic.
- * CIDs are deterministic in both cases since CanonWalker walks them
- * canonically.
+ * <p>Both forms hash to deterministic DatumIDs via {@link
+ * dev.everydaythings.graph.canonical.CanonWalker}'s structural walk, which
+ * is independent of any wire format.  See the {@code encoding/} package
+ * for concrete serialization (CG-CBOR is the reference encoding).
  *
  * <p>Construction is permissive — bodies may carry any bindings, including ones
  * beyond what the head sememe's EXPECTS strictly declares. Validation against

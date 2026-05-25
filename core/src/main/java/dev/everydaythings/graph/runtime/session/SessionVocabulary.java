@@ -2,6 +2,8 @@ package dev.everydaythings.graph.runtime.session;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.scene.Scene;
+import dev.everydaythings.graph.scene.SceneVocabulary;
 
 import static dev.everydaythings.graph.Seed.*;
 
@@ -69,6 +71,25 @@ public final class SessionVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY,
             qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "view";
+
+        /**
+         * Default chrome scene for ITEM_VIEW frames.  This is the template
+         * the cascade returns when rendering any ItemView frame that doesn't
+         * declare its own scene: {@code !Scene} on ItemView's manifest means
+         * "instances (frames) of me render with this template."
+         *
+         * <p>SUPER simple first cut: a single SceneText saying "[ItemView]"
+         * so we can see the chrome render where the item's content used to.
+         * The slot mechanism (embedding the inner item's handle / default
+         * scene into chrome) lands as a follow-on slice; today the chrome
+         * IS the whole window render and the inner item content disappears
+         * temporarily.
+         */
+        @Scene.Text(schemaRole = SceneVocabulary.Scene.KEY)
+        public static class DefaultChrome {
+            @Scene.Property(role = SceneVocabulary.Text.KEY)
+            static String text = "[ItemView]";
+        }
     }
 
     /**

@@ -6,22 +6,48 @@
 // surface painter for pixel-identical 2D output; Skia covers the CPU path,
 // Filament covers the GPU path.
 //
-// STUB — only the Gradle module skeleton lands now; painter implementation
-// follows.
+// Skia is the canonical 2D reference: Filament 2D mirrors Skia's output.
+// Shared 2D-raster machinery (font metrics, color helpers, paragraph
+// adapters, image / svg loaders) starts here and migrates to a shared
+// module (:ui or future :ui:raster) once Filament 2D needs to reuse it.
+//
+// Native deps are Linux-x64 only for now.  macOS/Windows artifacts get
+// added when those platforms come into scope; Skija + LWJGL both ship
+// natives per platform, gated by Maven classifier.
 // =============================================================================
 
 plugins {
     id 'java-library'
+    id 'application'
 }
 
 dependencies {
     api project(':ui')
 
-    // Painter implementation deps land when the first Skia painting code goes
-    // in.  Skija + LWJGL placeholders below; uncomment as we wire them up.
-    // implementation "io.github.humbleui:skija-shared:${skijaVersion}"
-    // implementation "io.github.humbleui:skija-linux:${skijaVersion}"
-    // implementation "org.lwjgl:lwjgl:${lwjglVersion}"
-    // implementation "org.lwjgl:lwjgl-glfw:${lwjglVersion}"
-    // implementation "org.lwjgl:lwjgl-opengl:${lwjglVersion}"
+    // Skia bindings — shared Java + Linux-x64 natives.
+    implementation "io.github.humbleui:skija-shared:${skijaVersion}"
+    implementation "io.github.humbleui:skija-linux-x64:${skijaVersion}"
+
+    // GLFW window + OpenGL context.  LWJGL's pattern: Java bindings, then
+    // matching natives classifier per platform.
+    implementation "org.lwjgl:lwjgl:${lwjglVersion}"
+    implementation "org.lwjgl:lwjgl-glfw:${lwjglVersion}"
+    implementation "org.lwjgl:lwjgl-opengl:${lwjglVersion}"
+    runtimeOnly    "org.lwjgl:lwjgl:${lwjglVersion}:natives-linux"
+    runtimeOnly    "org.lwjgl:lwjgl-glfw:${lwjglVersion}:natives-linux"
+    runtimeOnly    "org.lwjgl:lwjgl-opengl:${lwjglVersion}:natives-linux"
+
+    // Graph needs a Unix-socket transport for its Parley listener (so other
+    // clients could connect to this librarian).  Pulled in as a runtime dep
+    // so the SkiaPainter run task brings everything Graph needs.
+    runtimeOnly    project(':bridges:unix')
 }
+
+// The application plugin lets us run Graph (which lives in :ui) with the
+// Skia provider on the classpath via `./gradlew :ui:skia:run`.  The
+// SurfaceProvider META-INF entry in this module's resources gets picked
+// up by ServiceLoader at runtime, so `--ui skia` resolves correctly.
+application {
+    mainClass = 'dev.everydaythings.graph.ui.Graph'
+}
+

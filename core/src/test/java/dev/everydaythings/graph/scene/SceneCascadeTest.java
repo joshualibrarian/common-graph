@@ -9,6 +9,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.session.Session;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -17,65 +18,162 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Verifies the {@code CONFIG[Presentation]} cascade walks via
- * {@code manifest.body().head()} from any iid up through the archetype chain.
- * Archetypes that declare their own scene short-circuit the walk; archetypes
- * that don't fall through to {@link CoreVocabulary.Archetype}'s terminal
- * default scene.
+ * Verifies the scene cascade walks via {@code manifest.body().head()} from
+ * any iid up through the archetype chain.  Tests cover both the default
+ * Scene cascade and the qualifier-aware variants ({@code Scene[Handle]},
+ * {@code Scene[Aura]}).  Archetypes that declare their own scene short-
+ * circuit the walk; archetypes that don't fall through to
+ * {@link CoreVocabulary.Archetype}'s terminal defaults.
  */
-@DisplayName("SceneCascade — CONFIG[Presentation] walk via body.head()")
+@DisplayName("SceneCascade — qualifier-aware archetype-chain walk")
 class SceneCascadeTest {
 
-    @Test
-    @DisplayName("Archetype's own default scene is reachable directly")
-    void archetypeOwnDefault() {
-        Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
-        lib.bootstrap();
+    @Nested
+    @DisplayName("Default Scene cascade (no qualifier)")
+    class DefaultScene {
 
-        Body scene = SceneCascade.sceneFor(
-                ItemRef.iid(CoreVocabulary.Archetype.KEY), lib);
+        @Test
+        @DisplayName("Archetype's own default scene is reachable directly")
+        void archetypeOwnDefault() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
 
-        assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneText.KEY));
-        assertThat(readText(scene)).contains("Common Graph item");
+            Body scene = SceneCascade.sceneFor(
+                    ItemRef.iid(CoreVocabulary.Archetype.KEY), lib);
+
+            assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneText.KEY));
+            assertThat(readText(scene)).contains("Common Graph item");
+        }
+
+        @Test
+        @DisplayName("An iid with no own scene falls through to Archetype's default")
+        void sessionFallsThroughToArchetype() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            // Session declares no Scene of its own anymore, so the cascade
+            // walks Session-archetype's manifest (no match) then up to
+            // Archetype (match) and returns the terminal placeholder.
+            Body scene = SceneCascade.sceneFor(ItemRef.iid(Session.KEY), lib);
+
+            assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneText.KEY));
+            assertThat(readText(scene)).contains("Common Graph item");
+        }
+
+        @Test
+        @DisplayName("Unknown iid that has no manifest at all throws loudly")
+        void unknownIidThrows() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            ItemRef ghost = ItemRef.iid("cg.test:ghost-with-no-manifest");
+            assertThatThrownBy(() -> SceneCascade.sceneFor(ghost, lib))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Scene")
+                    .hasMessageContaining("declared in archetype chain");
+        }
     }
 
-    @Test
-    @DisplayName("Session's own scene short-circuits the walk before reaching Archetype")
-    void sessionDeclaresItsOwnScene() {
-        Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
-        lib.bootstrap();
+    @Nested
+    @DisplayName("Scene[Handle] cascade")
+    class HandleScene {
 
-        Body scene = SceneCascade.sceneFor(ItemRef.iid(Session.KEY), lib);
+        @Test
+        @DisplayName("Archetype's terminal Handle is reachable directly")
+        void archetypeHandle() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
 
-        // Session declares its own scene on its archetype's record, so the
-        // walk stops there rather than climbing up to Archetype's terminal.
-        // The Text binding's target is a TypeRef (?-mode variable ref); the
-        // resolver substitutes the actual string at render time — the cascade
-        // returns the DECLARED form, with the unresolved variable in place.
-        assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneText.KEY));
-        assertThat(textTarget(scene))
-                .as("Session's scene references the greeting variable via a ?-mode TypeRef")
-                .isInstanceOf(dev.everydaythings.graph.ref.TypeRef.class);
+            Body scene = SceneCascade.sceneFor(
+                    ItemRef.iid(CoreVocabulary.Archetype.KEY), lib,
+                    SceneVocabulary.Handle.KEY);
+
+            assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneText.KEY));
+            assertThat(readText(scene)).contains("[item]");
+        }
+
+        @Test
+        @DisplayName("Session falls through to Archetype's terminal Handle")
+        void sessionFallsThroughForHandle() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            Body scene = SceneCascade.sceneFor(
+                    ItemRef.iid(Session.KEY), lib,
+                    SceneVocabulary.Handle.KEY);
+
+            assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneText.KEY));
+            assertThat(readText(scene)).contains("[item]");
+        }
+
+        @Test
+        @DisplayName("Default Scene and Handle Scene are independent on the same archetype")
+        void defaultAndHandleAreIndependent() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            ItemRef archetype = ItemRef.iid(CoreVocabulary.Archetype.KEY);
+            Body def    = SceneCascade.sceneFor(archetype, lib);
+            Body handle = SceneCascade.sceneFor(archetype, lib, SceneVocabulary.Handle.KEY);
+
+            assertThat(readText(def)).contains("Common Graph item");
+            assertThat(readText(handle)).contains("[item]");
+        }
     }
 
-    /** Read SceneText's Text binding target as-is (could be String, TypeRef, etc.). */
-    private static Object textTarget(Body sceneTextBody) {
-        return sceneTextBody.binding(CompoundKey.of(ItemRef.iid(SceneVocabulary.Text.KEY)))
-                .map(Binding::target)
-                .orElseThrow();
+    @Nested
+    @DisplayName("Scene[Aura] cascade")
+    class AuraScene {
+
+        @Test
+        @DisplayName("Archetype's terminal Aura is reachable directly (empty container)")
+        void archetypeAura() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            Body scene = SceneCascade.sceneFor(
+                    ItemRef.iid(CoreVocabulary.Archetype.KEY), lib,
+                    SceneVocabulary.Aura.KEY);
+
+            assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneContainer.KEY));
+            assertThat(scene.bindings()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Session falls through to Archetype's terminal Aura")
+        void sessionFallsThroughForAura() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            Body scene = SceneCascade.sceneFor(
+                    ItemRef.iid(Session.KEY), lib,
+                    SceneVocabulary.Aura.KEY);
+
+            assertThat(scene.headRef()).isEqualTo(ItemRef.iid(SceneContainer.KEY));
+        }
     }
 
-    @Test
-    @DisplayName("Unknown iid that has no manifest at all throws loudly")
-    void unknownIidThrows() {
-        Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
-        lib.bootstrap();
+    @Nested
+    @DisplayName("Error reporting")
+    class Errors {
 
-        ItemRef ghost = ItemRef.iid("cg.test:ghost-with-no-manifest");
-        assertThatThrownBy(() -> SceneCascade.sceneFor(ghost, lib))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("No Scene role binding");
+        @Test
+        @DisplayName("Unknown qualifier on an item with no matching Scene throws with the qualifier named")
+        void unknownQualifierMentionedInError() {
+            Librarian lib = Librarian.ephemeral(ItemStage.javaOnly());
+            lib.bootstrap();
+
+            String bogus = "cg.qualifier:not-a-real-qualifier";
+            assertThatThrownBy(() -> SceneCascade.sceneFor(
+                    ItemRef.iid(CoreVocabulary.Archetype.KEY), lib, bogus))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Scene[" + bogus + "]");
+        }
     }
+
+    // ==================================================================================
+    // Helpers
+    // ==================================================================================
 
     /** Read the literal text out of a SceneText body, if present. */
     private static Optional<String> readText(Body sceneTextBody) {

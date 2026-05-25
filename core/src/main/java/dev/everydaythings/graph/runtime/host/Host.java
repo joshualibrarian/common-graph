@@ -21,15 +21,14 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
  * stick scenario, etc.). The Host's relationship to Librarians is independent of
  * the Librarian's served principal.
  *
- * <p>Phase 1 scope: minimal placeholder. Carries identity, hostname/IP discovery
- * is local-machine-only, no device management, no system monitor. The OLD
- * {@link HostOld} class has elaborate scaffolding (device registration for
- * displays/audio/peripherals, system monitor mounted at {@code .monitor}, etc.)
- * that will be ported back as concrete needs arise.
+ * <p>Current scope: minimal.  Carries identity and a local-hostname helper;
+ * device management (displays, audio, peripherals) and system monitoring
+ * are not implemented.  Both are sketched in the future-scope section
+ * below and will land when concrete callers arrive.
  *
  * <p>Future scope (sketch): Host becomes the "control panel" for the machine
  * when accessed by an authorized user — start/stop local services, manage
- * containers, expose system monitor, configure peripherals, etc. All exposed
+ * containers, expose system monitor, configure peripherals, etc.  All exposed
  * via frames with appropriate predicates and a SERVES-based authorization
  * gate.
  */

@@ -84,6 +84,45 @@ public final class Scene {
          * order"; any other value pins this child to that index.
          */
         long order() default Long.MIN_VALUE;
+
+        /**
+         * Compound-key qualifiers selecting which Scene-form this declaration
+         * fills.  Empty (default) means the default/main scene; common
+         * non-default qualifiers are {@link SceneVocabulary.Handle Handle} (the
+         * compact form used in chains, lists, swarms) and
+         * {@link SceneVocabulary.Aura Aura} (the per-item overlay framework).
+         * Multiple roots with distinct qualifier sets coexist on the same
+         * archetype; two roots with the same qualifier set are an error.
+         */
+        String[] qualifiers() default {};
+
+        /**
+         * The role this declaration attaches under, as a concrete
+         * ({@code @}-mode) reference.  Default-empty.  When all three of
+         * {@link #role}, {@link #schemaRole}, {@link #typeRole} are empty,
+         * the processor uses {@link SceneVocabulary.Scene#KEY Scene} as a
+         * concrete role — the historic implicit own-scene declaration.
+         * Exactly one of the three may be set; mutually exclusive.
+         */
+        String role() default "";
+
+        /**
+         * The role this declaration attaches under, as a schema
+         * ({@code !}-mode) reference.  Use {@code schemaRole = Scene.KEY}
+         * to declare a TEMPLATE-for-instances of the enclosing archetype.
+         * The cascade walks instances upward looking for {@code !Scene}
+         * to render them.  Mutually exclusive with {@link #role} and
+         * {@link #typeRole}.
+         */
+        String schemaRole() default "";
+
+        /**
+         * The role this declaration attaches under, as a type/query
+         * ({@code ?}-mode) reference.  Rare on scene-tree roots; included
+         * for symmetry with {@link Property} and {@code @Seed.Property}.
+         * Mutually exclusive with {@link #role} and {@link #schemaRole}.
+         */
+        String typeRole() default "";
     }
 
     /** This class is a scene-tree {@link SceneText} (a leaf displaying text content). */
@@ -91,6 +130,14 @@ public final class Scene {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Text {
         long order() default Long.MIN_VALUE;
+        /** See {@link Container#qualifiers()}. */
+        String[] qualifiers() default {};
+        /** See {@link Container#role()}. */
+        String role() default "";
+        /** See {@link Container#schemaRole()}. */
+        String schemaRole() default "";
+        /** See {@link Container#typeRole()}. */
+        String typeRole() default "";
     }
 
     /** This class is a scene-tree {@link SceneBody} (a visual primitive — shape, image, model, glyph, alt). */
@@ -98,6 +145,53 @@ public final class Scene {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Body {
         long order() default Long.MIN_VALUE;
+        /** See {@link Container#qualifiers()}. */
+        String[] qualifiers() default {};
+        /** See {@link Container#role()}. */
+        String role() default "";
+        /** See {@link Container#schemaRole()}. */
+        String schemaRole() default "";
+        /** See {@link Container#typeRole()}. */
+        String typeRole() default "";
+    }
+
+    /**
+     * Modifier annotation: this class's scene body is a per-item TEMPLATE
+     * that gets repeated for each item in {@code source} at render time.
+     * Combines with one of {@link Container}, {@link Text}, {@link Body} to
+     * declare the shape of one iteration's output.  The seed processor
+     * wraps the inner body in a Transform-headed operator frame whose THEME
+     * is a {@code ?}-ref to {@code source} and whose INSTRUMENT is the
+     * inner body; the resolver evaluates per iteration with each source
+     * item pushed onto the context chain.
+     *
+     * <p>Sugar for the recurring "render N things from a collection"
+     * pattern; underneath it's a plain {@code Transform} operator frame in
+     * the scene tree.  Used on nested static classes inside a container so
+     * the wrapped Transform shows up as the parent's Children target.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Scene.Container
+     * static class ReactionList {
+     *     @Scene.Text
+     *     @Scene.Repeat(source = "cg.var:active-reactions")
+     *     static class ReactionDot {
+     *         @Scene.Property(role = Text.KEY)
+     *         static TypeRef text = TypeRef.iid(NameVocabulary.Name.KEY);
+     *     }
+     * }
+     * }</pre>
+     */
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface Repeat {
+        /**
+         * Canonical key of the source-collection variable: at render time
+         * this resolves through the context chain to a {@code Collection}
+         * of bodies, each becoming one iteration's pushed scope.
+         */
+        String source();
     }
 
     // ==================================================================================
@@ -146,6 +240,15 @@ public final class Scene {
          * record.  {@link Long#MIN_VALUE} means "use declaration order."
          */
         long order() default Long.MIN_VALUE;
+
+        /**
+         * Compound-key qualifiers selecting which Scene-form this style
+         * applies to.  Empty (default) means the default Scene's style
+         * cascade.  {@code qualifiers = {SceneVocabulary.Aura.KEY}} means
+         * "this style applies when rendering the Aura form of an item."
+         * Parallels {@link Container#qualifiers()} on scene-structure roots.
+         */
+        String[] qualifiers() default {};
     }
 
     // ==================================================================================

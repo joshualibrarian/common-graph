@@ -52,6 +52,44 @@ public class SessionOptions {
     public List<String> positionalArgs;
 
     /**
+     * Resolve the UI mode to use, honoring an explicit {@code --ui} and
+     * falling back to environment detection.
+     *
+     * <p>Heuristic, in order:
+     * <ol>
+     *   <li>Explicit {@code --ui=<mode>} wins, always.  Users override.</li>
+     *   <li>Otherwise, if {@link System#console()} is non-null (the process
+     *       has a controlling terminal — invoked from a real shell, even via
+     *       {@code &}), return {@code "tui"}.  Terminal invocation gets a
+     *       terminal session.</li>
+     *   <li>Otherwise, if {@code DISPLAY} or {@code WAYLAND_DISPLAY} is set
+     *       (graphical environment available — typical of launches from a
+     *       desktop icon / launcher that detach the terminal), return
+     *       {@code "skia"}.  The simpler of the two GUI painters, chosen as
+     *       the default; users can pass {@code --ui=filament} to override.</li>
+     *   <li>Otherwise throw — no UI environment can be detected.  Use
+     *       {@code --ui=<mode>} to force, or {@code Librarian.main} for
+     *       headless.</li>
+     * </ol>
+     */
+    public String effectiveUiMode() {
+        if (uiMode != null && !uiMode.isBlank()) return uiMode;
+        if (System.console() != null) return "tui";
+        if (hasGraphicalEnvironment()) return "skia";
+        throw new IllegalStateException(
+                "No UI environment detected (no controlling terminal, no DISPLAY / "
+                        + "WAYLAND_DISPLAY).  Pass --ui=<tui|skia|filament> explicitly, "
+                        + "or use Librarian.main for a headless backend.");
+    }
+
+    private static boolean hasGraphicalEnvironment() {
+        String display = System.getenv("DISPLAY");
+        if (display != null && !display.isBlank()) return true;
+        String wayland = System.getenv("WAYLAND_DISPLAY");
+        return wayland != null && !wayland.isBlank();
+    }
+
+    /**
      * Check if this is an eval-and-exit invocation.
      */
     public boolean isEvalMode() {

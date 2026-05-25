@@ -4,28 +4,48 @@
 // Renders scene Datums via Google's Filament physically-based renderer.
 // Filament covers two fidelities:
 //
-//   - 2D ortho ("Surface") — a flat camera over the scene.  Produces output
-//     pixel-identical to :ui:skia for 2D content.  GPU-accelerated.
+//   - 2D ortho ("Surface") — a flat camera over the scene.  Native Filament
+//     entities for rectangles, MSDF text via filament-java-text.  Aims for
+//     pixel-identical output with :ui:skia for 2D content; achievable in
+//     practice when both share the same typeface and matched metrics.
 //   - 3D spatial — perspective camera, real meshes, real lights, real
 //     shadows.  Picks the model representation on body nodes; falls back to
 //     2D when no model is available.
 //
-// Filament's native libs are large; isolating this in a submodule keeps the
-// rest of the codebase free of that dependency unless explicitly pulled in.
-//
-// STUB — only the Gradle module skeleton lands now; painter implementation
-// follows.  Old monolithic Filament code lives in git history and in
-// docs/reference-FilamentSpatialRenderer.java.txt / docs/reference-
-// LegacyFilamentSurfacePainter.java.txt for reference.
+// Uses our filament-java bindings (resurrected desktop JVM JNI for Filament
+// post-1.11.0 when Google dropped them) at /home/joshua/projects/filament-java
+// — installed to mavenLocal as 0.1.0-SNAPSHOT, picked up via the rootProject
+// repositories block.  The text module transitively pulls LWJGL + freetype +
+// harfbuzz + msdfgen with their Linux natives, so we only declare the four
+// filament-java modules directly.
 // =============================================================================
 
 plugins {
     id 'java-library'
+    id 'application'
+}
+
+ext {
+    filamentJavaVersion = '0.1.0-SNAPSHOT'
 }
 
 dependencies {
     api project(':ui')
 
-    // Filament JVM bindings + windowing land when the first Filament
-    // painting code goes in.
+    // Filament Java bindings (mavenLocal).
+    implementation "dev.everydaythings:filament-java-core:${filamentJavaVersion}"
+    implementation "dev.everydaythings:filament-java-lwjgl:${filamentJavaVersion}"
+    implementation "dev.everydaythings:filament-java-text:${filamentJavaVersion}"
+    runtimeOnly    "dev.everydaythings:filament-java-native:${filamentJavaVersion}"
+
+    // Graph needs a Unix-socket transport for its Parley listener.
+    runtimeOnly    project(':bridges:unix')
+}
+
+// The application plugin lets us run Graph (which lives in :ui) with the
+// Filament provider on the classpath via `./gradlew :ui:filament:run`.
+// The SurfaceProvider META-INF entry in this module's resources gets
+// picked up by ServiceLoader at runtime, so `--ui filament` resolves.
+application {
+    mainClass = 'dev.everydaythings.graph.ui.Graph'
 }

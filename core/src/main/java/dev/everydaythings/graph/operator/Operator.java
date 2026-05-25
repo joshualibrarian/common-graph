@@ -14,6 +14,7 @@ import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.scene.ContextChain;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.ParseContext;
@@ -118,9 +119,40 @@ public abstract class Operator extends Item {
      * returns null (no behavior); concrete operators override.  Family base
      * classes (BinaryArithmetic, BinaryComparison, BinaryLogical, etc.) make
      * this final and route to a narrower abstract method.
+     *
+     * <p>This is the <b>eager</b> evaluation form: bindings in {@code frame}
+     * are expected to be already fully resolved (TypeRefs substituted,
+     * nested operator bodies dispatched).  Operators that need to control
+     * resolution order or context (Transform, If, And-with-shortcut, ...)
+     * override {@link #evaluate(Frame, ContextChain)} instead, which gets
+     * the unresolved frame plus a resolution context.
      */
     protected Object evaluate(Frame frame) {
         return null;
+    }
+
+    /**
+     * Compute the result of this operator with access to the resolution
+     * context.  Default behavior: resolve every binding eagerly via the
+     * chain, then delegate to {@link #evaluate(Frame)}.  Most operators
+     * inherit this and override only the single-arg form.
+     *
+     * <p>Special-form operators (Transform, If, And-with-shortcut, Let, ...)
+     * override this method directly so they can choose which arguments to
+     * resolve when, and in what context.  Transform, for example, resolves
+     * only its source (THEME) eagerly and leaves its template (INSTRUMENT)
+     * unresolved so it can re-resolve it per iteration with each source
+     * item pushed onto the chain.
+     *
+     * <p>The dual signature is structurally important for the lingua-franca
+     * model: all operator semantics are encoded as their evaluation against
+     * a context.  Eager and lazy evaluators present the same surface to the
+     * resolver; only what they do with the context differs.
+     */
+    public Object evaluate(Frame frame, ContextChain chain) {
+        Body resolvedBody = chain.resolveAllBindings(frame.body());
+        Frame resolvedFrame = Frame.of(resolvedBody, frame.records());
+        return evaluate(resolvedFrame);
     }
 
     /**

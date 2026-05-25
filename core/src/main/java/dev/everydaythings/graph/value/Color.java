@@ -237,6 +237,11 @@ public final class Color extends Value {
         return (red() << 16) | (green() << 8) | blue();
     }
 
+    /** Pack as 0xAARRGGBB — the int form Skija {@code Paint.setColor} and most 2D toolkits consume. */
+    public int toArgb() {
+        return (alpha() << 24) | (red() << 16) | (green() << 8) | blue();
+    }
+
     /** Copy with the given alpha (0–255). */
     public Color withAlpha(int a) {
         return new Color(red(), green(), blue(), a);
@@ -255,16 +260,19 @@ public final class Color extends Value {
 
     /** 24-bit ANSI foreground escape. */
     public String toAnsiForeground() {
-        return String.format("\\u001B[38;2;%d;%d;%dm", red(), green(), blue());
+        return String.format("[38;2;%d;%d;%dm", red(), green(), blue());
     }
 
     /** 24-bit ANSI background escape (darkened to 40% for readability). */
     public String toAnsiBackground() {
-        return String.format("\\u001B[48;2;%d;%d;%dm",
+        return String.format("[48;2;%d;%d;%dm",
                 (int) (red()   * 0.4),
                 (int) (green() * 0.4),
                 (int) (blue()  * 0.4));
     }
+
+    /** ANSI reset — clears any foreground / background / style attributes. */
+    public static final String ANSI_RESET = "[0m";
 
     @Override
     public String toString() {

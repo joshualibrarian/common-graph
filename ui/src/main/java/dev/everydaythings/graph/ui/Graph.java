@@ -11,63 +11,62 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.librarian.LibrarianOptions;
 import dev.everydaythings.graph.runtime.librarian.LibrarianPresence;
 import dev.everydaythings.graph.runtime.session.SessionOptions;
-import dev.everydaythings.graph.runtime.stage.ItemStage;
 import dev.everydaythings.graph.value.UnixEndpoint;
 import lombok.extern.log4j.Log4j2;
 import picocli.CommandLine;
 import picocli.CommandLine.Mixin;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Graph — the orchestrating entrypoint that gives a user a working CG
- * session against a local librarian, starting one in-VM if none is
- * running.  The common everyday-use binary.
+ * Graph — the convenience composer that wires a librarian and a UI session
+ * in one process.  The common everyday-use binary for "I want a working
+ * Common Graph window with one command."
+ *
+ * <p>Graph is UI-centric by definition.  Headless librarian-only
+ * deployments use {@link Librarian#main} directly.  Librarian-less remote
+ * frontends will use {@code RemoteSession.main} once that lands (TBD).
+ * Graph exists for the common case of wanting both in one VM.
  *
  * <h2>Decision tree</h2>
  *
- * <p>At startup, Graph probes the librarian data directory (default
- * {@code ~/.librarian}) and chooses one of two paths:
+ * <p>At startup Graph probes the librarian data directory (default
+ * {@code ~/.librarian}):
  *
  * <ol>
- *   <li><b>Librarian already running</b> — detected via
- *       {@link LibrarianPresence#isAlive(Path)}.  Graph constructs a
- *       {@link RemoteSession} that connects to the librarian via Parley
- *       over its Unix socket.  Multiple Graph processes can share a
- *       single running librarian.</li>
- *   <li><b>No librarian running</b> — Graph starts a Librarian in this
- *       JVM ({@link Librarian#load} if {@code .item/} exists, else
- *       {@link Librarian#fresh}), binds the librarian's Parley listener
- *       (so OTHER clients could still attach to it remotely), and
- *       constructs a {@link LocalSession} in this same JVM — no parley,
- *       just direct in-process composition for efficiency.</li>
+ *   <li><b>Librarian already running</b> — Graph constructs a
+ *       {@link RemoteSession} that connects via Parley over its Unix
+ *       socket.  Multiple Graph processes can share one running librarian.</li>
+ *   <li><b>Nothing running</b> — Graph delegates the librarian bring-up to
+ *       {@link Librarian#startInVm} (same path {@link Librarian#main}
+ *       uses), then mints a {@link LocalSession} against the resulting
+ *       in-VM Librarian.  Direct in-process composition; no parley between
+ *       session and librarian even though the listener IS bound (so other
+ *       clients could attach too).</li>
  * </ol>
  *
- * <p>{@code Librarian.main()} (in {@code :core}) does ONLY the librarian
- * (no session).  {@code Graph.main()} (here in {@code :ui}) orchestrates
- * a session against a librarian (running or freshly started).  UI
- * bring-up happens inside the chosen {@link LocalSession} /
- * {@link RemoteSession} — those two subclasses are the only places UI
- * starts.  Putting Graph and the client-side session embodiments in
- * {@code :ui} lets them wire {@code Painter} + {@code Presenter} +
- * {@code RenderLoop} directly without crossing an SPI boundary back into
- * {@code :core}.
+ * <h2>Composition, not logic</h2>
+ *
+ * <p>Graph owns no startup logic of its own.  Librarian bring-up lives on
+ * {@link Librarian#startInVm}.  UI bring-up lives on {@link UiSession#startUi}
+ * (overridden in {@link LocalSession} and {@link RemoteSession}).  UI-mode
+ * detection lives on {@link SessionOptions#effectiveUiMode}.  Graph reads
+ * the options, calls the two entry points in order, and blocks.
  *
  * <h2>What's not yet wired</h2>
  *
- * <p>UI bring-up (TUI / Skia / Filament per {@code --ui} mode) is the
- * next slice.  Graph today logs what it's doing and blocks until
- * interrupted; the actual rendering lands when {@link LocalSession} /
- * {@link RemoteSession} call {@code startUi(uiMode)} — discovery happens
- * via the {@link SurfaceRegistry} ServiceLoader in this module.
+ * <p>Remote-mode session construction.  Graph today brings up the Parley
+ * connection but stops short of constructing a {@link RemoteSession} from
+ * it — pending the RemoteSession startup dance (ephemeral keypair,
+ * DELEGATION, INCEPTION).  Until then the client path blocks until the
+ * remote closes.
  */
 @Log4j2
 @CommandLine.Command(
         name = "graph",
-        description = "Common Graph orchestrating entrypoint — finds or starts a librarian, brings up a session.")
+        description = "Common Graph composer — wires a librarian and a UI session in one process.")
 public final class Graph {
 
     private static final ItemRef CG_CBOR = ItemRef.iid(Encoding.CgCborV1.KEY);
@@ -96,12 +95,12 @@ public final class Graph {
         if (LibrarianPresence.isAlive(dataDir)) {
             runAsClient(dataDir);
         } else {
-            runEmbedded(dataDir);
+            runEmbedded();
         }
     }
 
     // ==================================================================================
-    // Client mode — a librarian is already running at the data dir; attach via Parley.
+    // Client mode — a librarian is already running; attach via Parley.
     // ==================================================================================
 
     private void runAsClient(Path dataDir) {
@@ -130,11 +129,9 @@ public final class Graph {
             try { connection.close(); } catch (RuntimeException ignored) {}
         }, "Graph-client-shutdown"));
 
-        // TODO: construct a RemoteSession from the connection + vaults and
-        //       call session.startUi(sceneSupplier, sessionOptions.uiMode,
-        //       cadence) — pending the "what scene does Graph show by
-        //       default" decision (splash? launcher? last-focused item?).
-        //       Until then, block until interrupted or remote closes.
+        // TODO: construct a RemoteSession from the connection + vaults, then
+        //       session.startUi(sessionOptions.effectiveUiMode()).  Pending
+        //       the RemoteSession startup dance.  Until then block.
         blockUntilClosedOrInterrupted(connection);
     }
 
@@ -142,48 +139,20 @@ public final class Graph {
     // Embedded mode — no librarian running; start one + LocalSession in this VM.
     // ==================================================================================
 
-    private void runEmbedded(Path dataDir) {
-        ItemStage stage = new ItemStage();
-        logger.info("ItemStage up. Polyglot: {}",
-                stage.polyglotAvailable()
-                        ? "GraalVM " + stage.polyglotLanguages()
-                        : "Java-only");
+    private void runEmbedded() {
+        Librarian lib = Librarian.startInVm(librarianOptions);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("Graph shutting down.");
+            lib.close();
+        }, "Graph-embedded-shutdown"));
 
-        boolean existing = Files.isDirectory(dataDir.resolve(".item"));
-        Librarian lib = existing
-                ? Librarian.load(stage, dataDir)
-                : Librarian.fresh(stage, dataDir);
-        logger.info("Librarian ({}) at {}. IID: {}",
-                existing ? "loaded" : "fresh", dataDir, lib.iid().encodeText());
-
-        // Start parley listener — other clients could connect remotely even
-        // though the in-VM session uses LocalSession (no parley between us).
-        Path socketPath = librarianOptions.effectiveSocketPath();
-        UnixEndpoint endpoint = UnixEndpoint.of(socketPath.toString());
-        Transport transport = TransportRegistry.require(endpoint);
-        Parley parley = new Parley(lib);
-        Transport.Listener listener = parley.listen(
-                transport, endpoint, CG_CBOR, Set.of(CG_CBOR));
-        logger.info("Parley listening at {}", socketPath);
-
-        // In-VM session: LocalSession against the same Librarian.  No parley
-        // between session and librarian — direct in-process composition.
-        // mint() allocates the iid, registers with the librarian's cache, and
-        // publishes a librarian-signed ITEM_VIEW(self) bootstrap frame so
-        // startUi has at least one default view to enumerate.
         LocalSession session = LocalSession.mint(lib);
         logger.info("LocalSession started in-VM at iid {}.", session.iid().encodeText());
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            logger.info("Graph shutting down.");
-            try { listener.close(); } catch (RuntimeException ignored) {}
-            try { lib.close();      } catch (RuntimeException ignored) {}
-        }, "Graph-embedded-shutdown"));
+        session.startUi(sessionOptions.effectiveUiMode());
+        Runtime.getRuntime().addShutdownHook(new Thread(session::stopUi,
+                "Graph-stopUi-shutdown"));
 
-        // TODO: session.startUi(sceneSupplier, sessionOptions.uiMode, cadence)
-        //       — pending the "what scene does Graph show by default" decision
-        //       (splash? launcher? last-focused item?).
-        //       Until then, block until interrupted.
         blockUntilInterrupted();
     }
 

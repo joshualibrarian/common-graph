@@ -89,10 +89,6 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
      * Redacted — the subtree's content is hidden; only its structural hash
      * survives.  Optionally accompanied by record-refs explaining the
      * redaction (who/why/under what policy).
-     *
-     * <p>Wire form: {@code Tag(12)[Bytes(wrappedHash), Array(recordRefs)]} — 2
-     * elements (the tag disambiguates from Compressed and Encrypted, which
-     * are 3-element).
      */
     final class Redacted implements Opaque {
         private final byte[] wrappedHash;
@@ -142,8 +138,9 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
      * compressed, and optionally the original signer's signature so the
      * decompressed form authenticates).
      *
-     * <p>Wire form: {@code Tag(14)[Bytes(wrappedHash), Bytes(deflated),
-     * Array(recordRefs)]} — 3 elements.
+     * <p>See {@link dev.everydaythings.graph.encoding.Compress} for the
+     * compress / decompress operations (which take a caller-supplied
+     * encoding to turn the body into / out of bytes).
      */
     final class Compressed implements Opaque {
         private final byte[] wrappedHash;
@@ -201,9 +198,6 @@ public sealed interface Opaque extends DatumNode permits Opaque.Redacted, Opaque
      * Record-refs point at records whose HEAD identifies the ciphertext
      * (typically {@code ~cid(ciphertext)}); those records carry the
      * algorithm, recipient declarations, and wrapped content-keys.
-     *
-     * <p>Wire form: {@code Tag(13)[Bytes(wrappedHash), Bytes(ciphertext),
-     * Array(recordRefs)]} — 3 elements.
      */
     final class Encrypted implements Opaque {
         private final byte[] wrappedHash;

@@ -149,6 +149,38 @@ public abstract class SceneNode extends Value {
     }
 
     // ==================================================================================
+    // Layout metadata — populated by the Presenter, consumed by the Painter.
+    //
+    // Bounds are not part of the scene's content identity (bindings + head
+    // define that).  They're render-time placement output: the Presenter
+    // computes them per tick from the resolved scene + viewport + font
+    // metrics, and the Painter draws against them.  Storing them as a
+    // mutable field on the node matches the architecture's "progressive
+    // mutation, one tree type throughout" stance and keeps the painter
+    // contract simple (no parallel positioned-tree to thread through).
+    // ==================================================================================
+
+    private Bounds bounds = Bounds.ZERO;
+
+    /**
+     * This node's placement in painter-native units.  Returns
+     * {@link Bounds#ZERO} until the Presenter's layout pass has run; after
+     * that, the computed bounds for this render tick.
+     */
+    public Bounds bounds() {
+        return bounds;
+    }
+
+    /**
+     * Assign the layout-computed bounds for this render tick.  Called by
+     * {@link Presenter} during the layout pass; callers other than the
+     * presenter generally shouldn't invoke this.
+     */
+    public void bounds(Bounds bounds) {
+        this.bounds = bounds == null ? Bounds.ZERO : bounds;
+    }
+
+    // ==================================================================================
     // Universal property readers — the structurally-important ones.
     //
     // Most scene properties (background, font, transform, ...) are read
@@ -214,8 +246,17 @@ public abstract class SceneNode extends Value {
     // Helpers
     // ==================================================================================
 
-    /** Look up the first binding for a role and cast its literal target to the given type. */
-    protected <T> Optional<T> readLiteral(String roleKey, Class<T> type) {
+    /**
+     * Look up the first binding for a role and cast its literal target to
+     * the given type.  Returns empty when no binding matches or the target
+     * isn't of the requested type.
+     *
+     * <p>Public so painters (and other tree walkers) can read scene-property
+     * values out of any node without redefining the same lookup logic per
+     * renderer.  TuiPainter / SkiaPainter / FilamentPainter all read text
+     * content this way.
+     */
+    public <T> Optional<T> readLiteral(String roleKey, Class<T> type) {
         ItemRef role = ItemRef.iid(roleKey);
         for (Binding b : bindings()) {
             if (role.equals(b.role()) && type.isInstance(b.target())) {
@@ -223,5 +264,22 @@ public abstract class SceneNode extends Value {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Look up the first binding for a role and reconstruct a {@link Color}
+     * from its target.  Returns empty when no binding matches or the
+     * target isn't a Color-shaped Body.
+     *
+     * <p>The cascade resolver currently re-wraps unchanged child Bodies
+     * via {@code Body.of(head, bindings)}, which demotes value subclasses
+     * (Color, Length, ...) to plain Body.  This helper reads as Body and
+     * reconstructs the typed Color via {@link Color#from(dev.everydaythings.graph.datum.Body)},
+     * which handles both the unchanged and the demoted cases.
+     */
+    public Optional<Color> readColor(String roleKey) {
+        return readLiteral(roleKey, dev.everydaythings.graph.datum.Body.class)
+                .filter(b -> ItemRef.iid(Color.KEY).equals(b.headRef()))
+                .map(Color::from);
     }
 }

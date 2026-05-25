@@ -2,6 +2,7 @@ package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.encoding.CgCbor;
+import dev.everydaythings.graph.encoding.Compress;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.HashID;
@@ -64,7 +65,7 @@ class OpaqueTest {
         @Test
         @DisplayName("Opaque.Compressed round-trips through CBOR (with and without refs)")
         void compressedRoundtrip() {
-            Opaque.Compressed bare = Compress.compress(sampleBody());
+            Opaque.Compressed bare = Compress.compress(sampleBody(), CgCbor.codec());
             assertThat(roundTrip(bare)).isEqualTo(bare);
 
             Opaque.Compressed withRefs = new Opaque.Compressed(
@@ -114,7 +115,7 @@ class OpaqueTest {
         @DisplayName("parent hash is invariant when a target is replaced with Opaque.Compressed")
         void compressedTargetPreservesParentHash() {
             Body child = sampleBody();
-            Opaque.Compressed compressed = Compress.compress(child);
+            Opaque.Compressed compressed = Compress.compress(child, CgCbor.codec());
 
             Body parentInline     = Body.of(HEAD, List.of(new Binding(CHILD_ROLE, BindingTarget.frame(child))));
             Body parentCompressed = Body.of(HEAD, List.of(new Binding(CHILD_ROLE, compressed)));

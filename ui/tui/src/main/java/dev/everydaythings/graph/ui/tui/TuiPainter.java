@@ -1,9 +1,8 @@
 package dev.everydaythings.graph.ui.tui;
 
-import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.quality.MediaVocabulary;
-import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.quality.VisualVocabulary;
 import dev.everydaythings.graph.scene.FontMetrics;
 import dev.everydaythings.graph.scene.Painter;
 import dev.everydaythings.graph.scene.SceneBody;
@@ -12,11 +11,9 @@ import dev.everydaythings.graph.scene.SceneNode;
 import dev.everydaythings.graph.scene.SceneText;
 import dev.everydaythings.graph.scene.SceneVocabulary;
 import dev.everydaythings.graph.scene.Viewport;
+import dev.everydaythings.graph.value.Color;
 
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -70,7 +67,10 @@ public final class TuiPainter implements Painter {
     @Override
     public void paint(SceneNode tree) {
         if (!open) throw new IllegalStateException("painter is closed");
-        paintNode(tree, 0);
+        Color rootForeground = tree == null
+                ? null
+                : tree.readColor(VisualVocabulary.Foreground.KEY).orElse(null);
+        if (tree != null) paintNode(tree, 0, rootForeground);
         out.flush();
     }
 
@@ -100,83 +100,51 @@ public final class TuiPainter implements Painter {
     // Tree walk
     // ==================================================================================
 
-    private void paintNode(SceneNode node, int depth) {
+    private void paintNode(SceneNode node, int depth, Color inheritedFg) {
+        Color fg = node.readColor(VisualVocabulary.Foreground.KEY).orElse(inheritedFg);
         switch (node) {
-            case SceneText  text      -> paintText(text, depth);
-            case SceneBody  body      -> paintBody(body, depth);
-            case SceneContainer cont  -> paintContainer(cont, depth);
-            default                    -> writeIndented(depth, "<unknown scene node: " + node.getClass().getSimpleName() + ">");
+            case SceneText  text      -> paintText(text, depth, fg);
+            case SceneBody  body      -> paintBody(body, depth, fg);
+            case SceneContainer cont  -> paintContainer(cont, depth, fg);
+            default                    -> writeIndented(depth, "<unknown scene node: " + node.getClass().getSimpleName() + ">", fg);
         }
     }
 
-    private void paintText(SceneText text, int depth) {
-        String content = readLiteral(text, SceneVocabulary.Text.KEY, String.class);
+    private void paintText(SceneText text, int depth, Color fg) {
+        String content = text.readLiteral(SceneVocabulary.Text.KEY, String.class).orElse(null);
         if (content == null || content.isEmpty()) return;
-        writeIndented(depth, content);
+        writeIndented(depth, content, fg);
     }
 
-    private void paintBody(SceneBody body, int depth) {
-        String glyph = readLiteral(body, MediaVocabulary.Glyph.KEY, String.class);
+    private void paintBody(SceneBody body, int depth, Color fg) {
+        String glyph = body.readLiteral(MediaVocabulary.Glyph.KEY, String.class).orElse(null);
         if (glyph != null && !glyph.isEmpty()) {
-            writeIndented(depth, glyph);
+            writeIndented(depth, glyph, fg);
             return;
         }
-        String alt = readLiteral(body, MediaVocabulary.Alt.KEY, String.class);
+        String alt = body.readLiteral(MediaVocabulary.Alt.KEY, String.class).orElse(null);
         if (alt != null && !alt.isEmpty()) {
-            writeIndented(depth, "[" + alt + "]");
+            writeIndented(depth, "[" + alt + "]", fg);
             return;
         }
-        writeIndented(depth, "[body]");
+        writeIndented(depth, "[body]", fg);
     }
 
-    private void paintContainer(SceneContainer container, int depth) {
-        List<SceneNode> children = readChildren(container);
-        for (SceneNode child : children) {
-            paintNode(child, depth + 1);
+    private void paintContainer(SceneContainer container, int depth, Color fg) {
+        for (SceneNode child : container.children()) {
+            paintNode(child, depth + 1, fg);
         }
     }
 
-    // ==================================================================================
-    // Binding readers
-    //
-    // The painter walks raw bindings (rather than fielded accessors) because
-    // the scene-node classes don't yet expose typed readers for many slots.
-    // Switching to fielded reads is a follow-up once the resolver lands.
-    // ==================================================================================
-
-    private <T> T readLiteral(SceneNode node, String roleKey, Class<T> type) {
-        ItemRef role = ItemRef.iid(roleKey);
-        for (Binding b : node.bindings()) {
-            if (role.equals(b.role())
-                    && b.qualifiers().isEmpty()
-                    && type.isInstance(b.target())) {
-                return type.cast(b.target());
-            }
-        }
-        return null;
-    }
-
-    private List<SceneNode> readChildren(SceneContainer container) {
-        ItemRef childrenRole = ItemRef.iid(SceneVocabulary.Children.KEY);
-        List<Binding> matches = new ArrayList<>();
-        for (Binding b : container.bindings()) {
-            if (childrenRole.equals(b.role()) && b.target() instanceof Body) {
-                matches.add(b);
-            }
-        }
-        matches.sort(Comparator.comparing(
-                b -> b.index() == null ? Long.MAX_VALUE : b.index(),
-                Comparator.nullsLast(Comparator.naturalOrder())));
-        List<SceneNode> children = new ArrayList<>(matches.size());
-        for (Binding b : matches) {
-            children.add(SceneNode.from((Body) b.target()));
-        }
-        return children;
-    }
-
-    private void writeIndented(int depth, String text) {
+    private void writeIndented(int depth, String text, Color fg) {
         for (int i = 0; i < depth; i++) out.print("  ");
-        out.println(text);
+        if (fg != null) {
+            out.print(fg.toAnsiForeground());
+            out.print(text);
+            out.println(Color.ANSI_RESET);
+        } else {
+            out.println(text);
+        }
     }
 
     // ==================================================================================

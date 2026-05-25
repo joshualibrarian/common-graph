@@ -429,19 +429,27 @@ public class OperatorNotation extends Language {
     // ==================================================================================
 
     /**
-     * Render one operand position. A {@link BindingTarget.RefTarget} pointing at a
-     * stored frame body is fetched via the librarian and recursed via
-     * {@link #renderOperation}, with parens decided by {@link #needsParens}. Other
+     * Render one operand position. A target pointing at a stored frame body is
+     * fetched via the librarian and recursed via {@link #renderOperation}, with
+     * parens decided by {@link #needsParens}.  Two equivalent ref shapes are
+     * recognized: a bare {@link DatumRef} (the common case — what
+     * {@link Librarian#persist(Body)} returns) and a {@link
+     * BindingTarget.RefTarget} wrapper (the typed-target variant).  Other
      * targets (literals, IID refs, legacy inline FrameTarget) fall through to
      * {@link #renderOperandFallback}.
      */
     private String renderOperand(Object target, long outerPrecedence,
                                  ItemRef outerAssociativity, boolean isLeftOperand,
                                  ParseParams params) {
-        if (!(target instanceof BindingTarget.RefTarget rt)) {
+        DatumRef cid;
+        if (target instanceof DatumRef dr) {
+            cid = dr;
+        } else if (target instanceof BindingTarget.RefTarget rt) {
+            cid = rt.asDatumId();
+        } else {
             return renderOperandFallback(target);
         }
-        DatumRef cid = rt.asDatumId();
+        if (cid == null) return renderOperandFallback(target);
         Optional<Frame> innerFrame = librarian().fetchFrame(cid);
         if (innerFrame.isEmpty()) return renderOperandFallback(target);
         Body inner = innerFrame.get().body();

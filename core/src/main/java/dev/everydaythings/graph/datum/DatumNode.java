@@ -43,7 +43,7 @@ package dev.everydaythings.graph.datum;
  * {@code Object} (today's case for {@link Binding#target()}).
  *
  * <p>This interface is intentionally unsealed and methodless — a marker.
- * Code that processes nodes (CanonWalker, the CBOR codec, the matcher,
+ * Code that processes nodes (CanonWalker, any encoder, the matcher,
  * etc.) does its own dispatch by runtime type; the marker exists for
  * polymorphic slot typing, not for shared API.
  */

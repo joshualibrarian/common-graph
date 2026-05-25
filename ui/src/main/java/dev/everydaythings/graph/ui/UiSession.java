@@ -154,10 +154,19 @@ public abstract class UiSession extends Session {
             ItemRef theme = readReferenceTarget(body, themeRole).orElse(null);
             if (theme == null) continue;
             if (closedThemes.contains(theme)) continue;
+            // The Window's scene is the CHROME — declared on ITEM_VIEW's
+            // archetype manifest as !Scene (template-for-instances).  The
+            // cascade walks from ItemView.KEY upward and finds the chrome
+            // declared on ItemView itself (or falls through to Archetype's
+            // terminal default).  The theme item's own scenes (handle,
+            // default) get embedded INTO this chrome via the slot mechanism
+            // (forthcoming); for now the chrome renders alone and the inner
+            // content is absent.  Once the slot lands, this supplier
+            // composes both.
             Supplier<Body> sceneSupplier = () -> {
-                Body declared = SceneCascade.sceneFor(theme, lib);
+                Body chrome = SceneCascade.sceneFor(itemViewHead, lib);
                 ContextChain chain = contextChainFor(theme);
-                return SceneResolver.resolve(declared, chain);
+                return SceneResolver.resolve(chrome, chain);
             };
             intoSurface.addWindow(Window.fromBody(body, sceneSupplier));
             attached++;

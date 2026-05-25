@@ -113,7 +113,7 @@ public abstract class AbstractSurface implements Surface {
             if (open) return;
 
             painter   = Objects.requireNonNull(createPainter(), "createPainter() returned null");
-            presenter = new Presenter(painter.viewport(), session.variableResolver());
+            presenter = new Presenter(painter.viewport(), session.variableResolver(), painter.fontMetrics());
             loop      = new RenderLoop(painter, presenter, this::composeScene,
                                        cadence(), renderThreadName());
             onOpen();

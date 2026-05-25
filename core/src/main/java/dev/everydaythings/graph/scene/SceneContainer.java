@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.scene;
 
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.BodyBinder;
@@ -13,6 +14,9 @@ import dev.everydaythings.graph.quality.LayoutVocabulary;
 import dev.everydaythings.graph.value.Bool;
 import dev.everydaythings.graph.value.Numeric;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -103,5 +107,48 @@ public class SceneContainer extends SceneNode {
                     "Body head is not the SceneContainer archetype: " + body.headRef());
         }
         return new SceneContainer(body);
+    }
+
+    // ==================================================================================
+    // Children — typed-view enumeration of the Children bindings.
+    //
+    // Lazily-built and cached so every caller sees the same {@link SceneNode}
+    // instances.  This is what makes layout-then-paint work: the Presenter
+    // assigns {@link SceneNode#bounds(Bounds)} during layout, and the painter
+    // walks via {@link #children()} on the next render-pipeline stage and
+    // gets the same wrappers with bounds populated.
+    //
+    // The cache is per-instance; a SceneContainer constructed from a fresh
+    // Body on the next render tick will rebuild its own children, which is
+    // what we want — layout outputs are per-tick.
+    // ==================================================================================
+
+    private List<SceneNode> cachedChildren;
+
+    /**
+     * The container's children as typed {@link SceneNode}s in declaration /
+     * index order.  Cached on first call so subsequent calls return the
+     * same instances — important for layout-then-paint pipelines that
+     * annotate the wrappers with computed {@link Bounds}.
+     */
+    public List<SceneNode> children() {
+        if (cachedChildren == null) {
+            ItemRef childrenRole = ItemRef.iid(SceneVocabulary.Children.KEY);
+            List<Binding> matches = new ArrayList<>();
+            for (Binding b : bindings()) {
+                if (childrenRole.equals(b.role()) && b.target() instanceof Body) {
+                    matches.add(b);
+                }
+            }
+            matches.sort(Comparator.comparing(
+                    b -> b.index() == null ? Long.MAX_VALUE : b.index(),
+                    Comparator.nullsLast(Comparator.naturalOrder())));
+            List<SceneNode> built = new ArrayList<>(matches.size());
+            for (Binding b : matches) {
+                built.add(SceneNode.from((Body) b.target()));
+            }
+            cachedChildren = List.copyOf(built);
+        }
+        return cachedChildren;
     }
 }

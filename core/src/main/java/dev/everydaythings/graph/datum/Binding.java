@@ -47,12 +47,15 @@ public final class Binding implements DatumNode {
     @Order(0) private final CompoundKey key;
 
     /**
-     * The bound value. Any of:
+     * The bound value.  Any of:
      * <ul>
      *   <li>a {@link dev.everydaythings.graph.ref.HashID} (ItemRef / ContentRef / DatumRef)
      *       — reference to an item, content, or datum</li>
-     *   <li>a {@link Body} — inline nested frame</li>
-     *   <li>a {@link BindingTarget.RedactedTarget} — Merkle elision marker</li>
+     *   <li>a {@link BindingTarget.RefTarget} — typed wrapper around a HashID</li>
+     *   <li>a {@link BindingTarget.FrameTarget} or a {@link Body} — inline nested frame</li>
+     *   <li>an {@link Opaque} stand-in ({@link Opaque.Redacted},
+     *       {@link Opaque.Compressed}, {@link Opaque.Encrypted}) — Merkle-
+     *       preserving stand-in for a hidden / compressed / encrypted subtree</li>
      *   <li>a primitive: {@link String}, {@link Long}, {@link Boolean}, {@code byte[]},
      *       {@link java.time.Instant}, {@link java.math.BigDecimal},
      *       {@link java.math.BigInteger}, {@link dev.everydaythings.graph.value.Rational}</li>
@@ -124,16 +127,6 @@ public final class Binding implements DatumNode {
         this(CompoundKey.of(role), target, null);
     }
 
-    /**
-     * No-arg constructor for legacy Canonical decode support.
-     */
-    @SuppressWarnings("unused")
-    private Binding() {
-        this.key = null;
-        this.target = null;
-        this.index = null;
-    }
-
     // ==================================================================================
     // Accessors
     // ==================================================================================
@@ -152,7 +145,7 @@ public final class Binding implements DatumNode {
      * match a query {@code ?KEY} — which is correct.
      */
     public HashID role() {
-        return key == null ? null : key.head();
+        return key.head();
     }
 
     /**
@@ -161,12 +154,12 @@ public final class Binding implements DatumNode {
      * binding is known to be a literal role (not an expectation / query).
      */
     public ItemRef roleIid() {
-        return key == null ? null : key.headIid();
+        return key.headIid();
     }
 
     /** Qualifiers — sugar for {@code key().qualifiers()}. */
     public List<Qualifier> qualifiers() {
-        return key == null ? List.of() : key.qualifiers();
+        return key.qualifiers();
     }
 
     /** The bound value. */
@@ -278,10 +271,8 @@ public final class Binding implements DatumNode {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("Binding{");
-        if (key != null) {
-            sb.append(key.head().displayAtWidth(12));
-            if (!key.qualifiers().isEmpty()) sb.append(":").append(key.qualifiers().size());
-        }
+        sb.append(key.head().displayAtWidth(12));
+        if (!key.qualifiers().isEmpty()) sb.append(":").append(key.qualifiers().size());
         if (index != null) sb.append("[#").append(index).append("]");
         sb.append(" -> ").append(target);
         if (instance != null) sb.append(" [live]");

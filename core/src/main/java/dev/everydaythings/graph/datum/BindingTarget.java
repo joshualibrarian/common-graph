@@ -7,16 +7,24 @@ import java.util.Objects;
 /**
  * Value type for frame binding targets.
  *
- * <p>A binding target is the value side of a role binding in a frame.
- * Implementations:
+ * <p>A binding target is the value side of a role binding in a frame.  The
+ * concrete shapes that can appear in a binding's {@code target} slot:
  * <ul>
- *   <li>{@link RefTarget} — unified reference (Tag 6) to any HashID (ItemRef or ContentRef)</li>
- *   <li>{@link IidTarget} — legacy reference to another Item (encodes as bare ByteString)</li>
- *   <li>{@link FrameTarget} — inline nested frame (Tag 23) for expression trees</li>
- *   <li>{@link RedactedTarget} — Merkle redaction marker (Tag 11) wrapping the
- *       hash of an elided subtree. Short-circuits during structural Merkle hashing.</li>
- *   <li>Raw Java values ({@link String}, {@link Long}, {@link Boolean},
- *       {@code byte[]}, {@link java.time.Instant}, etc.) — inline typed value</li>
+ *   <li>{@link RefTarget} — unified reference to any {@link
+ *       dev.everydaythings.graph.ref.HashID HashID} (ItemRef / ContentRef /
+ *       DatumRef).</li>
+ *   <li>{@link FrameTarget} — inline nested body, for expression trees and
+ *       compositional frames.</li>
+ *   <li>An {@link Opaque} stand-in ({@link Opaque.Redacted},
+ *       {@link Opaque.Compressed}, {@link Opaque.Encrypted}) — preserves
+ *       the position's structural hash while hiding / compressing /
+ *       encrypting its payload.</li>
+ *   <li>A bare {@link dev.everydaythings.graph.ref.HashID HashID} — same
+ *       semantics as a {@link RefTarget} wrapping it, accepted in raw form
+ *       for ergonomic constructor calls.</li>
+ *   <li>Raw Java leaf values ({@link String}, {@link Long}, {@link Boolean},
+ *       {@code byte[]}, {@link java.time.Instant}, etc.) — inline typed
+ *       value.</li>
  * </ul>
  */
 public interface BindingTarget extends DatumNode {
@@ -47,8 +55,6 @@ public interface BindingTarget extends DatumNode {
     /**
      * HashID-valued binding target — wraps a {@link HashID} (the sealed
      * {@link ItemRef}/{@link ContentRef}/{@link DatumRef} sum type).
-     *
-     * <p>Encoded as CG-CBOR Tag 6 wrapping the HashID's binary payload.
      *
      * <p>The convenience accessors return the underlying target of the
      * appropriate variant, or {@code null} when the variant doesn't match —
@@ -118,9 +124,9 @@ public interface BindingTarget extends DatumNode {
     /**
      * Inline nested datum — enables expression trees and compositional frames.
      *
-     * <p>Encodes as CG-CBOR Tag 12 (DATUM) wrapping the inner body's CBOR. Same
-     * tag as outer-level Body/Record encoding — the wire shape of an inline
-     * datum and an outer datum is identical, and decoders dispatch by context.
+     * <p>Structurally identical to an outer-level body: when walked or
+     * encoded, an inline FrameTarget produces the same node-tree shape as
+     * the body it wraps.  Decoders dispatch by position.
      */
     final class FrameTarget implements BindingTarget {
         private final Body body;

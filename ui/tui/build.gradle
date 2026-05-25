@@ -20,6 +20,11 @@ dependencies {
     api project(':ui')
 
     implementation "org.jline:jline:${jlineVersion}"
+
+    // Graph needs a Unix-socket transport for its Parley listener; pulling it
+    // in here lets `./gradlew :ui:tui:run -PmainClass=dev.everydaythings.graph.ui.Graph`
+    // smoke-test the TUI through the same path as :ui:skia and :ui:filament.
+    runtimeOnly project(':bridges:unix')
 }
 
 // The `application` plugin lets us run demo `main()` classes via Gradle.

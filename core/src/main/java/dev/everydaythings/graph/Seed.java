@@ -606,28 +606,25 @@ public class Seed {
     /**
      * Marks a method as the handler for frames whose head is a given predicate.
      *
-     * <p>The {@link Librarian} dispatch layer scans the receiving item's class at
-     * invocation time, locates the method whose {@code @Handler(predicate=...)}
-     * matches the incoming frame's head IID, decomposes the frame's bindings into
-     * method parameters, and invokes the method. Return values become response
-     * frames.
+     * <p>At seed-processing time, the annotation produces a HANDLES frame on
+     * the enclosing archetype's manifest (predicate-as-data, queryable and
+     * inheritable across language runtimes) and an endorsement on the
+     * embodying CodeItem.  At dispatch time, the librarian's two-hop walk
+     * ({@code HANDLES → IMPLEMENTS}) routes incoming frames to a live
+     * instance of the handling archetype and invokes its method via
+     * {@link dev.everydaythings.graph.runtime.stage.ItemStage#deliver
+     * ItemStage.deliver}.
      *
-     * <p>Eventual seed-time work: the scan also produces a HANDLES frame endorsed
-     * by the embodying archetype, so the dispatch table is queryable as data and
-     * inheritable across language runtimes. For Phase 1, only the Java-reflection
-     * path is implemented; the HANDLES frames are pending.
+     * <p><b>Method signature:</b> {@code Object handler(Frame frame)}.  The
+     * universal shape is a single {@link
+     * dev.everydaythings.graph.datum.Frame Frame} parameter; handlers that
+     * need specific values read them from the frame's bindings inside the
+     * method body.  Return value (a single Frame or a {@code List<Frame>})
+     * becomes the response.
      *
-     * <p>The Java method named here is the truth — direct in-VM callers can invoke
-     * it without constructing a frame. The annotation marks it as <i>also</i>
-     * reachable via frame dispatch.
-     *
-     * <p>Phase 1 parameter mapping (will be refined):
-     * <ul>
-     *   <li>String parameter ↔ THEME binding's text literal</li>
-     *   <li>Integer parameter ↔ ATTRIBUTE[LIMIT] binding's integer literal (may be null)</li>
-     * </ul>
-     * This is enough for LOOKUP; a more general role→position scheme will land
-     * when more handlers exist.
+     * <p>The Java method named here is the truth — direct in-VM callers can
+     * invoke it without constructing a frame.  The annotation marks it as
+     * <i>also</i> reachable via frame dispatch.
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)

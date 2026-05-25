@@ -40,14 +40,26 @@ public final class SceneVocabulary {
     // ==================================================================================
 
     /**
-     * Scene — record-binding role naming a scene-tree {@link dev.everydaythings.graph.datum.Body Body}
-     * to apply to the item this record points to.  One Scene binding per
-     * record (the default presentation for instances of this archetype).
+     * Scene — the single sememe naming the scene system as a whole.
      *
-     * <p>Resolved by {@link SceneCascade} walking the archetype chain looking
-     * for the first {@code Scene → <body>} record binding.  Per-instance
-     * overrides land on the instance's own record; the cascade short-circuits
-     * at the most-specific entry that declares it.
+     * <p>One sememe, used in two structurally-related ways:
+     * <ul>
+     *   <li><b>Binding role:</b> A {@code Scene → <body>} record binding
+     *       attaches a scene-tree to the item the record points to.  The
+     *       cascade walks records' Scene bindings; the qualifier (when
+     *       present) selects the presentation form ({@code Scene[Handle]},
+     *       {@code Scene[Aura]}, default Scene).</li>
+     *   <li><b>Conceptual umbrella:</b> The Scene sememe is the family
+     *       label for the scene system's archetypes — {@link SceneNode}
+     *       (and its subarchetypes Container/Text/Body) and
+     *       {@link SceneStyle}.  Both produce, in different shapes, the
+     *       data that fills Scene-role bindings.</li>
+     * </ul>
+     *
+     * <p>The dual usage is intentional, not a naming overload.  In both
+     * cases we're referring to the same concept of "the scene system."
+     * Resolved by {@link SceneCascade} walking the archetype chain looking
+     * for the matching {@code Scene[qualifier]} record binding.
      */
     @Seed.Item(key = Scene.KEY, head = CoreVocabulary.Quality.KEY)
     public static final class Scene {
@@ -141,6 +153,71 @@ public final class SceneVocabulary {
           field = @Binding(role = ThematicRole.Value.KEY,
             qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "pattern";
+    }
+
+    // ==================================================================================
+    // Scene-form qualifiers — disambiguate alternate presentations of an item.
+    //
+    // Bindings carry a compound key: role + qualifiers.  The default Scene
+    // binding has no qualifiers and represents the item's primary / full
+    // presentation.  A Scene[Handle] binding represents the compact form
+    // (chip, badge, what appears inside a chain or list).  A Scene[Aura]
+    // binding represents the per-item overlay framework (the styled template
+    // for swarms, breadcrumbs, ambient activity rendered around the item).
+    //
+    // These qualifiers compose with each other and with device qualifiers
+    // (when those land) via CompoundKey's multi-qualifier support, so
+    // Scene[Handle, Mobile] is a real address future code can reach.
+    // ==================================================================================
+
+    /**
+     * Handle — qualifier marking a scene as the compact / glanceable form
+     * of an item.  Renders inside chains, lists, swarm dots, breadcrumbs —
+     * anywhere the item needs to appear small but recognizable.  Distinct
+     * from the default Scene which fills an ItemView at full presentation.
+     */
+    @Seed.Item(key = Handle.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Handle {
+        public static final String KEY = "cg.qualifier:handle";
+        private Handle() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "qualifier marking a scene as the compact glanceable form of an item — "
+                        + "rendered in chains, lists, swarm dots, breadcrumbs";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "handle";
+    }
+
+    /**
+     * Aura — qualifier marking a scene as the per-item overlay framework.
+     * Each item's Aura scene is the styled template for the ambient
+     * activity rendered around that item: notification swarms, navigation
+     * breadcrumbs, hover-expanded chains, drag previews bound to it.  The
+     * compositor activates an item's Aura when there's content to show
+     * (a reaction arrived; a chain is open here); otherwise it stays
+     * dormant and draws nothing.
+     */
+    @Seed.Item(key = Aura.KEY, head = CoreVocabulary.Quality.KEY)
+    public static final class Aura {
+        public static final String KEY = "cg.qualifier:aura";
+        private Aura() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "qualifier marking a scene as the per-item overlay framework — the styled "
+                        + "template for ambient activity rendered around the item (swarms, "
+                        + "breadcrumbs, chains, drag previews)";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "aura";
     }
 
     // ==================================================================================

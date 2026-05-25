@@ -44,9 +44,6 @@ import java.util.Objects;
  * <p>Per-record metadata (signer, claimed time, role, AAD-equivalents) lives in
  * the bindings, not in the signature slot. The signature slot carries only
  * cryptographic bytes.
- *
- * <p>CBOR encoding: 3-element array {@code [Tag-6(head), [bindings], signature-bytes]}.
- * Unsigned records encode the same way with a zero-length byte string.
  */
 public final class Record extends Datum {
 

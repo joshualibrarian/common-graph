@@ -12,26 +12,29 @@ import java.util.Optional;
 /**
  * The unified structural primitive of Common Graph.
  *
- * <p>A Datum is a head reference plus a list of bindings. Two concrete shapes:
+ * <p>A Datum is a head reference plus a list of bindings.  Two concrete shapes:
  * <ul>
- *   <li>{@link Body} — head references a sememe (the predicate or archetype). No
- *       signature. CBOR encoding: 2-element array {@code [head, [bindings]]}.</li>
- *   <li>{@link Record} — head references a body's content (a frame body's CID).
- *       Carries a signature in varsig format. CBOR encoding: 3-element array
- *       {@code [head, [bindings], signature]}.</li>
+ *   <li>{@link Body} — head references a sememe (the predicate or archetype).
+ *       No signature.  Structurally: a head plus a list of bindings.</li>
+ *   <li>{@link Record} — head references a body's content (a frame body's
+ *       CID).  Adds a signature in varsig format.  Structurally: a head, a
+ *       list of bindings, and a signature.</li>
  * </ul>
  *
  * <p>Body construction is permissive — it does not validate against the head
- * sememe's EXPECTS at construction. Validation happens at signing or commit time
- * via separate validation passes; bodies may legitimately carry bindings beyond
- * what EXPECTS strictly demands (TIME, DEBUG, supplementary content).
+ * sememe's EXPECTS at construction.  Validation happens at signing or commit
+ * time via separate validation passes; bodies may legitimately carry bindings
+ * beyond what EXPECTS strictly demands (TIME, DEBUG, supplementary content).
  *
- * <p>Datum is a POJO with respect to encoders — no knowledge of CG-CBOR or any
- * other wire format. Identity (the {@link #id} field) is computed via the
- * encoder-agnostic {@link HashTree} protocol at construction time.
+ * <p>Datum is encoder-agnostic — no knowledge of any wire format.  Identity
+ * (the {@link #id} field) is computed via the encoder-independent
+ * {@link HashTree} protocol on first access.  Concrete wire formats
+ * (CG-CBOR is the reference one) live in the {@code encoding/} package
+ * and consume the same structural model.
  *
- * TODO: we need a thorough going through of this whole package.  There's still lots of CBOR references in it and it should be encoding agnostic.
- * TODO: also the builders could use unification and improvement
+ * <p>TODO: the builders in this package could use unification — there's
+ * inheritance sprawl across DatumBuilder / BodyBuilder / BodyComposer /
+ * FrameBuilder / RecordBuilder / BindingBuilder that's worth a pass.
  */
 public sealed abstract class Datum implements DatumNode permits Body, Record {
 
@@ -111,9 +114,9 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
      * the caller assembled them must not affect identity.
      *
      * <p>Sorted by {@link HashTree#CANONICAL} — bitwise comparison of each
-     * binding's structural hash under the identity protocol. Encoder-
-     * independent: the sort is determined by HashTree, not by CG-CBOR or any
-     * other wire format.
+     * binding's structural hash under the identity protocol.  Encoder-
+     * independent: the sort is determined by HashTree, not by any
+     * particular wire format.
      */
     private static List<DatumNode> canonicalSort(List<? extends DatumNode> entries) {
         if (entries.size() < 2) return List.copyOf(entries);

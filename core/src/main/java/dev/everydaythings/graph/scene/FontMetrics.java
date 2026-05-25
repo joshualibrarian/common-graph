@@ -27,4 +27,16 @@ public interface FontMetrics {
      * or a multiple thereof if the painter applies leading.
      */
     float lineHeight(float fontSize);
+
+    /**
+     * Sentinel "no metrics available" implementation: every text reports
+     * zero width and the font-size value as line height.  Useful as a
+     * default for tests and for the layout pass when running without a
+     * graphical painter (the resulting bounds are obviously degenerate,
+     * but the pass completes without an NPE).
+     */
+    FontMetrics NONE = new FontMetrics() {
+        @Override public float measureWidth(String text, float fontSize) { return 0; }
+        @Override public float lineHeight(float fontSize)               { return fontSize; }
+    };
 }
