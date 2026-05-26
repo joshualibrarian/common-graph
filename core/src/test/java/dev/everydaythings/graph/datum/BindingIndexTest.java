@@ -40,7 +40,7 @@ class BindingIndexTest {
         @Test
         @DisplayName("binding with index has hasIndex()=true and exposes the value")
         void withIndex() {
-            Binding b = new Binding(CHILD, List.of(), NODE_A, 3L);
+            Binding b = Binding.indexed(CHILD, NODE_A, 3L);
             assertThat(b.hasIndex()).isTrue();
             assertThat(b.index()).isEqualTo(3L);
         }
@@ -61,7 +61,7 @@ class BindingIndexTest {
         @Test
         @DisplayName("binding with non-null index encodes as 3-element array")
         void indexEncodes3Elements() {
-            Binding b = new Binding(CHILD, List.of(), NODE_A, 7L);
+            Binding b = Binding.indexed(CHILD, NODE_A, 7L);
             CBORObject cbor = CgCbor.toCbor(b);
             assertThat(cbor.size()).isEqualTo(3);
             assertThat(cbor.get(2).AsInt64Value()).isEqualTo(7L);
@@ -80,7 +80,7 @@ class BindingIndexTest {
         @Test
         @DisplayName("indexed binding round-trips through CBOR")
         void indexedRoundTrip() {
-            Binding original = new Binding(CHILD, List.of(), NODE_A, 5L);
+            Binding original = Binding.indexed(CHILD, NODE_A, 5L);
             CBORObject cbor = CgCbor.toCbor(original);
             Binding decoded = CgCbor.decodeBinding(cbor);
             assertThat(decoded).isEqualTo(original);
@@ -95,8 +95,8 @@ class BindingIndexTest {
         @Test
         @DisplayName("two bindings with different index values hash differently")
         void differentIndicesDifferentHash() {
-            Binding b1 = new Binding(CHILD, List.of(), NODE_A, 0L);
-            Binding b2 = new Binding(CHILD, List.of(), NODE_A, 1L);
+            Binding b1 = Binding.indexed(CHILD, NODE_A, 0L);
+            Binding b2 = Binding.indexed(CHILD, NODE_A, 1L);
             byte[] h1 = HashTree.hashOf(b1, HashTree.DEFAULT_DIGEST);
             byte[] h2 = HashTree.hashOf(b2, HashTree.DEFAULT_DIGEST);
             assertThat(h1).isNotEqualTo(h2);
@@ -109,7 +109,7 @@ class BindingIndexTest {
             // for bindings that don't use it. Two constructors that arrive at
             // null index by different paths produce the same canonical bytes.
             Binding b1 = new Binding(CHILD, NODE_A);
-            Binding b2 = new Binding(CHILD, List.of(), NODE_A, null);
+            Binding b2 = new Binding(CHILD, NODE_A);
             byte[] h1 = HashTree.hashOf(b1, HashTree.DEFAULT_DIGEST);
             byte[] h2 = HashTree.hashOf(b2, HashTree.DEFAULT_DIGEST);
             assertThat(h1).isEqualTo(h2);
@@ -119,17 +119,17 @@ class BindingIndexTest {
         @DisplayName("body containing indexed children encodes deterministically")
         void bodyWithIndexedChildren() {
             Body body = Body.of(CONTAINER, List.of(
-                    new Binding(CHILD, List.of(), NODE_A, 0L),
-                    new Binding(CHILD, List.of(), NODE_B, 1L),
-                    new Binding(CHILD, List.of(), NODE_C, 2L)
+                    Binding.indexed(CHILD, NODE_A, 0L),
+                    Binding.indexed(CHILD, NODE_B, 1L),
+                    Binding.indexed(CHILD, NODE_C, 2L)
             ));
             byte[] firstHash = HashTree.hashOf(body, HashTree.DEFAULT_DIGEST);
 
             // Same data, constructed in different binding order, produces same hash
             Body bodySameDataReordered = Body.of(CONTAINER, List.of(
-                    new Binding(CHILD, List.of(), NODE_C, 2L),
-                    new Binding(CHILD, List.of(), NODE_A, 0L),
-                    new Binding(CHILD, List.of(), NODE_B, 1L)
+                    Binding.indexed(CHILD, NODE_C, 2L),
+                    Binding.indexed(CHILD, NODE_A, 0L),
+                    Binding.indexed(CHILD, NODE_B, 1L)
             ));
             byte[] secondHash = HashTree.hashOf(bodySameDataReordered, HashTree.DEFAULT_DIGEST);
             assertThat(firstHash).isEqualTo(secondHash);
@@ -144,8 +144,8 @@ class BindingIndexTest {
         @DisplayName("two bindings with same compound key and same non-null index are rejected")
         void rejectsDuplicateIndex() {
             assertThatThrownBy(() -> Frame.compose(ItemRef.fromString("cg.predicate:test"))
-                    .with(new Binding(CHILD, List.of(), NODE_A, 0L))
-                    .with(new Binding(CHILD, List.of(), NODE_B, 0L))
+                    .with(Binding.indexed(CHILD, NODE_A, 0L))
+                    .with(Binding.indexed(CHILD, NODE_B, 0L))
                     .build())
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Duplicate");
@@ -155,8 +155,8 @@ class BindingIndexTest {
         @DisplayName("two bindings with same compound key and different indices are allowed")
         void allowsDifferentIndices() {
             Frame f = Frame.compose(ItemRef.fromString("cg.predicate:test"))
-                    .with(new Binding(CHILD, List.of(), NODE_A, 0L))
-                    .with(new Binding(CHILD, List.of(), NODE_B, 1L))
+                    .with(Binding.indexed(CHILD, NODE_A, 0L))
+                    .with(Binding.indexed(CHILD, NODE_B, 1L))
                     .build();
             assertThat(f.body().bindings()).hasSize(2);
         }

@@ -69,17 +69,11 @@ class OneTimePreKeyTest {
                 ItemRef.of(ItemRef.iid(Encrypt.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), alice.iid()),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Theme.KEY),
-                                List.of(),
-                                plaintext),
+                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), plaintext),
                         Binding.ref(ItemRef.iid(ThematicRole.Beneficiary.KEY), bob.iid()),
                         Binding.ref(ItemRef.iid(ThematicRole.Instrument.KEY),
                                 ItemRef.iid(DoubleRatchetV1.KEY)),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Time.KEY),
-                                List.of(),
-                                Instant.now())));
+                        new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now())));
         Frame result = alice.handleEncrypt(Frame.of(encryptRequest, List.of()));
 
         // The result record carries a CONSUMED_PRE_KEY binding naming Bob's OTPK.
@@ -98,14 +92,8 @@ class OneTimePreKeyTest {
                 ItemRef.of(ItemRef.iid(Decrypt.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), bob.iid()),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Theme.KEY),
-                                List.of(),
-                                DatumRef.of(result.body().datumId())),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Time.KEY),
-                                List.of(),
-                                Instant.now())));
+                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), DatumRef.of(result.body().datumId())),
+                        new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now())));
         byte[] recovered = bob.handleDecrypt(Frame.of(decryptRequest, List.of()));
         assertThat(recovered).isEqualTo(plaintext);
 

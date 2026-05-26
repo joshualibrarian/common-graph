@@ -61,9 +61,7 @@ class PresenterTest {
                             currentTimeRef)));
             Body container = Body.of(
                     ItemRef.iid(SceneContainer.KEY),
-                    List.of(new Binding(
-                            ItemRef.iid(SceneVocabulary.Children.KEY),
-                            List.of(), clockText, 0L)));
+                    List.of(Binding.indexed(ItemRef.iid(SceneVocabulary.Children.KEY), clockText, 0L)));
 
             Map<ItemRef, Object> values = Map.of(currentTimeRef, "23:00:00");
             VariableResolver resolver = ref -> Optional.ofNullable(values.get(ref));

@@ -32,9 +32,12 @@ import java.util.Optional;
  * (CG-CBOR is the reference one) live in the {@code encoding/} package
  * and consume the same structural model.
  *
- * <p>TODO: the builders in this package could use unification — there's
- * inheritance sprawl across DatumBuilder / BodyBuilder / BodyComposer /
- * FrameBuilder / RecordBuilder / BindingBuilder that's worth a pass.
+ * <p>Builders in this package: {@link DatumBuilder} (abstract base for
+ * binding accumulation), {@link BodyBuilder} (bare body, no records),
+ * {@link AttributedBodyBuilder} (abstract, body + records), {@link
+ * FrameBuilder} / {@code ManifestBuilder} (concrete attributed-body
+ * builders), {@link RecordBuilder} (record sub-builder), {@link
+ * BindingBuilder} (binding sub-builder).
  */
 public sealed abstract class Datum implements DatumNode permits Body, Record {
 
@@ -51,8 +54,11 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
     protected final List<DatumNode> entries;
 
     /**
-     * The {@link ContentRef} of the specific byte realization this Datum was decoded
-     * from, if known. {@code null} for in-memory constructed Datums.
+     * The {@link ContentRef} of the specific byte realization this Datum
+     * was decoded from (or encoded to and persisted), if known.  {@code
+     * null} for in-memory constructed Datums that have never been
+     * serialized.  Set lazily by the storage layer at persist time via
+     * {@link #bindSource(ContentRef)} — Datum itself never encodes.
      */
     @Getter
     protected ContentRef source;
@@ -60,10 +66,11 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
     /**
      * The Datum's structural semantic identity — the encoding-independent
      * Merkle root, multihash-framed.  Computed lazily on first access via
-     * {@link #datumId()} (or {@link #getId()}); never set eagerly at
-     * construction.  In-VM construction and mutation are cost-free until
-     * something actually asks for the hash (serialization, indexing,
-     * cross-datum reference).
+     * {@link #datumId()}; never set eagerly at construction.  In-VM
+     * construction and mutation are cost-free until something actually
+     * asks for the hash (serialization, indexing, cross-datum reference).
+     * Lightweight scene trees that never escape to storage pay zero hash
+     * cost.
      *
      * <p>{@code volatile} for safe lazy publication under double-checked
      * locking.  The algorithm choice is in the multihash framing of the ID
@@ -80,9 +87,9 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
 
     /**
      * All body-tree entries in canonical order — both {@link Binding}s and
-     * {@link Opaque} stand-ins.  Iterating this is the way to see the body
-     * faithfully (the soft-deprecated {@link #bindings()} accessor silently
-     * filters Opaques out).
+     * {@link Opaque} stand-ins.  Use this when you need a faithful view of
+     * the body tree (walkers, validators, the codec).  Use {@link
+     * #bindings()} when you only care about the visible bindings.
      */
     public List<DatumNode> entries() {
         return entries;
@@ -90,9 +97,9 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
 
     /**
      * The {@link Binding} entries only — {@link Opaque} stand-ins are
-     * filtered out.  Use this when you only care about the visible bindings
-     * (construction code, simple lookups).  Use {@link #entries()} when you
-     * need to see the full body tree — walkers, validators, the codec.
+     * filtered out.  The common-case accessor; most callers want this.
+     * For a complete body-tree view including Opaques, use {@link
+     * #entries()}.
      */
     public List<Binding> bindings() {
         List<Binding> result = new ArrayList<>(entries.size());
@@ -103,7 +110,13 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
     }
 
     /**
-     * Record the byte realization this Datum was decoded from.
+     * Record the byte realization this Datum was decoded from (or just
+     * encoded to and persisted).  Intentional mutator on an otherwise-
+     * immutable type: paired with the lazy {@link #datumId() hash}, this
+     * lets the storage layer attach a ContentRef when it materializes
+     * bytes without forcing every Datum to know its source at
+     * construction.  Callers other than the storage layer should not call
+     * this.
      */
     public void bindSource(ContentRef source) {
         this.source = source;
@@ -166,8 +179,18 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
     }
 
     /**
-     * The DatumRef — structural semantic identity.  Computes the Merkle hash on
-     * first access and caches it; subsequent calls are a single volatile read.
+     * The DatumRef — structural semantic identity.  Computed lazily: the
+     * Merkle hash is built (via {@link CanonWalker} and {@link HashTree})
+     * on first access and cached for subsequent reads.  In-memory datums
+     * that never need their identity (lightweight scene trees,
+     * intermediate construction values, etc.) pay zero hash cost.
+     *
+     * <p>Thread-safe via double-checked locking on the volatile {@link
+     * #id} field; concurrent readers either see the cached value or
+     * cooperate at the synchronized block.
+     *
+     * <p>TODO: replace the hand-rolled DCL with Lombok's {@code @Lazy}
+     * once the field can be reshaped to suit it.
      */
     public DatumRef datumId() {
         DatumRef result = id;
@@ -182,11 +205,6 @@ public sealed abstract class Datum implements DatumNode permits Body, Record {
             }
         }
         return result;
-    }
-
-    /** Backwards-compat accessor; prefer {@link #datumId()}. */
-    public DatumRef getId() {
-        return datumId();
     }
 
 }

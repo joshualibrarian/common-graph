@@ -95,11 +95,11 @@ public final class KelTranslator {
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity));
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY),
                 ItemRef.iid(IdentityVocabulary.Signing.KEY)));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(EncryptionVocabulary.Multikey.KEY))),
                 multiKey.encoded()));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(IdentityVocabulary.Next.KEY))),
                 nextRef));

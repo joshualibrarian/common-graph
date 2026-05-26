@@ -110,23 +110,17 @@ public final class Attestations {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), attesterIid));
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), subjectIid));
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Instrument.KEY),
-                List.of(),
-                subjectPubkey.encoded()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Instrument.KEY), subjectPubkey.encoded()));
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), purpose));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Attribute.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(IdentityVocabulary.ValidityFrom.KEY))),
                 validFrom));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Attribute.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(IdentityVocabulary.ValidityUntil.KEY))),
                 validUntil));
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Time.KEY),
-                List.of(),
-                Instant.now()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now()));
 
         Body body = Body.of(
                 ItemRef.of(ItemRef.iid(IdentityVocabulary.Attestation.KEY)),

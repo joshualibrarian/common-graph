@@ -63,7 +63,7 @@ public final class RadialGradient extends Gradient {
         long index = 0;
         for (ColorStop stop : stops) {
             Objects.requireNonNull(stop, "color stop");
-            bindings.add(new Binding(VALUE_ROLE, List.of(), stop, index++));
+            bindings.add(Binding.indexed(VALUE_ROLE, stop, index++));
         }
         return bindings;
     }

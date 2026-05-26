@@ -54,10 +54,7 @@ class RevocationTest {
 
         Body body = Body.of(
                 ItemRef.of(ItemRef.iid(Revocation.KEY)),
-                List.of(new Binding(
-                        ItemRef.iid(ThematicRole.Theme.KEY),
-                        List.of(),
-                        frameCid
+                List.of(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), frameCid
                 ))
         );
 

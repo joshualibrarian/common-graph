@@ -296,7 +296,7 @@ public class FunctionNotation extends Language {
     private static Optional<String> readFunctionName(Frame lexemeFrame) {
         ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
         ItemRef fnLang = ItemRef.iid(KEY);
-        return lexemeFrame.bindings()
+        return lexemeFrame.bindings().stream()
                 .filter(b -> valueRole.equals(b.role()))
                 .filter(b -> hasQualifier(b, fnLang))
                 .map(b -> b.target() instanceof String s ? s : null)

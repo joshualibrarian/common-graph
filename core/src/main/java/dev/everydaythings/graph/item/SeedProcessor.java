@@ -410,8 +410,7 @@ public final class SeedProcessor {
                 ItemRef archetypeIid = archetypeForFieldType(field.getType(), context);
                 if (archetypeIid == null) continue;  // type doesn't map to a CG archetype; skip EXPECTS
                 bindings.add(new Binding(
-                        SchemaRef.fromString(property.role()),
-                        List.of(),
+                        CompoundKey.of(SchemaRef.fromString(property.role())),
                         TypeRef.of(archetypeIid),
                         null));
             } else if (!property.schemaRole().isEmpty()) {
@@ -471,7 +470,9 @@ public final class SeedProcessor {
                     "@Seed.Property on " + context + " has a null field value");
         }
         Object target = fieldValueAsTarget(fieldValue, context);
-        return new Binding(role, qualifiers, target, index);
+        return index != null
+                ? Binding.qualified(role, qualifiers, target, index)
+                : Binding.qualified(role, qualifiers, target);
     }
 
     /**
@@ -621,7 +622,7 @@ public final class SeedProcessor {
                 ItemRef.of(ItemRef.iid(SchemaVocabulary.Implements.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), conceptIid),
-                        new Binding(
+                        Binding.qualified(
                                 ItemRef.iid(ThematicRole.Agent.KEY),
                                 List.of(
                                         new CompoundKey.Sememe(ItemRef.iid(RuntimeVocabulary.Java.KEY)),
@@ -929,7 +930,7 @@ public final class SeedProcessor {
                 new CompoundKey.Sememe(ItemRef.iid(Language.English.KEY)));
         List<Binding> bindings = List.of(
                 new Binding(ItemRef.iid(ThematicRole.Theme.KEY), seedIid),
-                new Binding(ItemRef.iid(ThematicRole.Value.KEY),
+                Binding.qualified(ItemRef.iid(ThematicRole.Value.KEY),
                         englishQualifier,
                         gloss.english()));
         return Body.of(ItemRef.of(ItemRef.iid(LexicalVocabulary.Gloss.KEY)), bindings);
@@ -961,7 +962,7 @@ public final class SeedProcessor {
         for (String lemma : lemmas) {
             List<Binding> bindings = List.of(
                     new Binding(ItemRef.iid(ThematicRole.Theme.KEY), seedIid),
-                    new Binding(ItemRef.iid(ThematicRole.Value.KEY), qualifiers, lemma));
+                    Binding.qualified(ItemRef.iid(ThematicRole.Value.KEY), qualifiers, lemma));
             bodies.add(Body.of(ItemRef.of(ItemRef.iid(LexicalVocabulary.Lexeme.KEY)), bindings));
         }
         return bodies;
@@ -1043,7 +1044,7 @@ public final class SeedProcessor {
     private static Binding buildImplicitBinding(Seed.Binding ann,
                                                 Object target) {
         ItemRef role = ItemRef.fromString(ann.role());
-        return new Binding(role, qualifiersFromAnnotation(ann), target);
+        return Binding.qualified(role, qualifiersFromAnnotation(ann), target);
     }
 
     /**
@@ -1061,7 +1062,9 @@ public final class SeedProcessor {
                 "@Seed.Binding", context);
         Object target = explicitTarget(ann, context);
         Long index = ann.index().length > 0 ? ann.index()[0] : null;
-        return new Binding(role, qualifiersFromAnnotation(ann), target, index);
+        return index != null
+                ? Binding.qualified(role, qualifiersFromAnnotation(ann), target, index)
+                : Binding.qualified(role, qualifiersFromAnnotation(ann), target);
     }
 
     private static List<CompoundKey.Qualifier> qualifiersFromAnnotation(

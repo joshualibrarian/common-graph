@@ -399,13 +399,15 @@ public final class ContextChain {
                 anyChange = true;
                 long i = bindingIndex;
                 for (Object elem : coll) {
-                    resolved.add(new Binding(b.role(), b.qualifiers(), elem, i++));
+                    resolved.add(Binding.qualified(b.role(), b.qualifiers(), elem, i++));
                 }
                 autoIndex = Math.max(autoIndex, i);
             } else {
                 if (newTarget != originalTarget) {
                     anyChange = true;
-                    resolved.add(new Binding(b.role(), b.qualifiers(), newTarget, b.index()));
+                    resolved.add(b.index() != null
+                            ? Binding.qualified(b.role(), b.qualifiers(), newTarget, b.index())
+                            : Binding.qualified(b.role(), b.qualifiers(), newTarget));
                 } else {
                     resolved.add(b);
                 }

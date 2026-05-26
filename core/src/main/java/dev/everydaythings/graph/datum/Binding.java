@@ -90,6 +90,13 @@ public final class Binding implements DatumNode {
      * by role alone: the binding's existence on a manifest is the assertion,
      * regardless of what it points at.  HANDLES with no target is the
      * canonical use case (an item declaring it handles its own frames).
+     *
+     * <p>For most call sites the static factories
+     * ({@link #ref(ItemRef, ItemRef) ref}, {@link #literal(ItemRef, Object)
+     * literal}, {@link #qualified(ItemRef, List, Object) qualified},
+     * {@link #indexed(HashID, Object, long) indexed}) or the simple
+     * {@link #Binding(HashID, Object)} convenience are clearer than calling
+     * this directly.
      */
     public Binding(CompoundKey key, Object target, Long index) {
         this.key = Objects.requireNonNull(key, "key");
@@ -98,30 +105,8 @@ public final class Binding implements DatumNode {
     }
 
     /**
-     * Convenience: compound key + target, no index (unordered binding).
-     */
-    public Binding(CompoundKey key, Object target) {
-        this(key, target, null);
-    }
-
-    /**
-     * Convenience: build a binding from role + qualifiers + target.  The
-     * qualifier list is canonicalized inside CompoundKey.  Role must be in
-     * the IID family (ItemRef / TypeRef / SchemaRef).
-     */
-    public Binding(HashID role, List<Qualifier> qualifiers, Object target) {
-        this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target, null);
-    }
-
-    /**
-     * Convenience: role + qualifiers + target + index.
-     */
-    public Binding(HashID role, List<Qualifier> qualifiers, Object target, Long index) {
-        this(CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers), target, index);
-    }
-
-    /**
      * Convenience: simple single-role binding (no qualifiers, no index).
+     * The most common shape; covers ~90% of bindings constructed directly.
      */
     public Binding(HashID role, Object target) {
         this(CompoundKey.of(role), target, null);
@@ -236,11 +221,36 @@ public final class Binding implements DatumNode {
     // ==================================================================================
 
     /**
-     * Create a binding with role, qualifiers, and target.
+     * Create a binding with role + qualifiers + target (no index).  Role may
+     * be any IID-family ref (ItemRef literal, TypeRef query, SchemaRef
+     * schema); the type is widened to {@link HashID} to accept all three.
      */
-    public static Binding qualified(ItemRef role, List<Qualifier> qualifiers,
+    public static Binding qualified(HashID role, List<Qualifier> qualifiers,
                                     Object target) {
-        return new Binding(role, qualifiers, target);
+        return new Binding(
+                CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers),
+                target, null);
+    }
+
+    /**
+     * Create a binding with role + qualifiers + target + ordinal index.
+     * Index may be {@code null} for an unordered binding (equivalent to
+     * the three-arg {@link #qualified(HashID, List, Object) qualified} form).
+     */
+    public static Binding qualified(HashID role, List<Qualifier> qualifiers,
+                                    Object target, Long index) {
+        return new Binding(
+                CompoundKey.of(role, qualifiers == null ? List.of() : qualifiers),
+                target, index);
+    }
+
+    /**
+     * Create an ordered binding (no qualifiers) at a specific ordinal index.
+     * Use this when several bindings share a role and their order matters —
+     * e.g., a SceneContainer's CHILDREN list.
+     */
+    public static Binding indexed(HashID role, Object target, long index) {
+        return new Binding(CompoundKey.of(role), target, index);
     }
 
     /**

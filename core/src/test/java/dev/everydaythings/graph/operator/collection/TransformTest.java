@@ -55,30 +55,20 @@ class TransformTest {
         // under the reactions-role key so a TypeRef lookup finds it.
         Body provider = Body.of(
                 ItemRef.iid("cg.test:provider"),
-                List.of(new Binding(
-                        ItemRef.iid(REACTIONS_KEY),
-                        List.of(),
-                        source,
-                        null)));
+                List.of(new Binding(ItemRef.iid(REACTIONS_KEY), source)));
 
         // Template: SceneText whose Text binding is a TypeRef to the
         // per-iteration item's Name binding.
         Body template = Body.of(
                 ItemRef.iid(SceneText.KEY),
-                List.of(new Binding(
-                        ItemRef.iid(SceneVocabulary.Text.KEY),
-                        List.of(),
-                        TypeRef.iid(NAME_KEY),
-                        null)));
+                List.of(new Binding(ItemRef.iid(SceneVocabulary.Text.KEY), TypeRef.iid(NAME_KEY))));
 
         // Transform frame: THEME=?reactions, INSTRUMENT=template.
         Body transformBody = Body.of(
                 ItemRef.iid(Transform.KEY),
                 List.of(
-                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY),
-                                List.of(), TypeRef.iid(REACTIONS_KEY), null),
-                        new Binding(ItemRef.iid(ThematicRole.Instrument.KEY),
-                                List.of(), template, null)));
+                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), TypeRef.iid(REACTIONS_KEY)),
+                        new Binding(ItemRef.iid(ThematicRole.Instrument.KEY), template)));
 
         // Fetch the Transform operator and invoke directly.
         Transform op = (Transform) lib.fetchItem(ItemRef.iid(Transform.KEY)).orElseThrow();
@@ -109,10 +99,8 @@ class TransformTest {
         Body transformBody = Body.of(
                 ItemRef.iid(Transform.KEY),
                 List.of(
-                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY),
-                                List.of(), TypeRef.iid(REACTIONS_KEY), null),
-                        new Binding(ItemRef.iid(ThematicRole.Instrument.KEY),
-                                List.of(), template, null)));
+                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), TypeRef.iid(REACTIONS_KEY)),
+                        new Binding(ItemRef.iid(ThematicRole.Instrument.KEY), template)));
 
         Transform op = (Transform) lib.fetchItem(ItemRef.iid(Transform.KEY)).orElseThrow();
         ContextChain chain = ContextChain.singleton(lib).pushing(provider);
@@ -142,30 +130,22 @@ class TransformTest {
 
         Body provider = Body.of(
                 ItemRef.iid("cg.test:provider"),
-                List.of(new Binding(
-                        ItemRef.iid(REACTIONS_KEY), List.of(), source, null)));
+                List.of(new Binding(ItemRef.iid(REACTIONS_KEY), source)));
 
         Body template = Body.of(
                 ItemRef.iid(SceneText.KEY),
-                List.of(new Binding(
-                        ItemRef.iid(SceneVocabulary.Text.KEY),
-                        List.of(), TypeRef.iid(NAME_KEY), null)));
+                List.of(new Binding(ItemRef.iid(SceneVocabulary.Text.KEY), TypeRef.iid(NAME_KEY))));
 
         // Container with one Children binding whose target is a Transform.
         // After resolveBody, the container should have THREE Children bindings
         // (one per source item), each a SceneText with the right Text.
         Body container = Body.of(
                 ItemRef.iid("cg.archetype:scene-container"),
-                List.of(new Binding(
-                        ItemRef.iid(SceneVocabulary.Children.KEY),
-                        List.of(),
-                        Body.of(
+                List.of(Binding.indexed(ItemRef.iid(SceneVocabulary.Children.KEY), Body.of(
                                 ItemRef.iid(Transform.KEY),
                                 List.of(
-                                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY),
-                                                List.of(), TypeRef.iid(REACTIONS_KEY), null),
-                                        new Binding(ItemRef.iid(ThematicRole.Instrument.KEY),
-                                                List.of(), template, null))),
+                                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), TypeRef.iid(REACTIONS_KEY)),
+                                        new Binding(ItemRef.iid(ThematicRole.Instrument.KEY), template))),
                         0L)));
 
         ContextChain chain = ContextChain.singleton(lib).pushing(provider);

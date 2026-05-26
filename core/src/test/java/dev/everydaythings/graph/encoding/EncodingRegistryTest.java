@@ -96,16 +96,6 @@ class EncodingRegistryTest {
             assertThatNullPointerException().isThrownBy(() -> r.register(null));
         }
 
-        @Test
-        @DisplayName("register rejects codec with no encoding() identity")
-        void registerRejectsAnonymousCodec() {
-            EncodingRegistry r = new EncodingRegistry();
-            // A bare Encoding that throws on encoding() — typical passthrough.
-            Encoding anonymous = new Encoding() {};
-            assertThatThrownBy(() -> r.register(anonymous))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("encoding()");
-        }
     }
 
     // ==================================================================================
@@ -115,6 +105,7 @@ class EncodingRegistryTest {
     private static Encoding stubCodec(ItemRef iid) {
         return new Encoding() {
             @Override public ItemRef encoding() { return iid; }
+            @Override public byte formatCode() { return 0x00; }
             @Override public byte[] encode(Object value)        { return new byte[0]; }
             @Override public Object decode(byte[] bytes)        { return null; }
             @Override public String encodeText(Object value)    { return ""; }

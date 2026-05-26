@@ -55,12 +55,6 @@ public non-sealed class Body extends Datum {
         this.atomicContent = null;
     }
 
-    /** Backwards-compat constructor; prefer {@link #Body(HashID, List)}. */
-    public Body(ItemRef head, List<? extends DatumNode> entries) {
-        super(head, entries);
-        this.atomicContent = null;
-    }
-
     /**
      * Atomic-form constructor: a Body whose content is a single leaf value
      * rather than a list of bindings.  Use for typed value-atoms
@@ -144,8 +138,8 @@ public non-sealed class Body extends Datum {
      * <p>For signed propositional bodies use {@link Frame#compose}; for
      * identity-bearing item bodies use {@code Manifest.compose}.
      */
-    public static BodyComposer compose(HashID head) {
-        return new BodyComposer(head);
+    public static BodyBuilder compose(HashID head) {
+        return new BodyBuilder(head);
     }
 
     /**

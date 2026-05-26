@@ -144,7 +144,7 @@ public final class Presenter {
         if (resolved == target) {
             return binding;
         }
-        return new Binding(binding.role(), binding.qualifiers(), resolved, binding.index());
+        return Binding.qualified(binding.role(), binding.qualifiers(), resolved, binding.index());
     }
 
     // ==================================================================================

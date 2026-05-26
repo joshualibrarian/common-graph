@@ -1,8 +1,8 @@
 package dev.everydaythings.graph.item;
 
+import dev.everydaythings.graph.datum.AttributedBodyBuilder;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.datum.BodyBuilder;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.ref.ItemRef;
 
@@ -15,7 +15,7 @@ import java.util.Objects;
  *
  * <p>Returned by {@link Manifest#compose(ItemRef, ItemRef)}.
  */
-public final class ManifestBuilder extends BodyBuilder<ManifestBuilder, Manifest> {
+public final class ManifestBuilder extends AttributedBodyBuilder<ManifestBuilder, Manifest> {
 
     private final ItemRef archetype;
 

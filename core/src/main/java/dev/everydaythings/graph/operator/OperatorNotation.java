@@ -511,7 +511,7 @@ public class OperatorNotation extends Language {
      */
     private static Optional<OperatorForm> readOperatorForm(Frame lexemeFrame) {
         ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
-        return lexemeFrame.bindings()
+        return lexemeFrame.bindings().stream()
                 .filter(b -> valueRole.equals(b.role()))
                 .map(b -> {
                     ItemRef fixity = fixityQualifier(b);

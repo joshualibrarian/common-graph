@@ -193,9 +193,9 @@ class PresenterLayoutTest {
     private static Body containerBody(Body... children) {
         List<Binding> bindings = new java.util.ArrayList<>(children.length);
         for (int i = 0; i < children.length; i++) {
-            bindings.add(new Binding(
+            bindings.add(Binding.indexed(
                     ItemRef.iid(SceneVocabulary.Children.KEY),
-                    List.of(), children[i], (long) i));
+                    children[i], i));
         }
         return Body.of(ItemRef.iid(SceneContainer.KEY), bindings);
     }

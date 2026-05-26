@@ -12,15 +12,13 @@ import static dev.everydaythings.graph.Seed.*;
  * Session}.
  *
  * <p>Each predicate is BOTH the frame type AND the command word a user types
- * to produce one. "view chess" creates an {@link ItemView} frame with
- * {@code THEME→chess}; the session reacts by opening a window. "close" creates
- * a {@link Close} frame; the session removes the view.
+ * to produce one.  "view chess" creates an {@link ItemView} frame with
+ * {@code THEME→chess}; the session reacts by opening a window.  "close"
+ * creates a {@link Close} frame; the session removes the view.
  *
- * <p>TODO: the OLD versions of {@link ItemView} and {@link Close} carried
- * behavior (an {@code onFrameAssembled} hook on the predicate's Sememe
- * subclass). In the new model that behavior lives on the Session item itself
- * via {@code @Handler} methods. This file currently carries only the seed
- * predicate data.
+ * <p>The behavioural side lives on {@link Session} as {@code @Seed.Handler}
+ * methods ({@code handleItemView}, {@code handleClose}); this file carries
+ * only the seed predicate data.
  */
 public final class SessionVocabulary {
 

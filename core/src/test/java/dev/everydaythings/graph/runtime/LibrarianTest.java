@@ -696,12 +696,9 @@ class LibrarianTest {
                             Binding.ref(
                                     ItemRef.iid(ThematicRole.Theme.KEY),
                                     targetSememe),
-                            new Binding(
-                                    ItemRef.iid(ThematicRole.Value.KEY),
-                                    List.of(
+                            Binding.qualified(ItemRef.iid(ThematicRole.Value.KEY), List.of(
                                             new CompoundKey.Sememe(
-                                                    ItemRef.iid(dev.everydaythings.graph.language.Language.English.KEY)),
-                                            new CompoundKey.Sememe(
+                                                    ItemRef.iid(dev.everydaythings.graph.language.Language.English.KEY)), new CompoundKey.Sememe(
                                                     ItemRef.iid(dev.everydaythings.graph.language.PartOfSpeech.Verb.KEY)),
                                             new CompoundKey.Sememe(
                                                     ItemRef.iid(dev.everydaythings.graph.language.GrammaticalFeature.Lemma.KEY))),
@@ -759,10 +756,7 @@ class LibrarianTest {
                             Binding.ref(
                                     ItemRef.iid(ThematicRole.Theme.KEY),
                                     movie),
-                            new Binding(
-                                    ItemRef.iid(ThematicRole.Value.KEY),
-                                    List.of(),
-                                    "The Shawshank Redemption")));
+                            new Binding(ItemRef.iid(ThematicRole.Value.KEY), "The Shawshank Redemption")));
 
             // Just persist — no explicit indexToken call.
             lib.persist(body);
@@ -787,10 +781,7 @@ class LibrarianTest {
             ItemRef predicate = ItemRef.fromString("test.predicate:lexeme");
             Body body = Body.of(
                     ItemRef.of(predicate),
-                    List.of(new Binding(
-                            ItemRef.iid(ThematicRole.Value.KEY),
-                            List.of(),
-                            "Hello")));
+                    List.of(new Binding(ItemRef.iid(ThematicRole.Value.KEY), "Hello")));
             // persist() walks the text binding and indexes it (with case-folded
             // normalization) automatically — no explicit indexToken call.
             lib.persist(body);

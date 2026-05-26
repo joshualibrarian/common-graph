@@ -208,7 +208,7 @@ class OpaqueTest {
                     new CompoundKey.Sememe(englishQualifierIid),
                     new Opaque.Redacted(hiddenQualifierHash));
 
-            Binding binding = new Binding(key, "value");
+            Binding binding = new Binding(key, "value", null);
             Body body = Body.of(HEAD, java.util.List.of(binding));
 
             byte[] encoded = CgCbor.codec().encode(body);
@@ -242,8 +242,8 @@ class OpaqueTest {
                     new CompoundKey.Sememe(englishQualifierIid),
                     new Opaque.Redacted(sensitiveHash));
 
-            Body fullBody     = Body.of(HEAD, java.util.List.of(new Binding(fullKey, "x")));
-            Body redactedBody = Body.of(HEAD, java.util.List.of(new Binding(redactedKey, "x")));
+            Body fullBody     = Body.of(HEAD, java.util.List.of(new Binding(fullKey, "x", null)));
+            Body redactedBody = Body.of(HEAD, java.util.List.of(new Binding(redactedKey, "x", null)));
 
             assertThat(HashTree.hashOf(redactedBody, HashTree.DEFAULT_DIGEST))
                     .isEqualTo(HashTree.hashOf(fullBody, HashTree.DEFAULT_DIGEST));

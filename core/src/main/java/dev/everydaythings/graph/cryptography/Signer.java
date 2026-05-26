@@ -758,10 +758,7 @@ public class Signer extends Item {
         // ciphertext.  The metadata record carries the DR header bindings.
         Body resultBody = Body.of(
                 ItemRef.of(ItemRef.iid(Encrypt.KEY)),
-                List.of(new Binding(
-                        ItemRef.iid(ThematicRole.Theme.KEY),
-                        List.of(),
-                        opaque)));
+                List.of(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), opaque)));
 
         return Frame.of(resultBody, List.of(record));
     }

@@ -287,7 +287,7 @@ public class English extends Language {
         ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
         ItemRef english = ItemRef.iid(Language.English.KEY);
         ItemRef lemma = ItemRef.iid(GrammaticalFeature.Lemma.KEY);
-        return lexemeFrame.bindings()
+        return lexemeFrame.bindings().stream()
                 .filter(b -> valueRole.equals(b.role()))
                 .filter(b -> hasQualifier(b, english)
                         && hasQualifier(b, pos)

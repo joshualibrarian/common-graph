@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * Runtime aggregate of a {@link Body} with zero or more {@link Record}s attesting it.
@@ -42,8 +41,8 @@ public abstract class AttributedBody {
     }
 
     /** The body's bindings. */
-    public Stream<Binding> bindings() {
-        return body.bindings().stream();
+    public List<Binding> bindings() {
+        return body.bindings();
     }
 
     // bodyCID() deleted: ContentRef is encoder-specific and belongs at the

@@ -1742,9 +1742,7 @@ public class Librarian extends Signer {
                 item.onFrameAssembled(frame);
             } catch (RuntimeException e) {
                 // Log and continue; one item's failure must not prevent others.
-                // TODO: surface this through a proper logger when one is wired.
-                System.err.println("onFrameAssembled threw on item "
-                        + item.iid() + ": " + e);
+                logger.warn("onFrameAssembled threw on item {}", item.iid(), e);
             }
         });
     }

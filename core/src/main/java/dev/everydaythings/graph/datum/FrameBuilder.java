@@ -12,7 +12,7 @@ import java.util.Objects;
  * <p>Build a frame with no records (ephemeral-style) via {@link #build()}; attach
  * one or more records via {@link #record} before calling {@code build()}.
  */
-public final class FrameBuilder extends BodyBuilder<FrameBuilder, Frame> {
+public final class FrameBuilder extends AttributedBodyBuilder<FrameBuilder, Frame> {
 
     private final ItemRef predicate;
 

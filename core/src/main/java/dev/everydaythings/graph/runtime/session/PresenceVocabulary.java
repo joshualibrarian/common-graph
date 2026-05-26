@@ -30,11 +30,9 @@ import static dev.everydaythings.graph.Seed.*;
  *       chain.</li>
  * </ul>
  *
- * <p>TODO: in the OLD code, {@link Present} and {@link Leave} carried behavior
- * (an {@code onFrameAssembled} hook) that updated item state when assembled.
- * That behavior moves to {@code @Handler} methods on the relevant items
- * (Session, Librarian, or per-item handlers) in the new model. This file
- * currently carries only the seed sememe data.
+ * <p>The behavioural side (handling presence-state transitions) lives as
+ * {@code @Seed.Handler} methods on the relevant items (Session, Librarian,
+ * or per-item handlers); this file carries only the seed sememe data.
  */
 public final class PresenceVocabulary {
 

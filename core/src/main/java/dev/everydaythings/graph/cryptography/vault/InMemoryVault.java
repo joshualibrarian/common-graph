@@ -306,18 +306,15 @@ public final class InMemoryVault implements Vault {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity));
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), purpose));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
                 currentKey.encoded()));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Next.KEY))),
                 nextDigest));
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Time.KEY),
-                List.of(),
-                Instant.now()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Inception.KEY)), bindings);
         // Always signed by the signing track's current key.  For signing-track
@@ -359,26 +356,20 @@ public final class InMemoryVault implements Vault {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity));
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), purpose));
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Follows.KEY),
-                List.of(),
-                state.chainHead));
-        bindings.add(new Binding(
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Follows.KEY), state.chainHead));
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Attribute.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Sequence.KEY))),
                 (long) (newSequence)));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
                 newCurrentPublic.encoded()));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Next.KEY))),
                 newNextDigest));
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Time.KEY),
-                List.of(),
-                Instant.now()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Rotation.KEY)), bindings);
         byte[] payload = HashTree.signingPayload(body);
@@ -421,14 +412,11 @@ public final class InMemoryVault implements Vault {
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), identity));
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), delegateId));
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), purpose));
-        conditions.expiresAt().ifPresent(expiresAt -> bindings.add(new Binding(
+        conditions.expiresAt().ifPresent(expiresAt -> bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Attribute.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Expires.KEY))),
                 expiresAt)));
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Time.KEY),
-                List.of(),
-                Instant.now()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Delegation.KEY)), bindings);
         VarSig sig = signWith(signingAlgorithm(signingState), signingState.currentKeyPair, HashTree.signingPayload(body));
@@ -444,14 +432,11 @@ public final class InMemoryVault implements Vault {
         PurposeState signingState = requirePurpose(ItemRef.iid(IdentityVocabulary.Signing.KEY));
 
         List<Binding> bindings = new ArrayList<>();
-        bindings.add(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), List.of(), target));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), target));
         if (reason != null) {
             bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), reason));
         }
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Time.KEY),
-                List.of(),
-                Instant.now()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now()));
 
         Body body = Body.of(ItemRef.of(ItemRef.iid(Revocation.KEY)), bindings);
         VarSig sig = signWith(signingAlgorithm(signingState), signingState.currentKeyPair, HashTree.signingPayload(body));
@@ -616,17 +601,14 @@ public final class InMemoryVault implements Vault {
 
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity));
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Instrument.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
                 keyMulti.encoded()));
         bindings.add(Binding.ref(
                 ItemRef.iid(ThematicRole.Purpose.KEY),
                 ItemRef.iid(IdentityVocabulary.KeyAgreement.KEY)));
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Time.KEY),
-                List.of(),
-                Instant.now()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now()));
 
         Body body = Body.of(ItemRef.of(predicateIid), bindings);
         PurposeState signingState = signingState();

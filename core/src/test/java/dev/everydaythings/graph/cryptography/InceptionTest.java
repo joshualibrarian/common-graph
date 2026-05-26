@@ -125,10 +125,7 @@ class InceptionTest {
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), identity.iid()),
                         Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Signing.KEY)),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Instrument.KEY),
-                                List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
-                                key.encoded()
+                        Binding.qualified(ItemRef.iid(ThematicRole.Instrument.KEY), List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))), key.encoded()
                         )
                 )
         );

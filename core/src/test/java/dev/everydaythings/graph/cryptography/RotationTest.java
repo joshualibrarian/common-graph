@@ -39,10 +39,7 @@ class RotationTest {
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid()),
                         Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), ItemRef.iid(IdentityVocabulary.Signing.KEY)),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Follows.KEY),
-                                List.of(),
-                                priorEventCid
+                        new Binding(ItemRef.iid(ThematicRole.Follows.KEY), priorEventCid
                         )
                 )
         );
@@ -60,10 +57,7 @@ class RotationTest {
                 ItemRef.of(ItemRef.iid(Rotation.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid()),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Attribute.KEY),
-                                List.of(new CompoundKey.Sememe(ItemRef.iid(Sequence.KEY))),
-                                (long) (3)
+                        Binding.qualified(ItemRef.iid(ThematicRole.Attribute.KEY), List.of(new CompoundKey.Sememe(ItemRef.iid(Sequence.KEY))), (long) (3)
                         )
                 )
         );
@@ -84,15 +78,9 @@ class RotationTest {
                 ItemRef.of(ItemRef.iid(Rotation.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), lib.iid()),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Instrument.KEY),
-                                List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))),
-                                currentKey.encoded()
+                        Binding.qualified(ItemRef.iid(ThematicRole.Instrument.KEY), List.of(new CompoundKey.Sememe(ItemRef.iid(Multikey.KEY))), currentKey.encoded()
                         ),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Instrument.KEY),
-                                List.of(new CompoundKey.Sememe(ItemRef.iid(Next.KEY))),
-                                nextDigest
+                        Binding.qualified(ItemRef.iid(ThematicRole.Instrument.KEY), List.of(new CompoundKey.Sememe(ItemRef.iid(Next.KEY))), nextDigest
                         )
                 )
         );

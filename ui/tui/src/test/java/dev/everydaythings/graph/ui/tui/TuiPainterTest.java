@@ -74,8 +74,8 @@ class TuiPainterTest {
         SceneContainer container = SceneContainer.from(
                 Body.of(ItemRef.iid(SceneContainer.KEY),
                         List.of(
-                                new Binding(childrenRole, List.of(), firstChild,  0L),
-                                new Binding(childrenRole, List.of(), secondChild, 1L))));
+                                Binding.indexed(childrenRole, firstChild,  0L),
+                                Binding.indexed(childrenRole, secondChild, 1L))));
 
         StringWriter buffer = new StringWriter();
         try (TuiPainter painter = new TuiPainter(new PrintWriter(buffer), new Viewport(80, 24))) {

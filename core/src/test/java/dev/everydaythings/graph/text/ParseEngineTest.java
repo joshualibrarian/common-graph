@@ -53,10 +53,7 @@ class ParseEngineTest {
                 ItemRef.of(SYMBOL_PREDICATE),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ADD_IID),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Value.KEY),
-                                List.of(),
-                                "+")));
+                        new Binding(ItemRef.iid(ThematicRole.Value.KEY), "+")));
         DatumRef bodyCid = lib.persist(body);
         assertThat(bodyCid).isNotNull();
 

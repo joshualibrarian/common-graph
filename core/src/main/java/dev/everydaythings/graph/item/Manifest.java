@@ -220,7 +220,7 @@ public final class Manifest extends AttributedBody {
      * {@code IMPLEMENTATION} role — the language sememe occupies that slot.
      */
     public static Binding implementation(ItemRef language, ItemRef form, Object target) {
-        return new Binding(
+        return Binding.qualified(
                 language,
                 List.of(new CompoundKey.Sememe(form)),
                 target);

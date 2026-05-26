@@ -96,10 +96,7 @@ class DelegationTest {
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), ItemRef.fromString("parent")),
                         Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), ItemRef.fromString("child")),
-                        new Binding(
-                                ItemRef.iid(ThematicRole.Attribute.KEY),
-                                List.of(new CompoundKey.Sememe(ItemRef.iid(CoreVocabulary.Expires.KEY))),
-                                expires
+                        Binding.qualified(ItemRef.iid(ThematicRole.Attribute.KEY), List.of(new CompoundKey.Sememe(ItemRef.iid(CoreVocabulary.Expires.KEY))), expires
                         )
                 )
         );

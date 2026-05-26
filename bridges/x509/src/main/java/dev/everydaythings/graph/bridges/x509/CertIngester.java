@@ -178,32 +178,26 @@ public final class CertIngester {
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), subjectIid));
 
         // INSTRUMENT — the subject's pubkey (multikey-encoded, self-describing)
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Instrument.KEY),
-                List.of(),
-                subjectKey.encoded()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Instrument.KEY), subjectKey.encoded()));
 
         // PURPOSE — the key's cryptographic purpose (signing for Ed25519 in v1)
         ItemRef purpose = inferPurpose(cert);
         bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Purpose.KEY), purpose));
 
         // ATTRIBUTE[VALIDITY_FROM] → notBefore
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Attribute.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(IdentityVocabulary.ValidityFrom.KEY))),
                 cert.getNotBefore().toInstant()));
 
         // ATTRIBUTE[VALIDITY_UNTIL] → notAfter
-        bindings.add(new Binding(
+        bindings.add(Binding.qualified(
                 ItemRef.iid(ThematicRole.Attribute.KEY),
                 List.of(new CompoundKey.Sememe(ItemRef.iid(IdentityVocabulary.ValidityUntil.KEY))),
                 cert.getNotAfter().toInstant()));
 
         // TIME — when we ingested
-        bindings.add(new Binding(
-                ItemRef.iid(ThematicRole.Time.KEY),
-                List.of(),
-                Instant.now()));
+        bindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now()));
 
         return Body.of(ItemRef.of(ItemRef.iid(IdentityVocabulary.Attestation.KEY)), bindings);
     }

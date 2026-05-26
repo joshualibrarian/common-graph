@@ -120,11 +120,11 @@ class SignedPreKeyRotationTest {
                 ItemRef.of(ItemRef.iid(Encrypt.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), agentIid),
-                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), List.of(), plaintext),
+                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), plaintext),
                         Binding.ref(ItemRef.iid(ThematicRole.Beneficiary.KEY), beneficiaryIid),
                         Binding.ref(ItemRef.iid(ThematicRole.Instrument.KEY),
                                 ItemRef.iid(DoubleRatchetV1.KEY)),
-                        new Binding(ItemRef.iid(ThematicRole.Time.KEY), List.of(), Instant.now())));
+                        new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now())));
         return Frame.of(body, List.of());
     }
 
@@ -133,8 +133,8 @@ class SignedPreKeyRotationTest {
                 ItemRef.of(ItemRef.iid(Decrypt.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), agentIid),
-                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), List.of(), encryptedBodyRef),
-                        new Binding(ItemRef.iid(ThematicRole.Time.KEY), List.of(), Instant.now())));
+                        new Binding(ItemRef.iid(ThematicRole.Theme.KEY), encryptedBodyRef),
+                        new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now())));
         return Frame.of(body, List.of());
     }
 

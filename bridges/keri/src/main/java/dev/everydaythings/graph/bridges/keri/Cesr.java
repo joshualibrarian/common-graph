@@ -51,6 +51,25 @@ public final class Cesr implements Encoding {
         return (byte) Encoding.CesrJson.FORMAT_CODE;
     }
 
+    // CESR is currently only exposed as a static primitive codec via
+    // encodePrimitive / decodePrimitive — full event-frame encode/decode at
+    // the Encoding-interface level lands when the bridge's translator
+    // story is complete.  Both throw for now so callers see what's missing.
+
+    @Override
+    public byte[] encode(Object value) {
+        throw new UnsupportedOperationException(
+                "Cesr.encode(Object) not implemented — use Cesr.encodePrimitive(code, raw) "
+                        + "for matter-typed primitives, or wait for full event-frame codec");
+    }
+
+    @Override
+    public Object decode(byte[] bytes) {
+        throw new UnsupportedOperationException(
+                "Cesr.decode(byte[]) not implemented — use Cesr.decodePrimitive(qb64) "
+                        + "for matter-typed primitives, or wait for full event-frame codec");
+    }
+
     // ==================================================================================
     // Primitive codec — code || base64Url(payload)
     // ==================================================================================

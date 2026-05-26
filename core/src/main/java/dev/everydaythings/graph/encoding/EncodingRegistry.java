@@ -42,8 +42,7 @@ import java.util.concurrent.ConcurrentMap;
  * <h2>Identity</h2>
  *
  * <p>Indexed by {@link Encoding#encoding()} — each codec's IID.  Two
- * registrations with the same IID:  the latest one wins.  Registering a
- * codec whose {@code encoding()} throws (a passthrough codec) is rejected.
+ * registrations with the same IID:  the latest one wins.
  *
  * <p>Thread-safe.
  */
@@ -56,19 +55,13 @@ public final class EncodingRegistry {
 
     /**
      * Register an encoding.  Replaces any previous registration with the
-     * same IID.  Throws if the encoding's {@code encoding()} throws (a
-     * passthrough codec with no declared identity is not registerable).
+     * same IID.  The encoding's {@link Encoding#encoding()} is abstract,
+     * so every codec declares its own IID; this method simply indexes by
+     * that IID.
      */
     public void register(Encoding encoding) {
         Objects.requireNonNull(encoding, "encoding");
-        ItemRef iid;
-        try {
-            iid = encoding.encoding();
-        } catch (UnsupportedOperationException e) {
-            throw new IllegalArgumentException(
-                    "Cannot register a codec that does not declare its own IID via Encoding.encoding()", e);
-        }
-        byIid.put(iid, encoding);
+        byIid.put(encoding.encoding(), encoding);
     }
 
     /** Look up a codec by IID.  Empty if not registered. */

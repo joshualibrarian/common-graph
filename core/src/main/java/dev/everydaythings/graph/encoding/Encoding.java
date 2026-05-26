@@ -26,14 +26,16 @@ import java.util.Optional;
  *
  * <ul>
  *   <li><b>Java interface</b>: defines the behavior of an encoding's codec —
- *       what it means to encode and decode content in this format. Default
- *       method implementations throw {@link UnsupportedOperationException} so
- *       passthrough encodings (which CG stores and forwards but never parses)
- *       don't have to implement anything.</li>
- *   <li><b>Seed-item archetype</b>: graph identity for "an encoding." Each
+ *       what it means to encode and decode content in this format.  A handful
+ *       of core methods ({@link #encoding}, {@link #formatCode}, {@link
+ *       #encode}, {@link #decode}) are abstract: every codec must answer
+ *       them.  Optional-capability methods (text forms, streaming decode,
+ *       pretty-print, validity check) are throwing-defaults — implementers
+ *       override what they support.</li>
+ *   <li><b>Seed-item archetype</b>: graph identity for "an encoding."  Each
  *       inner class (CgCborV1, ImageJpeg, etc.) is an <i>instance</i> of the
  *       Encoding archetype — a named encoding with a CG-assigned format code,
- *       MIME type, and other metadata. The inner classes are seed-items,
+ *       MIME type, and other metadata.  The inner classes are seed-items,
  *       not Java implementations of the interface — they're <i>data about
  *       encodings</i>.</li>
  * </ul>
@@ -68,39 +70,38 @@ public interface Encoding {
     String englishNounLemma = "encoding";
 
     // ==================================================================================
-    // Behavior — what a codec implementation does
+    // Core methods — every codec MUST implement these.
     //
-    // Default methods throw UnsupportedOperationException so passthrough
-    // encodings (which CG stores and forwards but never parses) don't have to
-    // implement anything. Codec implementations override these.
+    // Abstract by design: a codec that doesn't answer encoding(), formatCode(),
+    // encode(), and decode() isn't really a codec.  If a class wants to be
+    // registered as an Encoding but can't satisfy these (e.g., a placeholder
+    // for an encoding the system doesn't yet have a codec for), it should
+    // throw with a clear message naming the missing capability.
     // ==================================================================================
 
     /** The encoding instance this codec implements (e.g., {@code ItemRef.iid(CgCborV1.KEY)}). */
-    default ItemRef encoding() {
-        throw new UnsupportedOperationException("encoding() not implemented");
-    }
+    ItemRef encoding();
 
     /**
-     * The CG-assigned one-byte FormatCode for this encoding. Used in the
+     * The CG-assigned one-byte FormatCode for this encoding.  Used in the
      * {@code .librarian/format} marker file and as the leading byte of a
      * ContentRef for compact encoding-self-description.
-     *
-     * <p>Codec implementations override; passthrough encodings (CG stores +
-     * forwards but never parses) return {@code 0x00} ({@link Unknown}).
      */
-    default byte formatCode() {
-        return (byte) Unknown.FORMAT_CODE;
-    }
+    byte formatCode();
 
     /** Encode an object into bytes under this encoding. */
-    default byte[] encode(Object value) {
-        throw new UnsupportedOperationException("encode() not implemented (passthrough encoding)");
-    }
+    byte[] encode(Object value);
 
     /** Decode bytes back to an object under this encoding. */
-    default Object decode(byte[] bytes) {
-        throw new UnsupportedOperationException("decode() not implemented (passthrough encoding)");
-    }
+    Object decode(byte[] bytes);
+
+    // ==================================================================================
+    // Derived / optional capabilities.
+    //
+    // These are throwing-defaults — implementers override what they support.
+    // Callers that need them should be prepared to handle the throw, or pick a
+    // codec known to support the capability.
+    // ==================================================================================
 
     /**
      * Decode bytes to a typed value of the requested class.  Default behavior
@@ -123,15 +124,17 @@ public interface Encoding {
 
     /**
      * Encode an object into a text form under this encoding (typically a
-     * multibase-wrapped form of the binary encoding).
+     * multibase-wrapped form of the binary encoding).  Optional capability.
      */
     default String encodeText(Object value) {
-        throw new UnsupportedOperationException("encodeText() not implemented (passthrough encoding)");
+        throw new UnsupportedOperationException(
+                "encodeText() not supported by " + getClass().getSimpleName());
     }
 
-    /** Decode a text form back to an object under this encoding. */
+    /** Decode a text form back to an object under this encoding.  Optional capability. */
     default Object decodeText(String text) {
-        throw new UnsupportedOperationException("decodeText() not implemented (passthrough encoding)");
+        throw new UnsupportedOperationException(
+                "decodeText() not supported by " + getClass().getSimpleName());
     }
 
     /**
@@ -141,29 +144,39 @@ public interface Encoding {
      *
      * <p>The returned tree captures the value's <i>semantic</i> structure;
      * encoding-level framing (CBOR tags, length prefixes, header bytes) is the
-     * codec's concern and is never reflected in the tree. See {@link Node}.
+     * codec's concern and is never reflected in the tree.  See {@link Node}.
+     *
+     * <p>Optional capability.  Codecs that can produce a Node tree from typed
+     * values override; most defer to {@link
+     * dev.everydaythings.graph.canonical.CanonWalker CanonWalker} (which is
+     * itself codec-agnostic).
      */
     default Node walk(Object value) {
-        throw new UnsupportedOperationException("walk(Object) not implemented (passthrough encoding)");
+        throw new UnsupportedOperationException(
+                "walk(Object) not supported by " + getClass().getSimpleName());
     }
 
     /**
      * Walk encoded bytes as a {@link Node} tree directly, without fully
-     * reconstructing a typed Object value. Useful for inspecting bytes received
-     * from the wire or read from storage when reconstruction isn't needed.
+     * reconstructing a typed Object value.  Useful for inspecting bytes
+     * received from the wire or read from storage when reconstruction isn't
+     * needed.  Optional capability.
      */
     default Node walk(byte[] bytes) {
-        throw new UnsupportedOperationException("walk(byte[]) not implemented (passthrough encoding)");
+        throw new UnsupportedOperationException(
+                "walk(byte[]) not supported by " + getClass().getSimpleName());
     }
 
-    /** Pretty-printed text rendering of a value, primarily for debugging. */
+    /** Pretty-printed text rendering of a value, primarily for debugging.  Optional capability. */
     default String prettyPrint(Object value) {
-        throw new UnsupportedOperationException("prettyPrint() not implemented (passthrough encoding)");
+        throw new UnsupportedOperationException(
+                "prettyPrint() not supported by " + getClass().getSimpleName());
     }
 
-    /** Check whether the given bytes parse as a valid encoded value. */
+    /** Check whether the given bytes parse as a valid encoded value.  Optional capability. */
     default boolean isValid(byte[] bytes) {
-        throw new UnsupportedOperationException("isValid() not implemented (passthrough encoding)");
+        throw new UnsupportedOperationException(
+                "isValid() not supported by " + getClass().getSimpleName());
     }
 
     /**
@@ -192,11 +205,13 @@ public interface Encoding {
      * {@link InputStream#reset} (a {@link java.io.ByteArrayInputStream
      * ByteArrayInputStream} is the canonical caller-provided type).
      *
-     * <p>Default throws — only codecs that can interpret their bytes (e.g.,
-     * CG-CBOR) override; passthrough encodings have no need.
+     * <p>Optional capability — only codecs that can interpret their bytes
+     * (e.g., CG-CBOR) override.  Wire-format-as-bytes codecs that have no
+     * self-delimited frame structure leave this throwing.
      */
     default Optional<Object> decodeOne(InputStream in) {
-        throw new UnsupportedOperationException("decodeOne() not implemented (passthrough encoding)");
+        throw new UnsupportedOperationException(
+                "decodeOne() not supported by " + getClass().getSimpleName());
     }
 
     // ==================================================================================

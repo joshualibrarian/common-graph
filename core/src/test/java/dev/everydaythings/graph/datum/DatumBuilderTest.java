@@ -120,13 +120,14 @@ class DatumBuilderTest {
         }
 
         @Test
-        @DisplayName("binding auto-closes when a role helper is called next")
-        void autoCloseOnRoleHelper() {
+        @DisplayName("binding closes via .done() and the parent continues normally")
+        void doneEscapesToParent() {
             Frame f = Frame.compose(LEXEME)
                     .binding(ItemRef.iid(ThematicRole.Value.KEY))
                         .qualifier(ENGLISH)
                         .target("add")
-                    .theme(ADD)                              // forwards through binding
+                        .done()                              // close binding, back on parent
+                    .theme(ADD)
                     .build();
 
             assertThat(f.body().bindings()).hasSize(2);

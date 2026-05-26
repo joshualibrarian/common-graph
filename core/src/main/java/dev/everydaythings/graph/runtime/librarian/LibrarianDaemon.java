@@ -67,7 +67,9 @@ public class LibrarianDaemon implements Daemon {
     @Override
     public void destroy() {
         logger.info("Daemon destroy");
-        // TODO: librarian.close() when AutoCloseable lands on Librarian.
+        if (librarian != null) {
+            try { librarian.close(); } catch (RuntimeException ignored) {}
+        }
         librarian = null;
         stage = null;
     }
