@@ -81,6 +81,7 @@ public final class ThematicRole {
     /** The originating cause of an event. */
     @Seed.Item(key = Cause.KEY, head = ThematicRole.KEY)
     @Seed.Gloss(english = "the originating cause of an event")
+    @Seed.Lexeme(english = "because", pos = PartOfSpeech.Preposition.KEY)
     public static final class Cause {
         public static final String KEY = "cg.role:cause";
         private Cause() {}

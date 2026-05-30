@@ -115,13 +115,13 @@ class SignedPreKeyRotationTest {
     // Helpers
     // ==================================================================================
 
-    private static Frame makeEncryptRequest(ItemRef agentIid, ItemRef beneficiaryIid, byte[] plaintext) {
+    private static Frame makeEncryptRequest(ItemRef agentIid, ItemRef recipientIid, byte[] plaintext) {
         Body body = Body.of(
                 ItemRef.of(ItemRef.iid(Encrypt.KEY)),
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), agentIid),
                         new Binding(ItemRef.iid(ThematicRole.Theme.KEY), plaintext),
-                        Binding.ref(ItemRef.iid(ThematicRole.Beneficiary.KEY), beneficiaryIid),
+                        Binding.ref(ItemRef.iid(ThematicRole.Recipient.KEY), recipientIid),
                         Binding.ref(ItemRef.iid(ThematicRole.Instrument.KEY),
                                 ItemRef.iid(DoubleRatchetV1.KEY)),
                         new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now())));

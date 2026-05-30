@@ -8,12 +8,14 @@ import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.user.User;
 import dev.everydaythings.graph.scene.VariableResolver;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,10 +36,18 @@ import java.util.function.Supplier;
  *       same Session.</li>
  * </ul>
  *
- * <p>A Session is an {@link Item} but <b>not</b> a {@link dev.everydaythings.graph.cryptography.Signer}.
- * It carries no vault; it never signs anything itself. State changes to a Session
- * are signed by whichever participating principal made the change. Its INCEPTION
- * is signed by the principal who minted it.
+ * <p>A Session is a {@link dev.everydaythings.graph.cryptography.Signer
+ * Signer} with its own (typically ephemeral) vault.  Session-attributable
+ * actions — opening views, navigating, closing — are signed by the Session
+ * itself.  User-attributable actions performed within the Session are
+ * signed by the User's delegated key-bundle held in the Session's
+ * authentication table (see {@code authenticate(User)}; lands in a
+ * follow-on slice).
+ *
+ * <p>The Session's vault is normally ephemeral (in-memory, dies with the
+ * process); when a User's DELEGATION authorizes the Session to act on
+ * their behalf, the Session's keys are the ones evidencing that authority
+ * on the wire.
  *
  * <h2>Runtime embodiments</h2>
  * The {@link Session} class is the canonical server-side embodiment (used by
@@ -73,7 +83,7 @@ import java.util.function.Supplier;
 @Seed.Item(key = Session.KEY)
 @Seed.Embodies(key = Session.CODE_KEY, archetype = Session.KEY)
 @Log4j2
-public class Session extends Item {
+public class Session extends dev.everydaythings.graph.cryptography.Signer {
 
     /** Canonical key for Session-the-archetype. */
     public static final String KEY = "cg.archetype:session";
@@ -121,9 +131,50 @@ public class Session extends Item {
      */
     private final List<Runnable> viewStateListeners = new CopyOnWriteArrayList<>();
 
-    /** Runtime constructor — bound to a librarian. */
+    /**
+     * Ephemeral authentication table — the set of {@link User}s currently
+     * authenticated to this Session.  Lives only in this Session instance,
+     * for as long as the process is up; nothing is persisted.  A restart
+     * begins with an empty table, and the User(s) must re-authenticate.
+     *
+     * <p>Authentication is the User-to-Session bond that lets the Session
+     * act on the User's behalf within the workspace.  In the long run a
+     * User authenticates by signing a Session-issued challenge with their
+     * vault, and the Session verifies via the User's published signing
+     * track.  For now the table is just a registry: callers pass the
+     * {@link User} they've already obtained (e.g. the locally-minted user
+     * of a fresh CLI bring-up) and that User is considered authenticated.
+     *
+     * <p>Multi-user workspaces are first-class: a shared Session may have
+     * several Users authenticated at once (e.g. a family workspace with
+     * two parents, or a paired-programming workspace).  Per-view "acting
+     * as" choice (which authenticated User a given window's actions are
+     * attributed to) lands later via {@code ITEM_VIEW.AGENT}.
+     *
+     * <p>Concurrent-safe: auth events and dispatch reads may happen on
+     * different threads.
+     */
+    private final Set<User> authenticatedUsers = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Identity-only constructor — no vault, no signing capability.  Used
+     * for hydrating Sessions whose private keys aren't local (a peer's
+     * session observed remotely).  Most production paths want the
+     * vault-bearing form below.
+     */
     public Session(ItemRef iid, Librarian librarian) {
         super(iid, librarian);
+    }
+
+    /**
+     * Auto-vault constructor — mints a fresh ephemeral signing identity
+     * for the Session.  IID is derived from the vault.  Auto-incepts on
+     * the signing track.  This is the form
+     * {@code LocalSession} / {@code RemoteSession} use when minting a
+     * fresh session on either side of the librarian boundary.
+     */
+    public Session(Librarian librarian) {
+        super(librarian);
     }
 
     // ==================================================================================
@@ -175,6 +226,57 @@ public class Session extends Item {
     }
 
     // ==================================================================================
+    // Authentication table — which Users are authenticated to this Session
+    // ==================================================================================
+
+    /**
+     * Add {@code user} to this Session's ephemeral authentication table.
+     * Idempotent: re-authenticating an already-authenticated user is a no-op.
+     * Returns this Session for chaining.
+     *
+     * <p>No challenge/response yet; passing a User into this method is the
+     * authentication.  When the proper challenge protocol lands, this
+     * signature stays the same and the verification happens inside.
+     */
+    public Session authenticate(User user) {
+        Objects.requireNonNull(user, "user");
+        authenticatedUsers.add(user);
+        return this;
+    }
+
+    /**
+     * Remove {@code user} from this Session's authentication table.  No-op
+     * if the user wasn't authenticated.  Returns this Session for chaining.
+     */
+    public Session signOut(User user) {
+        if (user != null) authenticatedUsers.remove(user);
+        return this;
+    }
+
+    /** True iff {@code user} is currently authenticated to this Session. */
+    public boolean isAuthenticated(User user) {
+        return user != null && authenticatedUsers.contains(user);
+    }
+
+    /** True iff any authenticated User on this Session has the given IID. */
+    public boolean isAuthenticated(ItemRef userIid) {
+        if (userIid == null) return false;
+        for (User u : authenticatedUsers) {
+            if (userIid.equals(u.iid())) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Snapshot of the Users currently authenticated to this Session.
+     * The returned set is an immutable copy; subsequent auth/sign-out
+     * activity doesn't affect it.
+     */
+    public Set<User> authenticatedUsers() {
+        return Set.copyOf(authenticatedUsers);
+    }
+
+    // ==================================================================================
     // View-state mutation — open / close views
     // ==================================================================================
 
@@ -192,16 +294,65 @@ public class Session extends Item {
      * @throws IllegalStateException if this session has no librarian
      */
     public void openView(ItemRef itemIid) {
+        openView(itemIid, null);
+    }
+
+    /**
+     * Open a view of {@code itemIid} on this session attributed to
+     * {@code actingAs}.  Adds an {@code Agent → actingAs.iid()} binding to
+     * the ITEM_VIEW frame so per-view authority is explicit when multiple
+     * Users are authenticated to the same workspace.
+     *
+     * <p>{@code actingAs} must already be authenticated to this Session
+     * (via {@link #authenticate}); the Session is the source of truth for
+     * who may appear as Agent.  Passing a non-authenticated User throws.
+     *
+     * <p>Pass {@code null} for {@code actingAs} to omit the Agent binding
+     * (equivalent to the no-arg form) — used for Sessions running without
+     * an authenticated User.
+     *
+     * @throws IllegalStateException if this session has no librarian
+     * @throws IllegalStateException if {@code actingAs} is non-null and not authenticated
+     */
+    public void openView(ItemRef itemIid, User actingAs) {
         Objects.requireNonNull(itemIid, "itemIid");
         if (librarian == null) {
             throw new IllegalStateException("Session has no librarian; cannot openView");
         }
-        Body body = Body.of(
-                ItemRef.iid(SessionVocabulary.ItemView.KEY),
-                java.util.List.of(
-                        Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), itemIid),
-                        Binding.ref(ItemRef.iid(ThematicRole.Location.KEY), iid())));
-        librarian.assembleFrame(body, librarian);
+        if (actingAs != null && !isAuthenticated(actingAs)) {
+            throw new IllegalStateException(
+                    "Cannot openView acting as " + actingAs.iid()
+                            + "; user is not authenticated to this session");
+        }
+        java.util.List<Binding> bindings = new java.util.ArrayList<>(3);
+        bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY), itemIid));
+        bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Location.KEY), iid()));
+        if (actingAs != null) {
+            bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), actingAs.iid()));
+        }
+        Body body = Body.of(ItemRef.iid(SessionVocabulary.ItemView.KEY), bindings);
+        // Sign with this Session if it can; fall back to the librarian for
+        // identity-only Sessions that have no vault (peer-observed sessions).
+        // Delegated User-key signing — where the Agent binding is evidenced
+        // by the User's own key via a Session-to-User delegation — lands when
+        // the delegation chain is wired.  Until then, the Agent binding is an
+        // attribution claim signed by the Session.
+        librarian.assembleFrame(body, canSign() ? this : librarian);
+    }
+
+    /**
+     * Read the {@code Agent} binding from an ITEM_VIEW body.  Returns the
+     * User IID the view is attributed to, or empty if no Agent binding is
+     * present (Session itself is acting).
+     */
+    public static Optional<ItemRef> agentOf(Body itemViewBody) {
+        if (itemViewBody == null) return Optional.empty();
+        return itemViewBody
+                .binding(dev.everydaythings.graph.ref.CompoundKey.of(
+                        ItemRef.iid(ThematicRole.Agent.KEY)))
+                .map(Binding::target)
+                .filter(t -> t instanceof ItemRef)
+                .map(t -> (ItemRef) t);
     }
 
     /**

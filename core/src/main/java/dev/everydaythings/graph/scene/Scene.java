@@ -178,7 +178,7 @@ public final class Scene {
      *     @Scene.Repeat(source = "cg.var:active-reactions")
      *     static class ReactionDot {
      *         @Scene.Property(role = Text.KEY)
-     *         static TypeRef text = TypeRef.iid(NameVocabulary.Name.KEY);
+     *         static TypeRef text = TypeRef.iid(GivenName.KEY);
      *     }
      * }
      * }</pre>

@@ -54,6 +54,27 @@ public final class SchemaWalker extends DatumWalker {
         return new ValidationResult(List.copyOf(walker.issues));
     }
 
+    /**
+     * The roles an archetype expects its instances to carry — the underlying
+     * IIDs of the {@code !}-roled ({@link SchemaRef}) bindings on the
+     * archetype's manifest body.  Literal-roled bindings (ITEM_ID, ENDORSES,
+     * IMPLEMENTATION, ...) are the archetype's own metadata, not expectations,
+     * and are excluded.
+     *
+     * <p>Single source of truth for "what does this archetype expect" — shared
+     * by {@link #validate} (presence checking) and by item-assembly code that
+     * needs the expected-slot list directly.
+     */
+    public static List<ItemRef> expectedRoles(Body archetypeManifest) {
+        List<ItemRef> roles = new ArrayList<>();
+        for (Binding b : archetypeManifest.bindings()) {
+            if (b.role() instanceof SchemaRef sr) {
+                roles.add(sr.iid());
+            }
+        }
+        return List.copyOf(roles);
+    }
+
     @Override
     protected void walkBinding(Binding schemaBinding) {
         // Only !-roled bindings on the schema body are expectation declarations.

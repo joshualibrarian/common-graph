@@ -549,6 +549,36 @@ public final class CoreVocabulary {
     }
 
     /**
+     * Comment — a qualifier marking a binding's value as free-form human
+     * annotation rather than substantive content.  Used as
+     * {@code Attribute[Comment] → "<text>"} on any frame to attach the
+     * agent's prose explanation alongside the structural content of the
+     * assertion: "I'm rotating because I noticed unusual activity at 3am."
+     *
+     * <p>Comments are <i>optional metadata</i> and don't change what the
+     * frame asserts.  Distinct from {@link ThematicRole.Cause Cause}, which
+     * carries the structured reason (typically a reference); a Comment is
+     * what you'd say to a colleague, a Cause is what you'd point to.
+     *
+     * <p>Universal — any frame may carry one.  Not declared in valence.
+     */
+    @Seed.Item(key = Comment.KEY)
+    public static final class Comment {
+        public static final String KEY = "cg.qualifier:comment";
+        private Comment() {}
+
+        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "qualifier marking a binding's value as free-form human annotation, "
+                        + "optional metadata on a frame distinct from the structured Cause";
+
+        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "comment";
+    }
+
+    /**
      * CurrentTime — the resolution-context variable carrying the current
      * wall-clock time.  An instance of {@link Variable}; its runtime value
      * is supplied by the session (typically as an {@code Instant} or

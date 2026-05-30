@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.actor;
 
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
@@ -10,7 +11,7 @@ import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 
 /**
- * Group — a collective {@link Actor}.
+ * Group — a collective, modeled as an {@link Item}.
  *
  * <p>Covers any kind of grouping: organizations, families, teams, informal
  * collectives, governments, nation-states.  Variation in structure (legal
@@ -22,7 +23,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
  */
 @Seed.Item(key = Group.KEY)
 @Seed.Cili("i35589")
-public class Group extends Actor {
+public class Group extends Item {
 
     /** Canonical key for the Group archetype. */
     public static final String KEY = "cg.archetype:group";

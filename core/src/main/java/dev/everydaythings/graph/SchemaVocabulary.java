@@ -10,9 +10,8 @@ import static dev.everydaythings.graph.Seed.*;
  *
  * <p>Two kinds of entries live here:
  * <ul>
- *   <li><b>Schema predicates</b> ({@link Expects}, {@link Implements}) — predicates
- *       whose endorsed frames describe what a sememe expects (bindings, frames)
- *       and which artifacts implement it.</li>
+ *   <li><b>Schema predicates</b> ({@link Implements}) — predicates whose
+ *       endorsed frames describe which artifacts implement a sememe.</li>
  *   <li><b>Universal qualifiers</b> ({@link Required}, {@link Arity},
  *       {@link Retention}, {@link Ephemeral}, {@link Limit}) — qualifier sememes
  *       used inside schema/metadata frames to refine declarations.</li>
@@ -22,6 +21,22 @@ import static dev.everydaythings.graph.Seed.*;
  * categorical labels that the framework references by IID. The seed declarations
  * register their manifest bodies at bootstrap so they exist as real items in the
  * graph (queryable, gloss-able, lexeme-able), not just framework-internal IIDs.
+ *
+ * <h2>What about EXPECTS?</h2>
+ *
+ * <p>"Expectations" on archetypes are NOT a separate predicate.  They're just
+ * bindings on the archetype's manifest whose role is wrapped in the schema
+ * variant ({@code !<iid>} / {@link dev.everydaythings.graph.ref.SchemaRef
+ * SchemaRef}).  The presence of a {@code !Role → constraint} binding on an
+ * archetype's manifest declares "instances of me are expected to have a
+ * Role-position binding satisfying this constraint."  No separate
+ * {@code EXPECTS} sememe exists; the SchemaRef variant IS the mechanism.
+ *
+ * <p>Generate these via {@link Seed.Property @Seed.Property} with the
+ * {@code schemaRole} parameter set instead of {@code role}.  See
+ * {@code dev.everydaythings.graph.value.Color}'s channel-range expectations
+ * and {@code dev.everydaythings.graph.value.Quantity}'s magnitude expectation
+ * for examples.
  */
 public final class SchemaVocabulary {
 

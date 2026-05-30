@@ -102,67 +102,11 @@ public final class RecordVocabulary {
         static final String englishVerbLemma = "create";
     }
 
-    /**
-     * Encrypted — the signer encrypted an existing body and this record signs
-     * the resulting {@code Opaque.Encrypted} body.  The signer is the
-     * encryption-doer, not the original body's author.
-     */
-    @Seed.Item(key = Encrypted.KEY)
-    public static final class Encrypted {
-        public static final String KEY = "cg.act:encrypted";
-        private Encrypted() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the signer encrypted an existing body and this record signs the resulting "
-                        + "Opaque.Encrypted body";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "encrypt";
-    }
-
-    /**
-     * Redacted — the signer redacted parts of an existing body and this
-     * record signs the resulting {@code Opaque.Redacted} body.  Used to
-     * provide an audit trail for who performed the redaction.
-     */
-    @Seed.Item(key = Redacted.KEY)
-    public static final class Redacted {
-        public static final String KEY = "cg.act:redacted";
-        private Redacted() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the signer redacted parts of an existing body and this record signs the "
-                        + "resulting Opaque.Redacted body";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "redact";
-    }
-
-    /**
-     * Compressed — the signer compressed an existing body and this record
-     * signs the resulting {@code Opaque.Compressed} body.
-     */
-    @Seed.Item(key = Compressed.KEY)
-    public static final class Compressed {
-        public static final String KEY = "cg.act:compressed";
-        private Compressed() {}
-
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
-        static final String englishGloss =
-                "the signer compressed an existing body and this record signs the resulting "
-                        + "Opaque.Compressed body";
-
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
-        static final String englishVerbLemma = "compress";
-    }
+    // Encrypted / Redacted / Compressed act-kinds were unified 2026-05-29 with the
+    // command predicates of the same meaning ({@link EncryptionVocabulary.Encrypt},
+    // {@link OpaqueOpsVocabulary.Elide}, {@link OpaqueOpsVocabulary.Compress}) per the
+    // morphological-collapse principle.  A record's Act binding now points directly
+    // at the verb sememe; no separate "act-kind" namespace.
 
     /**
      * Verified — the signer verified an existing body's signatures, chain, or

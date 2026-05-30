@@ -1,11 +1,14 @@
 package dev.everydaythings.graph.text;
 
+import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.ref.CompoundKey.Qualifier;
 import dev.everydaythings.graph.ref.ItemRef;
 import java.math.BigDecimal;
 import lombok.Value;
 import lombok.With;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -46,6 +49,40 @@ public class FrameMap {
 
     public boolean isEmpty() {
         return predicate == null && bindings.isEmpty() && languages.isEmpty();
+    }
+
+    /**
+     * Lift this settled parse into a {@link Body} — the bridge from parse output
+     * to a submittable frame.  Head is the predicate; each {@link BindingMap}
+     * becomes a {@link Binding} (role + qualifiers + target), and a nested
+     * {@link FrameMapTarget} target recurses into a sub-Body.  Confidence and
+     * span attribution are dropped here: the consensus has settled, so only the
+     * structural result carries forward.
+     *
+     * @throws IllegalStateException if no predicate has been settled
+     */
+    public Body toBody() {
+        if (predicate == null || predicate.value() == null) {
+            throw new IllegalStateException(
+                    "FrameMap has no settled predicate; nothing to submit");
+        }
+        List<Binding> out = new ArrayList<>(bindings.size());
+        for (BindingMap bm : bindings) {
+            if (bm.role() == null || bm.role().value() == null) continue;
+            ItemRef role = bm.role().value();
+            Object target = bm.target() == null ? null : bm.target().value();
+            if (target instanceof FrameMapTarget nested) {
+                target = nested.frameMap().toBody();
+            }
+            List<Qualifier> quals = new ArrayList<>();
+            for (Part<Qualifier> q : bm.qualifiers()) {
+                if (q != null && q.value() != null) quals.add(q.value());
+            }
+            out.add(quals.isEmpty()
+                    ? new Binding(role, target)
+                    : Binding.qualified(role, quals, target));
+        }
+        return Body.of(ItemRef.of(predicate.value()), out);
     }
 
     /**

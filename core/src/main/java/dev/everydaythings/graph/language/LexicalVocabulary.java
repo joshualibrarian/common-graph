@@ -248,8 +248,8 @@ public final class LexicalVocabulary {
      * sememes — handled via multiple LEXEME frames, each endorsed by a different
      * sememe.
      *
-     * <p>Phase 1 keeps {@code onFrameAssembled} minimal — body persistence is enough.
-     * Future: token-dictionary indexing for word→sememe lookup at parse time.
+     * <p>Phase 1 is pure persistence — the seed body is enough.  Future:
+     * token-dictionary indexing for word→sememe lookup at parse time.
      */
     @Seed.Item(key = Lexeme.KEY, head = CoreVocabulary.Predicate.KEY)
     @Embodies(key = Lexeme.KEY)
@@ -287,8 +287,8 @@ public final class LexicalVocabulary {
      * over time, contributed by different parties). Receivers' trust matrices and
      * presentation logic decide which to display.
      *
-     * <p>Phase 1 keeps {@code onFrameAssembled} minimal — body persistence is enough.
-     * Future: token-dictionary indexing for "find sememes whose gloss matches X."
+     * <p>Phase 1 is pure persistence — the seed body is enough.  Future:
+     * token-dictionary indexing for "find sememes whose gloss matches X."
      */
     @Seed.Item(key = Gloss.KEY, head = CoreVocabulary.Predicate.KEY)
     @Embodies(key = Gloss.KEY)

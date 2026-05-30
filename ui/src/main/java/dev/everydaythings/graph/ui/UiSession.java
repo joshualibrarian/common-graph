@@ -61,6 +61,16 @@ public abstract class UiSession extends Session {
     }
 
     /**
+     * Auto-vault constructor — mints a fresh ephemeral signing identity
+     * for the Session.  IID is derived from the vault.  This is the form
+     * {@link LocalSession#mint(Librarian)} uses to produce a vault-bearing
+     * Session that signs its own ITEM_VIEW frames.
+     */
+    protected UiSession(Librarian librarian) {
+        super(librarian);
+    }
+
+    /**
      * Bring up the UI for this session.
      *
      * <p>Resolves a {@link Surface} from {@link SurfaceRegistry} by uiMode

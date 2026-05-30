@@ -11,8 +11,8 @@ import dev.everydaythings.graph.cryptography.EncryptionVocabulary.MessageNumber;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Method;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.PreviousChainLength;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.SenderRatchetKey;
+import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Encrypt;
 import dev.everydaythings.graph.cryptography.RecordVocabulary.Act;
-import dev.everydaythings.graph.cryptography.RecordVocabulary.Encrypted;
 import dev.everydaythings.graph.cryptography.algorithm.Aead;
 import dev.everydaythings.graph.cryptography.algorithm.Kdf;
 import dev.everydaythings.graph.cryptography.algorithm.KeyAgreement;
@@ -72,7 +72,7 @@ public final class DoubleRatchet {
 
     // Pre-computed IIDs used in every bindings list.
     private static final ItemRef ACT_ROLE          = ItemRef.iid(Act.KEY);
-    private static final ItemRef ENCRYPTED_VALUE   = ItemRef.iid(Encrypted.KEY);
+    private static final ItemRef ENCRYPT_VALUE   = ItemRef.iid(Encrypt.KEY);
     private static final ItemRef METHOD_ROLE       = ItemRef.iid(Method.KEY);
     private static final ItemRef DR_V1_VALUE       = ItemRef.iid(DoubleRatchetV1.KEY);
     private static final ItemRef SENDER_RATCHET    = ItemRef.iid(SenderRatchetKey.KEY);
@@ -233,7 +233,7 @@ public final class DoubleRatchet {
     private static List<Binding> buildBindings(byte[] senderPub, long pn, long ns,
                                                List<Binding> extras) {
         List<Binding> out = new ArrayList<>(6 + extras.size());
-        out.add(Binding.ref(ACT_ROLE, ENCRYPTED_VALUE));
+        out.add(Binding.ref(ACT_ROLE, ENCRYPT_VALUE));
         out.add(Binding.ref(METHOD_ROLE, DR_V1_VALUE));
         out.add(new Binding(SENDER_RATCHET, senderPub));
         out.add(new Binding(PREVIOUS_CHAIN, pn));

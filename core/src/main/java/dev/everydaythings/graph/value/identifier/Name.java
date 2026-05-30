@@ -1,170 +1,159 @@
 package dev.everydaythings.graph.value.identifier;
 
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.canonical.Encode;
 import dev.everydaythings.graph.datum.Binding;
+import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.language.Language;
+import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.quality.NameVocabulary;
+import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.value.Value;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
- * Name — a compound Value carrying whichever name-parts apply to a person
- * or thing.  Bindings inside a Name body use name-part role sememes from
- * {@link NameVocabulary} (Given, Family, Middle, Nickname, Alias,
- * Patronymic, Maternal, Honorific, Suffix, ...).
+ * Name — abstract intermediate {@link Identifier} for plain-text designators.
  *
- * <p>Name also serves as the predicate when used in head-of-frame position:
- * {@code Person → [Name] → Name(given="Joshua")}.  Same sememe; the slot
- * the frame puts it in is what selects "predicate" vs "value-type".
+ * <p>A Name is a kind of identifier whose canonical form is just text — a
+ * word or short phrase by which an entity is known.  Names contrast with
+ * formatted identifiers (EmailAddress, PhoneNumber, URL, ISBN, platform-
+ * specific account IDs): those have structural rules baked into their
+ * syntax; Names are just words.
  *
- * <p>Use whichever parts apply.  A Western name has GIVEN + FAMILY (+ MIDDLE).
- * A Spanish name might have GIVEN + FAMILY + MATERNAL (paternal then
- * maternal surname).  A Slavic name uses GIVEN + PATRONYMIC + FAMILY.  An
- * East Asian name has GIVEN + FAMILY in the same data shape; rendering
- * order is locale-dependent.  Mononymous individuals have just GIVEN.  Stage
- * or pen names use ALIAS.  All of these are the same value-type, different
- * bindings.
+ * <p>Names come in two structural shapes:
  *
- * <p>Names are content-addressed: two Name bodies with identical bindings
- * produce identical CIDs.  Dedup happens naturally — many people sharing
- * "Joshua" as their given name don't create N different Name bodies for
- * the lone-given-name case.
+ * <ul>
+ *   <li><b>Atomic</b> — leaf-text Names (GivenName, FamilyName, Nickname,
+ *       Alias, Pseudonym, Honorific, Suffix, Patronymic, Maternal, Handle).
+ *       Each carries a single canonical text string in the Body's atomic
+ *       content slot.  Light validation (non-empty after trim, no control
+ *       characters, length cap).  Indexed by the token dictionary as
+ *       words for name-based lookup.</li>
+ *   <li><b>Compound</b> — structured Names whose body carries indexed
+ *       bindings to other Name instances ({@link FullName}).  Used when a
+ *       single name is composed of ordered parts (Western "given middle
+ *       family suffix", Spanish "given paternal maternal", East Asian
+ *       "family given").</li>
+ * </ul>
  *
- * <p>This is a <i>structured value</i>, not an Identifier.  Identifier
- * subclasses (EmailAddress, CILIID) commit to a single canonical text
- * form via {@code @Encode encodeText()}.  Names are too multi-cultural
- * for a single canonical text — rendering order is locale-dependent —
- * so Name extends Value directly.
+ * <p>Each concrete Name subtype represents a different kind of name.
+ * "Joshua" stored as a GivenName is structurally different from "Joshua"
+ * stored as a Nickname — the kind IS part of the identity.  Two
+ * GivenName("Joshua") instances share content-addressed identity (same
+ * CID), so name-based dedup works at the part level naturally.
+ *
+ * <p>Name also serves as the predicate when used in head-of-frame
+ * position: {@code Person → [Name] → GivenName("Joshua")} reads
+ * "this person is known by this name."  Same dual noun-and-predicate
+ * pattern as {@link Identifier}.
+ *
+ * <p>Validation baseline (every Name subtype enforces):
+ * <ul>
+ *   <li>Non-empty after {@link String#trim trim}.</li>
+ *   <li>No ISO control characters.</li>
+ *   <li>Length cap (currently 256 chars; bumpable if real call sites need).</li>
+ * </ul>
+ * Subtypes MAY add stricter rules; most don't.
  *
  * <p>Grounded in OEWN synset oewn-06344646-n (CILI {@code i69761}):
- * "a language unit by which a person or thing is known".
+ * "a language unit by which a person or thing is known."
  */
-@Seed.Item(key = Name.KEY, head = Value.KEY)
+@Seed.Item(key = Name.KEY, head = Identifier.KEY)
 @Seed.Cili("i69761")
-@Seed.Gloss(english = "a compound value carrying the parts of a person or thing's name "
-                   + "(given, family, middle, nickname, patronymic, ...); cultures use "
-                   + "whichever subset applies")
-@Seed.Lexeme(english = "name", pos = PartOfSpeech.Noun.KEY)
-public final class Name extends Value {
+public abstract class Name extends Identifier {
 
     public static final String KEY = "cg.archetype:name";
 
-    private Name(List<Binding> bindings) {
-        super(ItemRef.iid(KEY), bindings);
-    }
+    /** Maximum canonical-text length any Name accepts.  Subtypes may tighten. */
+    public static final int MAX_LENGTH = 256;
 
-    // ==================================================================================
-    // Construction
-    // ==================================================================================
-
-    /** Fluent builder. */
-    public static Builder builder() {
-        return new Builder();
+    /**
+     * Atomic-form constructor — for leaf-text Name subtypes.  Subclasses
+     * pass the canonical text after validation via
+     * {@link #validateName(String, String)}.
+     */
+    protected Name(ItemRef head, String canonicalText) {
+        super(head, canonicalText);
     }
 
     /**
-     * Convenience factory for the common Western case: given + family.
+     * Structured-form constructor — for compound Name subtypes ({@link
+     * FullName}).  Subclasses pass the ordered binding list.
      */
-    public static Name of(String given, String family) {
-        return builder().given(given).family(family).build();
+    protected Name(ItemRef head, List<Binding> bindings) {
+        super(head, bindings);
     }
 
     /**
-     * Typed view over an existing Body whose head is the Name archetype.
-     * Throws if the body's head isn't Name; passes through if the body is
-     * already a Name instance.
+     * Baseline plain-text validation shared by atomic Name subtypes.
+     * Returns the canonical (trimmed) form.
+     *
+     * <p>Rules: non-empty after trim, no ISO control characters, length
+     * within {@link #MAX_LENGTH}.  Subtypes that need stricter validation
+     * call this first then apply their own rules.
+     *
+     * @param text the raw input text
+     * @param typeName human-readable subtype name for error messages
+     * @return the trimmed canonical text
+     * @throws IllegalArgumentException if validation fails
      */
-    public static Name from(dev.everydaythings.graph.datum.Body body) {
-        Objects.requireNonNull(body, "body");
-        if (body instanceof Name name) return name;
-        if (!ItemRef.iid(KEY).equals(body.headRef())) {
-            throw new IllegalArgumentException(
-                    "Body head is not the Name archetype: " + body.headRef());
+    protected static String validateName(String text, String typeName) {
+        Objects.requireNonNull(text, typeName + " text");
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException(typeName + " cannot be empty");
         }
-        // Bindings list is sorted-and-immutable on the source body; copy is safe.
-        List<Binding> copy = new ArrayList<>(body.bindings());
-        return new Name(copy);
-    }
-
-    // ==================================================================================
-    // Accessors
-    // ==================================================================================
-
-    /** The given name (first name), if present. */
-    public Optional<String> given() { return part(NameVocabulary.Given.KEY); }
-
-    /** The family name (surname), if present. */
-    public Optional<String> family() { return part(NameVocabulary.Family.KEY); }
-
-    /** The middle name, if present. */
-    public Optional<String> middle() { return part(NameVocabulary.Middle.KEY); }
-
-    /** The nickname, if present. */
-    public Optional<String> nickname() { return part(NameVocabulary.Nickname.KEY); }
-
-    /** The alias / pseudonym, if present. */
-    public Optional<String> alias() { return part(NameVocabulary.Alias.KEY); }
-
-    /** The patronymic, if present. */
-    public Optional<String> patronymic() { return part(NameVocabulary.Patronymic.KEY); }
-
-    /** The matronymic / maternal surname, if present. */
-    public Optional<String> maternal() { return part(NameVocabulary.Maternal.KEY); }
-
-    /** The honorific / title, if present. */
-    public Optional<String> honorific() { return part(NameVocabulary.Honorific.KEY); }
-
-    /** The generational or credential suffix, if present. */
-    public Optional<String> suffix() { return part(NameVocabulary.Suffix.KEY); }
-
-    private Optional<String> part(String roleKey) {
-        ItemRef role = ItemRef.iid(roleKey);
-        for (Binding b : bindings()) {
-            if (role.equals(b.role())
-                    && b.qualifiers().isEmpty()
-                    && b.target() instanceof String s) {
-                return Optional.of(s);
+        if (trimmed.length() > MAX_LENGTH) {
+            throw new IllegalArgumentException(
+                    typeName + " exceeds maximum length of " + MAX_LENGTH + " characters");
+        }
+        for (int i = 0; i < trimmed.length(); i++) {
+            if (Character.isISOControl(trimmed.charAt(i))) {
+                throw new IllegalArgumentException(
+                        typeName + " contains a control character at position " + i);
             }
         }
-        return Optional.empty();
+        return trimmed;
     }
 
-    // ==================================================================================
-    // Builder
-    // ==================================================================================
-
-    /** Fluent builder for Name.  Empty or null parts are silently dropped. */
-    public static final class Builder {
-        private final List<Binding> bindings = new ArrayList<>();
-
-        public Builder given(String text)      { return part(NameVocabulary.Given.KEY, text); }
-        public Builder family(String text)     { return part(NameVocabulary.Family.KEY, text); }
-        public Builder middle(String text)     { return part(NameVocabulary.Middle.KEY, text); }
-        public Builder nickname(String text)   { return part(NameVocabulary.Nickname.KEY, text); }
-        public Builder alias(String text)      { return part(NameVocabulary.Alias.KEY, text); }
-        public Builder patronymic(String text) { return part(NameVocabulary.Patronymic.KEY, text); }
-        public Builder maternal(String text)   { return part(NameVocabulary.Maternal.KEY, text); }
-        public Builder honorific(String text)  { return part(NameVocabulary.Honorific.KEY, text); }
-        public Builder suffix(String text)     { return part(NameVocabulary.Suffix.KEY, text); }
-
-        /**
-         * Set an arbitrary name-part by role IID.  Useful when communities
-         * extend the name-part vocabulary with culture-specific roles not
-         * pre-declared on this builder.
-         */
-        public Builder part(String roleKey, String text) {
-            if (text == null || text.isEmpty()) return this;
-            bindings.add(Binding.literal(ItemRef.iid(roleKey), text));
-            return this;
-        }
-
-        public Name build() {
-            return new Name(new ArrayList<>(bindings));
-        }
+    @Override
+    @Encode
+    public String encodeText() {
+        // Atomic subtypes store their text in atomic content.  Structured
+        // subtypes (FullName) override this to render from their bindings.
+        return (String) atomicContent().orElseThrow(() -> new IllegalStateException(
+                getClass().getSimpleName() + " has no atomic content and no encodeText override"));
     }
+
+    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+    static final String englishGloss =
+            "a plain-text designator for an entity — a word or short phrase by which "
+                    + "it is known; the umbrella for given names, family names, nicknames, "
+                    + "handles, and other word-shaped identifiers (in contrast to formatted "
+                    + "identifiers like email addresses or phone numbers)";
+
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+    static final String englishNounLemma = "name";
+
+    /**
+     * Past-participle verb forms used in secondary predication — "user <b>named</b>
+     * bob", "a planet <b>called</b> Mars".  These are the surface forms the parser
+     * looks up directly; inflected forms aren't derived at parse time, so they must
+     * exist in the token dictionary as their own lexeme entries.  When the WordNet/
+     * UniMorph import runs, it merges idempotently with these.
+     *
+     * <p>"called" carries Name's dub/designate sense ("they called him Bob"), which
+     * collapses onto Name like "name" does — the same sememe in a different surface
+     * word.
+     */
+    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY,
+                qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY,
+                        GrammaticalFeature.Past.KEY, GrammaticalFeature.Participle.KEY}))
+    static final String[] englishParticiples = {"named", "called"};
 }

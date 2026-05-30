@@ -2,11 +2,13 @@ package dev.everydaythings.graph.cryptography;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.language.PartOfSpeech;
 import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ref.TypeRef;
 
 /**
  * Encryption-flow vocabulary — the sememes and predicates whose meaning is
@@ -57,12 +59,17 @@ public final class EncryptionVocabulary {
      * ENCRYPT
      *     [optional] AGENT → @signer-iid                  # omit for anonymous
      *     THEME → ~cipher-cid                              # the encrypted bytes
-     *     BENEFICIARY → @recipient-iid                     # one per recipient (multiset)
+     *     RECIPIENT → @recipient-iid                       # one per recipient (multiset)
      *     INSTRUMENT → @algorithm-suite-sememe             # which ciphersuite
      *     INSTRUMENT [EPHEMERAL_PUBKEY] → bytes            # sender's ephemeral X25519 pubkey
      *     INSTRUMENT [KEYWRAP, @recipient-iid] → bytes     # wrapped DEK per recipient
      *     TIME → timestamp                                 # when encrypted
      * </pre>
+     *
+     * <p>RECIPIENT (the role) carries the "for X" preposition in English — the
+     * recipients are who the encryption is <em>for</em>.  (Previously BENEFICIARY,
+     * which is the broader "benefits from" role; transfer-receives semantics is
+     * more specific and matches the seeded English preposition.)
      *
      * <p>Granularity is a per-use choice — encrypt the smallest unit needed,
      * whether a single binding value (inline Tag-10), a whole frame, or an
@@ -87,6 +94,26 @@ public final class EncryptionVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "encrypt";
+
+        // ============================================================================
+        // Valence — what bindings an ENCRYPT command frame is expected to carry.
+        // Same EXPECTS mechanism archetypes use for their instance fields, applied to
+        // a predicate's manifest so a frame headed by it has a declared argument
+        // structure.  Read by SchemaWalker.expectedRoles for validation; future:
+        // read by the parser to guide role assignment beyond positional defaults.
+        // ============================================================================
+
+        /** What's being encrypted: bytes inline or a reference to a body. */
+        @Seed.Property(schemaRole = ThematicRole.Theme.KEY)
+        static final TypeRef expectsTheme = TypeRef.iid(Item.KEY);
+
+        /** Who the encryption is for — one binding per recipient (multiset). */
+        @Seed.Property(schemaRole = ThematicRole.Recipient.KEY)
+        static final TypeRef expectsRecipient = TypeRef.iid(Item.KEY);
+
+        /** Which ciphersuite/algorithm to use.  Optional; defaults via algorithm registry. */
+        @Seed.Property(schemaRole = ThematicRole.Instrument.KEY)
+        static final TypeRef expectsInstrument = TypeRef.iid(Item.KEY);
     }
 
     /**
@@ -128,6 +155,10 @@ public final class EncryptionVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "decrypt";
+
+        /** The encrypted frame (or reference to one) being decrypted. */
+        @Seed.Property(schemaRole = ThematicRole.Theme.KEY)
+        static final TypeRef expectsTheme = TypeRef.iid(Item.KEY);
     }
 
     // ==================================================================================

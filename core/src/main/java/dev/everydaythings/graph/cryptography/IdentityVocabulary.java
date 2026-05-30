@@ -3,8 +3,10 @@ package dev.everydaythings.graph.cryptography;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ref.TypeRef;
 
 /**
  * Identity vocabulary — the sememes and predicates whose meaning is tied to
@@ -19,7 +21,9 @@ import dev.everydaythings.graph.language.ThematicRole;
  *       ENCRYPT bodies: Multikey, Keywrap, EphemeralPubkey).</li>
  *   <li>This file — identities, key tracks, key-event predicates (Inception,
  *       Rotation, Delegation, Revocation), forward-reference qualifiers
- *       (Next), the Delegator role.</li>
+ *       (Next), the Delegator role, plus the cross-identity bridge
+ *       predicates {@link Represents} (Signer ↔ social entity) and
+ *       {@link Serves} (Signer ↔ Signer).</li>
  * </ul>
  *
  * <p>Each inner class is a bare seed declaration — KEY, IID, and
@@ -127,10 +131,20 @@ public final class IdentityVocabulary {
      * {@link Signer#isSelfAttested(dev.everydaythings.graph.datum.Frame)}).
      * Forward-committing via optional {@code INSTRUMENT [NEXT]} bindings.
      *
-     * <p>Body shape: THEME→@identity, PURPOSE→@track, INSTRUMENT[MULTIKEY]→keys,
-     * INSTRUMENT[NEXT]→digests, ATTRIBUTE[THRESHOLD]→m-of-n,
-     * PARTNER[WITNESS]→witnesses (optional), AGENT[DELEGATOR]→parent (optional),
-     * TIME→timestamp.
+     * <p>Body shape (resulting event): THEME→@identity, PURPOSE→@track,
+     * INSTRUMENT[MULTIKEY]→keys, INSTRUMENT[NEXT]→digests,
+     * ATTRIBUTE[THRESHOLD]→m-of-n, PARTNER[WITNESS]→witnesses (optional),
+     * AGENT[DELEGATOR]→parent (optional), TIME→timestamp.
+     *
+     * <p>Command body shape (what the handler reads):
+     * <pre>
+     * INCEPTION
+     *     AGENT → @signer                  # the signer to incept on (handler-routed)
+     *     PURPOSE → @key-track             # which track to incept (signing, etc.)
+     *     [optional] CAUSE → @reference   # structured reason
+     *     [optional] ATTRIBUTE[COMMENT] → "text"   # free-form annotation
+     * </pre>
+     * The vault generates the keypair and produces the full event frame.
      */
     @Seed.Item(key = Inception.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Inception {
@@ -149,6 +163,10 @@ public final class IdentityVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "incept";
+
+        /** Which key-track to incept (signing / encryption / key-agreement). */
+        @Seed.Property(schemaRole = ThematicRole.Purpose.KEY)
+        static final TypeRef expectsPurpose = TypeRef.iid(Item.KEY);
     }
 
     /**
@@ -158,7 +176,18 @@ public final class IdentityVocabulary {
      * Chain-anchored via {@code FOLLOWS → #prior-event-CID}; authority-asymmetric
      * (authorized by old keys, proven by new keys — both sign the body).
      *
-     * <p>Body shape: INCEPTION shape + FOLLOWS→#prior + ATTRIBUTE[SEQUENCE]→n+1.
+     * <p>Body shape (resulting event): INCEPTION shape + FOLLOWS→#prior +
+     * ATTRIBUTE[SEQUENCE]→n+1.
+     *
+     * <p>Command body shape (what the handler reads):
+     * <pre>
+     * ROTATION
+     *     AGENT → @signer                  # the signer to rotate (handler-routed)
+     *     PURPOSE → @key-track             # which track to rotate
+     *     [optional] CAUSE → @reference   # structured reason (e.g. a breach incident)
+     *     [optional] ATTRIBUTE[COMMENT] → "text"   # free-form annotation
+     * </pre>
+     * The vault reveals the pre-committed next key and commits a fresh next.
      */
     @Seed.Item(key = Rotation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Rotation {
@@ -177,6 +206,10 @@ public final class IdentityVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "rotate";
+
+        /** Which key-track to rotate. */
+        @Seed.Property(schemaRole = ThematicRole.Purpose.KEY)
+        static final TypeRef expectsPurpose = TypeRef.iid(Item.KEY);
     }
 
     /**
@@ -185,8 +218,21 @@ public final class IdentityVocabulary {
      * doesn't issue); scope-bearing via optional PURPOSE multiset bindings;
      * revocable and optionally expirable via {@code ATTRIBUTE [EXPIRES]}.
      *
-     * <p>Body shape: AGENT→@parent, THEME→@child, PURPOSE→scope (multiset),
-     * ATTRIBUTE[EXPIRES]→timestamp (optional), TIME→when-issued.
+     * <p>Body shape (resulting event): AGENT→@parent, THEME→@child,
+     * PURPOSE→scope (multiset), ATTRIBUTE[EXPIRES]→timestamp (optional),
+     * TIME→when-issued.
+     *
+     * <p>Command body shape (what the handler reads):
+     * <pre>
+     * DELEGATION
+     *     AGENT → @signer                  # the delegating signer (handler-routed)
+     *     RECIPIENT → @delegate            # the party receiving authority
+     *     PURPOSE → @key-track             # which track / scope is being delegated
+     *     [optional] ATTRIBUTE[EXPIRES] → timestamp  # time-bounded delegation
+     *     [optional] CAUSE → @reference   # structured reason
+     *     [optional] ATTRIBUTE[COMMENT] → "text"   # free-form annotation
+     * </pre>
+     * The vault mints the delegation evidence.
      */
     @Seed.Item(key = Delegation.KEY, head = CoreVocabulary.Predicate.KEY)
     public static final class Delegation {
@@ -205,6 +251,14 @@ public final class IdentityVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "delegate";
+
+        /** The party receiving the delegation. */
+        @Seed.Property(schemaRole = ThematicRole.Recipient.KEY)
+        static final TypeRef expectsRecipient = TypeRef.iid(Item.KEY);
+
+        /** Which track / scope is being delegated. */
+        @Seed.Property(schemaRole = ThematicRole.Purpose.KEY)
+        static final TypeRef expectsPurpose = TypeRef.iid(Item.KEY);
     }
 
     /**
@@ -215,10 +269,19 @@ public final class IdentityVocabulary {
      * (retract claims). Authority via signer: the record signer must have
      * authority over the revoked thing.
      *
-     * <p>Body shape: THEME→polymorphic-target,
+     * <p>Body shape (resulting event): THEME→polymorphic-target,
      * PURPOSE→reason-sememe (optional, e.g. Compromise/Retirement/Fraud/Mistake),
-     * TIME→timestamp, plus arbitrary contextual bindings (VALUE for free-text
-     * reason, etc.).
+     * TIME→timestamp.
+     *
+     * <p>Command body shape (what the handler reads):
+     * <pre>
+     * REVOCATION
+     *     AGENT → @signer                  # the revoking signer (handler-routed)
+     *     THEME → @target                  # what's being revoked (identity, event, delegation, claim)
+     *     [optional] CAUSE → @reason       # structured reason (Compromise/Retirement/Fraud/Mistake)
+     *     [optional] ATTRIBUTE[COMMENT] → "text"   # free-form annotation
+     * </pre>
+     * The vault stops attesting to the target.
      *
      * <p>Recovery / un-revocation: revocation is terminal. To "come back" after
      * identity revocation, incept a new identity.
@@ -240,6 +303,10 @@ public final class IdentityVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "revoke";
+
+        /** What's being revoked (identity, event, delegation, claim — polymorphic). */
+        @Seed.Property(schemaRole = ThematicRole.Theme.KEY)
+        static final TypeRef expectsTheme = TypeRef.iid(Item.KEY);
     }
 
     /**
@@ -542,6 +609,83 @@ public final class IdentityVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "one-time pre-key";
+    }
+
+    // ==================================================================================
+    // Cross-identity bridge predicates — connect Signers to other identities
+    // ==================================================================================
+
+    /**
+     * REPRESENTS — a Signer stands for a non-Signer social entity (a
+     * Person, Group, Service, etc.).  The canonical Signer-to-social-entity
+     * bridge.  Many-to-many: a social entity may be represented by multiple
+     * Signers (rotation, multi-device, multi-sig); a Signer may represent
+     * multiple social entities (a Service that stands for both its
+     * operating Group and an individual operator).
+     *
+     * <p>For Signer-to-Signer relationships (one cryptographic identity
+     * providing service to another), use {@link Serves} instead.
+     *
+     * <p>Shape:
+     * <pre>
+     *   predicate = REPRESENTS
+     *   Agent     → the attester's Signer
+     *   Theme     → the Signer doing the representing
+     *   Goal      → the entity being represented
+     *   Time      → when the assertion was made
+     * </pre>
+     */
+    @Seed.Item(key = Represents.KEY)
+    public static final class Represents {
+        public static final String KEY = "cg.predicate:represents";
+        private Represents() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "one entity stands for another; the canonical bridge from a signer "
+                        + "(cryptographic identity with keys) to a social entity "
+                        + "(person, group, service) in the world, and the alias "
+                        + "relation between signers that share an operator";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "represent";
+    }
+
+    /**
+     * SERVES — one Signer provides service to another.  The canonical
+     * Signer-to-Signer bridge.  Librarian SERVES User; device-Signer SERVES
+     * user-Signer; session-Signer SERVES user-Signer.  Many-to-many across
+     * federation and multi-device.
+     *
+     * <p>For Signer-to-non-Signer relationships use {@link Represents}.
+     *
+     * <p>Shape:
+     * <pre>
+     *   predicate = SERVES
+     *   Agent     → the attester's Signer
+     *   Theme     → the Signer doing the serving (e.g. the Librarian)
+     *   Goal      → the Signer being served (e.g. the User)
+     *   Time      → when the assertion was made
+     * </pre>
+     */
+    @Seed.Item(key = Serves.KEY)
+    public static final class Serves {
+        public static final String KEY = "cg.predicate:serves";
+        private Serves() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "one signer provides service to another; the canonical signer-to-"
+                        + "signer bridge (librarian-to-user, device-to-user, session-to-"
+                        + "user); trust derives from the served signer's KEL, many-to-"
+                        + "many across federation and multi-device";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishVerbLemma = "serve";
     }
 
 }

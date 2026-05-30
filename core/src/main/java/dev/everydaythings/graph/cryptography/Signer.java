@@ -6,7 +6,10 @@ import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Decrypt;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Encrypt;
+import dev.everydaythings.graph.cryptography.IdentityVocabulary.Delegation;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Inception;
+import dev.everydaythings.graph.cryptography.IdentityVocabulary.Revocation;
+import dev.everydaythings.graph.cryptography.IdentityVocabulary.Rotation;
 import dev.everydaythings.graph.cryptography.vault.DelegationConditions;
 import dev.everydaythings.graph.cryptography.vault.InMemoryVault;
 import dev.everydaythings.graph.cryptography.vault.Vault;
@@ -697,7 +700,7 @@ public class Signer extends Item {
     // ==================================================================================
 
     /**
-     * Handle an Encrypt command frame.  Reads BENEFICIARY → peer-iid,
+     * Handle an Encrypt command frame.  Reads RECIPIENT → peer-iid,
      * THEME → plaintext bytes, opens a Double-Ratchet session against the
      * peer's published SignedPreKey if no session exists, encrypts via the
      * vault, and returns a Frame whose body is the {@code Opaque.Encrypted}
@@ -705,7 +708,7 @@ public class Signer extends Item {
      *
      * <p>The request frame's body must have:
      * <ul>
-     *   <li>{@code BENEFICIARY → @peer-iid} (where the peer's SignedPreKey
+     *   <li>{@code RECIPIENT → @peer-iid} (where the peer's SignedPreKey
      *       is published in the local graph)</li>
      *   <li>{@code THEME → byte[]} (the plaintext to encrypt — bytes inline
      *       for first cut; ref-resolution comes later)</li>
@@ -716,8 +719,8 @@ public class Signer extends Item {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
 
         Body body = request.body();
-        ItemRef peerIid = readBeneficiary(body)
-                .orElseThrow(() -> new IllegalArgumentException("Encrypt request lacks BENEFICIARY"));
+        ItemRef peerIid = readRecipient(body)
+                .orElseThrow(() -> new IllegalArgumentException("Encrypt request lacks RECIPIENT"));
         byte[] plaintext = readThemeBytes(body)
                 .orElseThrow(() -> new IllegalArgumentException("Encrypt request lacks THEME bytes"));
 
@@ -809,13 +812,88 @@ public class Signer extends Item {
     }
 
     // ==================================================================================
+    // Identity-op handlers — thin shells that delegate to the vault.
+    // The body shape carries WHAT (track / recipient / target); the vault holds the
+    // secret state (current keys, pre-committed next, ...) and produces the result
+    // frame.  Same AGENT-routed dispatch as Encrypt/Decrypt.
+    // ==================================================================================
+
+    /**
+     * Handle an Inception command frame.  Reads PURPOSE → key-track, asks the
+     * vault to incept that track.  Returns the resulting Inception event frame.
+     */
+    @Seed.Handler(predicate = Inception.KEY, role = ThematicRole.Agent.KEY)
+    public Frame handleInception(Frame request) {
+        if (vault == null) throw new IllegalStateException("Signer has no vault");
+        ItemRef purpose = readPurpose(request.body()).orElseThrow(() ->
+                new IllegalArgumentException("Inception request lacks PURPOSE (key-track)"));
+        return vault.incept(purpose);
+    }
+
+    /**
+     * Handle a Rotation command frame.  Reads PURPOSE → key-track, asks the vault
+     * to rotate that track (reveal the previously-committed next, commit a fresh
+     * one).  Returns the resulting Rotation event frame.
+     */
+    @Seed.Handler(predicate = Rotation.KEY, role = ThematicRole.Agent.KEY)
+    public Frame handleRotation(Frame request) {
+        if (vault == null) throw new IllegalStateException("Signer has no vault");
+        ItemRef purpose = readPurpose(request.body()).orElseThrow(() ->
+                new IllegalArgumentException("Rotation request lacks PURPOSE (key-track)"));
+        return vault.rotate(purpose);
+    }
+
+    /**
+     * Handle a Delegation command frame.  Reads RECIPIENT → delegate-iid, PURPOSE
+     * → scope.  ATTRIBUTE[EXPIRES] threading lands when conditions parsing wants
+     * it; first cut uses unlimited.
+     */
+    @Seed.Handler(predicate = Delegation.KEY, role = ThematicRole.Agent.KEY)
+    public Frame handleDelegation(Frame request) {
+        if (vault == null) throw new IllegalStateException("Signer has no vault");
+        Body body = request.body();
+        ItemRef delegateId = readRecipient(body).orElseThrow(() ->
+                new IllegalArgumentException("Delegation request lacks RECIPIENT"));
+        ItemRef purpose = readPurpose(body).orElseThrow(() ->
+                new IllegalArgumentException("Delegation request lacks PURPOSE (scope)"));
+        return vault.delegate(delegateId, purpose, DelegationConditions.UNLIMITED);
+    }
+
+    /**
+     * Handle a Revocation command frame.  Reads THEME → target (the thing being
+     * revoked) and the optional CAUSE → reason sememe.
+     */
+    @Seed.Handler(predicate = Revocation.KEY, role = ThematicRole.Agent.KEY)
+    public Frame handleRevocation(Frame request) {
+        if (vault == null) throw new IllegalStateException("Signer has no vault");
+        Body body = request.body();
+        Object target = readThemeTarget(body).orElseThrow(() ->
+                new IllegalArgumentException("Revocation request lacks THEME (target)"));
+        ItemRef reason = readCause(body).orElse(null);
+        return vault.revoke(target, reason);
+    }
+
+    // ==================================================================================
     // Internal helpers for Encrypt/Decrypt handlers
     // ==================================================================================
 
-    private static Optional<ItemRef> readBeneficiary(Body body) {
-        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Beneficiary.KEY)))
+    private static Optional<ItemRef> readRecipient(Body body) {
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Recipient.KEY)))
                 .map(b -> b.target() instanceof ItemRef ir && !ir.isPinned() ? ir : null)
                 .filter(java.util.Objects::nonNull);
+    }
+
+    /** CAUSE binding → ItemRef (a structured reason sememe).  Optional. */
+    private static Optional<ItemRef> readCause(Body body) {
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Cause.KEY)))
+                .map(b -> b.target() instanceof ItemRef ir && !ir.isPinned() ? ir : null)
+                .filter(java.util.Objects::nonNull);
+    }
+
+    /** THEME binding → raw target (polymorphic — used by Revocation for any target shape). */
+    private static Optional<Object> readThemeTarget(Body body) {
+        return body.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .map(Binding::target);
     }
 
     private static Optional<byte[]> readThemeBytes(Body body) {

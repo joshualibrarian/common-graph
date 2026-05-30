@@ -18,6 +18,12 @@ import dev.everydaythings.graph.value.Value;
  * <pre>
  * Value
  *   └── Identifier              ← this class / cg.archetype:identifier
+ *         ├── {@link Name Name} (abstract)
+ *         │     ├── GivenName, FamilyName, MiddleName
+ *         │     ├── Nickname, Alias, Pseudonym
+ *         │     ├── Honorific, Suffix, Patronymic, Maternal
+ *         │     ├── Handle
+ *         │     └── FullName (compound)
  *         ├── EmailAddress      ← alice@example.com
  *         ├── PhoneNumber       ← +1-555-1234
  *         ├── URL               ← https://example.com/path
@@ -46,25 +52,50 @@ import dev.everydaythings.graph.value.Value;
  *       libphonenumber / RFC 5322 / RFC 3986 for the harder ones).</li>
  * </ol>
  *
- * <p>Storage: atomic-form Body.  The body's content is the canonical text (or
- * other leaf value).  Two equal identifiers have byte-identical bodies and
- * therefore identical CIDs, so reference-by-CID dedup happens naturally.
- *
- * <p>For identifiers whose canonical form needs internal structure (rare —
- * PostalAddress is the main case in mind), a subclass may opt to call the
- * structured Body constructor instead.  The atomic-form constructor below is
- * the common path.
+ * <p>Storage: atomic-form Body for leaf identifiers (EmailAddress, etc.) and
+ * structured-form Body for compound ones ({@link Name} subtypes like
+ * {@code FullName}, or PostalAddress).  Two equal identifiers have byte-
+ * identical bodies and therefore identical CIDs, so reference-by-CID dedup
+ * happens naturally.
  *
  * <p>Abstract by intent: there is no generic "Identifier" instance.  Always
  * mint a concrete subclass.
  *
- * <p>Identifier also serves as the predicate when used in head-of-frame
- * position: {@code Person → [Identifier] → CILIID("i12345")} reads "this
- * person is identified by this CILI id."  Same sememe; the slot the frame
- * puts it in is what selects "predicate" vs "value-type."  Grounded in OEWN
- * synset oewn-06350278-n (CILI {@code i69788}): "identifying word or words
- * by which someone or something is called and classified or distinguished
- * from others" (appellation, denomination, designation, appellative).
+ * <h2>Dual-role pattern — one sememe in two grammatical positions</h2>
+ *
+ * <p>The {@code cg.archetype:identifier} IID inhabits both <b>type position</b>
+ * and <b>predicate position</b> at the same time:
+ *
+ * <ul>
+ *   <li><b>Type position</b> — Identifier subtypes (EmailAddress, Handle,
+ *       FullName) declare their head as Identifier (transitively).  An
+ *       {@code EmailAddress("alice@example.com")} body's head is the
+ *       EmailAddress IID, which is a subtype of Identifier.</li>
+ *   <li><b>Predicate position</b> — when an IDENTIFIED_BY frame asserts "X
+ *       is identified by Y," the frame body's head is Identifier; bindings
+ *       are {@code THEME → entity}, {@code VALUE → typed-identifier-body}.
+ *       Reads as: {@code Person → [Identifier] → EmailAddress("alice@…")}.</li>
+ * </ul>
+ *
+ * <p>Same IID, two slots.  The slot the IID occupies selects the
+ * interpretation.  This is the codebase's <i>morphological collapse</i>
+ * principle in action: derivationally-related word forms (the noun
+ * "identifier," the verb "identify," the verb-participle "identified by")
+ * collapse to one sememe.  Splitting them would create twin IIDs for what
+ * is, semantically, the same concept in different grammatical positions.
+ *
+ * <p>Template-binding consequence: when an archetype declares "instances
+ * are identified by a Handle," the binding is {@code !Identifier → ?Handle}
+ * — the role is Identifier (the predicate-position use) and the value-type
+ * constraint is Handle (a subtype of Identifier).  Reads slightly
+ * redundant in this specific case because Handle is a generic-feeling
+ * identifier subtype; for other subtypes ({@code !Identifier → ?EmailAddress},
+ * {@code !Identifier → ?GivenName}) the redundancy disappears.
+ *
+ * <p>Grounded in OEWN synset oewn-06350278-n (CILI {@code i69788}):
+ * "identifying word or words by which someone or something is called and
+ * classified or distinguished from others" (appellation, denomination,
+ * designation, appellative).
  */
 @Seed.Item(key = Identifier.KEY, head = Value.KEY)
 @Seed.Cili("i69788")
@@ -79,6 +110,18 @@ public abstract class Identifier extends Value {
      */
     protected Identifier(ItemRef head, Object canonicalContent) {
         super(head, canonicalContent);
+    }
+
+    /**
+     * Structured-form constructor: builds a Body with the given head and a
+     * list of binding entries.  Use for identifiers whose canonical form is
+     * too structurally complex for an atomic leaf — PostalAddress, FullName,
+     * any compound name.  The {@link #encodeText()} contract still applies:
+     * structured subclasses render their canonical text on demand from the
+     * bindings.
+     */
+    protected Identifier(ItemRef head, java.util.List<dev.everydaythings.graph.datum.Binding> bindings) {
+        super(head, bindings);
     }
 
     /**

@@ -4,18 +4,11 @@ package dev.everydaythings.graph.runtime.librarian;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.datum.Binding;
-import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.ref.CompoundKey;
-import dev.everydaythings.graph.ref.DatumRef;
-import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.language.*;
-import dev.everydaythings.graph.runtime.RuntimeVocabulary;
-
-import java.util.List;
-import java.util.Optional;
 
 public class LibrarianVocabulary {
     /**
@@ -67,6 +60,10 @@ public class LibrarianVocabulary {
          */
         @Seed.RecordBinding(role = SchemaVocabulary.Retention.KEY)
         static final ItemRef retention = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
+
+        /** The token text to look up. */
+        @Seed.Property(schemaRole = ThematicRole.Theme.KEY)
+        static final TypeRef expectsTheme = TypeRef.iid(Item.KEY);
     }
 
     /**
@@ -117,21 +114,22 @@ public class LibrarianVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "deletion";
+
+        /** The item to delete. */
+        @Seed.Property(schemaRole = ThematicRole.Theme.KEY)
+        static final TypeRef expectsTheme = TypeRef.iid(Item.KEY);
     }
 
     /**
      * The {@code CREATE} predicate — instantiate a fresh item.
      *
      * <p>A CREATE frame submitted to a Librarian causes a new item to be minted,
-     * its initial manifest committed, and (optionally) a post-construct hook fired.
-     * The CREATE frame itself is the durable record of the act; no separate
-     * "CREATED" response frame is emitted.
+     * its initial manifest committed, and a post-construct hook fired.
      *
-     * <p>This class is both the predicate's seed declaration AND the runtime
-     * embodiment that handles incoming CREATE frames. {@code @Seed.Embodies}
-     * adds an IMPLEMENTATION binding to the predicate's seed manifest so that
-     * {@code fetchItem(ItemRef.iid(Create.KEY))} hydrates as this class and
-     * {@link #onFrameAssembled} fires when CREATE frames are routed.
+     * <p>Pure-data predicate seed.  The frame is handled on the Librarian by
+     * {@link Librarian#createItem} (a {@code @Seed.Handler}), which owns the
+     * store, indexes, and registry that minting requires.  Creating an item is
+     * a librarian capability, not something the predicate does to itself.
      *
      * <p>Bindings on a CREATE frame:
      * <ul>
@@ -142,18 +140,15 @@ public class LibrarianVocabulary {
      *       implementation to use. Can be a Java-class name (text target) or an item
      *       reference. When absent, the librarian falls back to the archetype's
      *       own IMPLEMENTATION binding.</li>
-     *   <li>Other bindings carry forward as initial manifest bindings on the new item.</li>
+     *   <li>Other bindings carry forward as initial bindings on the new item.</li>
      * </ul>
      */
     @Seed.Item(key = Create.KEY, head = CoreVocabulary.Predicate.KEY)
-    @Seed.Embodies(key = Create.KEY)
-    public static class Create extends Item {
+    public static final class Create {
 
         public static final String KEY = "cg.predicate:create";
 
-        public Create(ItemRef iid, Librarian librarian) {
-            super(iid, librarian);
-        }
+        private Create() {}
 
         @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
@@ -169,92 +164,5 @@ public class LibrarianVocabulary {
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "creation";
-
-        /**
-         * When a CREATE frame is assembled, find an IMPLEMENTS frame for the THEME's
-         * concept and instantiate its runnable Java class.
-         *
-         * <p>Walks: read THEME from the frame → query IMPLEMENTS frames where THEME
-         * points at the named concept → for each, check it's an IMPLEMENTS frame
-         * (head matches) and the AGENT binding's qualifier is Java → try to load
-         * the class → instantiate via {@code (ItemRef, Librarian)} constructor and
-         * commit. First runnable wins.
-         */
-        @Override
-        public void onFrameAssembled(Frame frame) {
-            Optional<Binding> themeBinding =
-                    frame.body().binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)));
-            if (themeBinding.isEmpty()) return;
-
-            ItemRef conceptIid = extractIid(themeBinding.get().target());
-            if (conceptIid == null) return;
-
-            List<DatumRef> candidateBodyCids = librarian.library()
-                    .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), conceptIid);
-
-            for (DatumRef bodyCid : candidateBodyCids) {
-                Frame candidate = librarian.fetchFrame(bodyCid).orElse(null);
-                if (candidate == null) continue;
-                if (!isImplementsFrame(candidate)) continue;
-
-                Class<? extends Item> instanceClass = readJavaImplementation(candidate);
-                if (instanceClass == null) continue;
-
-                try {
-                    Item instance = instanceClass
-                            .getConstructor(ItemRef.class, Librarian.class)
-                            .newInstance(ItemRef.random(), librarian);
-                    instance.commit(List.of());
-                    return;  // first runnable wins
-                } catch (ReflectiveOperationException e) {
-                    // Try the next candidate.
-                }
-            }
-        }
-
-        private static boolean isImplementsFrame(Frame frame) {
-            if (!(frame.body().head() instanceof ItemRef itemRef)) return false;
-            return ItemRef.iid(SchemaVocabulary.Implements.KEY).equals(itemRef.iid());
-        }
-
-        /**
-         * Read the Java instance class from an IMPLEMENTS frame's AGENT binding,
-         * which should carry a Java-class name (text target) qualified by the Java runtime.
-         * Returns null if the binding shape doesn't match — caller skips and tries
-         * the next candidate.
-         */
-        @SuppressWarnings("unchecked")
-        private static Class<? extends Item> readJavaImplementation(Frame frame) {
-            for (Binding b : frame.body().bindings()) {
-                if (!ItemRef.iid(ThematicRole.Agent.KEY).equals(b.role())) continue;
-                boolean javaQualified = false;
-                boolean classNameQualified = false;
-                for (var q : b.qualifiers()) {
-                    if (q instanceof CompoundKey.Sememe(ItemRef id)) {
-                        if (ItemRef.iid(RuntimeVocabulary.Java.KEY).equals(id)) javaQualified = true;
-                        if (ItemRef.iid(RuntimeVocabulary.ClassName.KEY).equals(id)) {
-                            classNameQualified = true;
-                        }
-                    }
-                }
-                if (!javaQualified || !classNameQualified) continue;
-                if (!(b.target() instanceof String className)) continue;
-                try {
-                    Class<?> clazz = Class.forName(className, false,
-                            Thread.currentThread().getContextClassLoader());
-                    if (Item.class.isAssignableFrom(clazz)) {
-                        return (Class<? extends Item>) clazz;
-                    }
-                } catch (ClassNotFoundException | RuntimeException ignored) {
-                    // class not on classpath; not runnable here
-                }
-            }
-            return null;
-        }
-
-        private static ItemRef extractIid(Object target) {
-            if (target instanceof ItemRef ir && !ir.isPinned()) return ir;
-            return null;
-        }
     }
 }

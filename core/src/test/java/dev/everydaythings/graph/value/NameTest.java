@@ -4,176 +4,247 @@ import com.upokecenter.cbor.CBORObject;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.value.identifier.Alias;
+import dev.everydaythings.graph.value.identifier.FamilyName;
+import dev.everydaythings.graph.value.identifier.FullName;
+import dev.everydaythings.graph.value.identifier.GivenName;
+import dev.everydaythings.graph.value.identifier.Handle;
+import dev.everydaythings.graph.value.identifier.Honorific;
+import dev.everydaythings.graph.value.identifier.Maternal;
+import dev.everydaythings.graph.value.identifier.MiddleName;
 import dev.everydaythings.graph.value.identifier.Name;
+import dev.everydaythings.graph.value.identifier.Nickname;
+import dev.everydaythings.graph.value.identifier.Patronymic;
+import dev.everydaythings.graph.value.identifier.Pseudonym;
+import dev.everydaythings.graph.value.identifier.Suffix;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Tests for the Name hierarchy: atomic Name subtypes (GivenName,
+ * FamilyName, Nickname, Alias, Pseudonym, Handle, Honorific, Suffix,
+ * Patronymic, Maternal) and the compound {@link FullName}.
+ */
 class NameTest {
 
     @Nested
-    @DisplayName("Construction")
-    class Construction {
+    @DisplayName("Atomic Name subtypes")
+    class Atomic {
 
         @Test
-        @DisplayName("Western full name (given + family)")
-        void westernFullName() {
-            Name n = Name.of("Joshua", "Chambers");
-            assertThat(n.given()).contains("Joshua");
-            assertThat(n.family()).contains("Chambers");
-            assertThat(n.middle()).isEmpty();
-            assertThat(n.nickname()).isEmpty();
+        @DisplayName("GivenName carries its text in atomic-body content")
+        void givenName() {
+            GivenName g = GivenName.of("Joshua");
+            assertThat(g.encodeText()).isEqualTo("Joshua");
+            assertThat(g.isAtomic()).isTrue();
+            assertThat(g.head()).isEqualTo(ItemRef.iid(GivenName.KEY));
         }
 
         @Test
-        @DisplayName("name with middle, nickname, suffix")
-        void multiplePartsViaBuilder() {
-            Name n = Name.builder()
-                    .given("Joshua")
-                    .middle("Brian")
-                    .family("Chambers")
-                    .nickname("josh")
-                    .suffix("Jr.")
-                    .build();
-            assertThat(n.given()).contains("Joshua");
-            assertThat(n.middle()).contains("Brian");
-            assertThat(n.family()).contains("Chambers");
-            assertThat(n.nickname()).contains("josh");
-            assertThat(n.suffix()).contains("Jr.");
-            assertThat(n.honorific()).isEmpty();
+        @DisplayName("trims whitespace on construction")
+        void trims() {
+            assertThat(GivenName.of("  Joshua  ").encodeText()).isEqualTo("Joshua");
         }
 
         @Test
-        @DisplayName("mononymous (just given)")
-        void mononymous() {
-            Name n = Name.builder().given("Madonna").build();
-            assertThat(n.given()).contains("Madonna");
-            assertThat(n.family()).isEmpty();
+        @DisplayName("rejects empty and whitespace-only input")
+        void rejectsEmpty() {
+            assertThatThrownBy(() -> GivenName.of(""))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("empty");
+            assertThatThrownBy(() -> GivenName.of("   "))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("empty");
         }
 
         @Test
-        @DisplayName("Spanish dual-surname (given + family + maternal)")
-        void spanishDualSurname() {
-            Name n = Name.builder()
-                    .given("Gabriel")
-                    .family("García")
-                    .maternal("Márquez")
-                    .build();
-            assertThat(n.given()).contains("Gabriel");
-            assertThat(n.family()).contains("García");
-            assertThat(n.maternal()).contains("Márquez");
+        @DisplayName("rejects control characters")
+        void rejectsControl() {
+            assertThatThrownBy(() -> GivenName.of("Joshua"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("control");
         }
 
         @Test
-        @DisplayName("Slavic name (given + patronymic + family)")
-        void slavicName() {
-            Name n = Name.builder()
-                    .given("Ivan")
-                    .patronymic("Petrovich")
-                    .family("Sidorov")
-                    .build();
-            assertThat(n.given()).contains("Ivan");
-            assertThat(n.patronymic()).contains("Petrovich");
-            assertThat(n.family()).contains("Sidorov");
+        @DisplayName("rejects oversize input")
+        void rejectsOversize() {
+            String huge = "x".repeat(Name.MAX_LENGTH + 1);
+            assertThatThrownBy(() -> GivenName.of(huge))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("length");
         }
 
         @Test
-        @DisplayName("honorific + given + family + suffix")
-        void honorificAndSuffix() {
-            Name n = Name.builder()
-                    .honorific("Dr.")
-                    .given("Jane")
-                    .family("Smith")
-                    .suffix("PhD")
-                    .build();
-            assertThat(n.honorific()).contains("Dr.");
-            assertThat(n.suffix()).contains("PhD");
+        @DisplayName("each subtype has its own archetype IID — same text in different subtypes hash differently")
+        void typedIdentity() {
+            GivenName g = GivenName.of("Madonna");
+            Nickname n = Nickname.of("Madonna");
+            assertThat(g.datumId()).isNotEqualTo(n.datumId());
+            assertThat(g.head()).isNotEqualTo(n.head());
         }
 
         @Test
-        @DisplayName("null and empty parts are silently dropped")
-        void emptyPartsDropped() {
-            Name n = Name.builder()
-                    .given("Joshua")
-                    .middle(null)
-                    .family("")
-                    .build();
-            assertThat(n.given()).contains("Joshua");
-            assertThat(n.middle()).isEmpty();
-            assertThat(n.family()).isEmpty();
-            assertThat(n.bindings()).hasSize(1);
+        @DisplayName("two instances with identical text share a CID")
+        void dedup() {
+            GivenName a = GivenName.of("Joshua");
+            GivenName b = GivenName.of("Joshua");
+            assertThat(a.datumId()).isEqualTo(b.datumId());
         }
 
         @Test
-        @DisplayName("custom name-part role via part(roleKey, text)")
-        void customNamePart() {
-            String customRole = "cg.quality:name-clan";
-            Name n = Name.builder()
-                    .given("Jin")
-                    .family("Park")
-                    .part(customRole, "Bak-shi")
-                    .build();
-            assertThat(n.given()).contains("Jin");
-            assertThat(n.bindings()).hasSize(3);
+        @DisplayName("All ten atomic Name subtypes construct and encode")
+        void allSubtypes() {
+            assertThat(GivenName.of("Joshua").encodeText()).isEqualTo("Joshua");
+            assertThat(FamilyName.of("Chambers").encodeText()).isEqualTo("Chambers");
+            assertThat(MiddleName.of("Brian").encodeText()).isEqualTo("Brian");
+            assertThat(Nickname.of("Josh").encodeText()).isEqualTo("Josh");
+            assertThat(Alias.of("Bob Dylan").encodeText()).isEqualTo("Bob Dylan");
+            assertThat(Pseudonym.of("Mark Twain").encodeText()).isEqualTo("Mark Twain");
+            assertThat(Honorific.of("Dr.").encodeText()).isEqualTo("Dr.");
+            assertThat(Suffix.of("Jr.").encodeText()).isEqualTo("Jr.");
+            assertThat(Patronymic.of("Petrovich").encodeText()).isEqualTo("Petrovich");
+            assertThat(Maternal.of("Pérez").encodeText()).isEqualTo("Pérez");
         }
     }
 
     @Nested
-    @DisplayName("Storage shape")
-    class Storage {
+    @DisplayName("Handle")
+    class HandleTests {
 
         @Test
-        @DisplayName("Name is a structured (non-atomic) Body")
-        void structured() {
-            Name n = Name.of("Joshua", "Chambers");
-            assertThat(n.isAtomic()).isFalse();
-            assertThat(n.bindings()).hasSize(2);
+        @DisplayName("Handle stores plain text without prefix")
+        void plainText() {
+            Handle h = Handle.of("joshua-c");
+            assertThat(h.encodeText()).isEqualTo("joshua-c");
         }
 
         @Test
-        @DisplayName("head is the Name archetype IID")
+        @DisplayName("leading @ is preserved (treated as part of the handle text)")
+        void leadingAtPreserved() {
+            // We don't strip; the @ is platform-display convention, not data.
+            // If the caller passes "@handle" it's preserved verbatim.
+            Handle h = Handle.of("@joshua-c");
+            assertThat(h.encodeText()).isEqualTo("@joshua-c");
+        }
+    }
+
+    @Nested
+    @DisplayName("FullName compound")
+    class Compound {
+
+        @Test
+        @DisplayName("Western: honorific + given + middle + family + suffix")
+        void western() {
+            FullName n = FullName.builder()
+                    .honorific("Dr.")
+                    .given("Joshua")
+                    .middle("Brian")
+                    .family("Chambers")
+                    .suffix("Jr.")
+                    .build();
+            assertThat(n.encodeText()).isEqualTo("Dr. Joshua Brian Chambers Jr.");
+            assertThat(n.bindings()).hasSize(5);
+            assertThat(n.isAtomic()).isFalse();
+        }
+
+        @Test
+        @DisplayName("East Asian: family + given (render order picks order)")
+        void eastAsian() {
+            FullName n = FullName.builder()
+                    .family("Wang")
+                    .given("Wei")
+                    .build();
+            assertThat(n.encodeText()).isEqualTo("Wang Wei");
+        }
+
+        @Test
+        @DisplayName("Spanish: given + paternal family + maternal")
+        void spanish() {
+            FullName n = FullName.builder()
+                    .given("María")
+                    .family("González")
+                    .maternal("Pérez")
+                    .build();
+            assertThat(n.encodeText()).isEqualTo("María González Pérez");
+        }
+
+        @Test
+        @DisplayName("Mononymous: a single given name")
+        void mononymous() {
+            FullName n = FullName.builder().given("Madonna").build();
+            assertThat(n.encodeText()).isEqualTo("Madonna");
+            assertThat(n.bindings()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("with(Name) accepts any pre-built Name subtype")
+        void withTypedPart() {
+            FullName n = FullName.builder()
+                    .with(GivenName.of("Joshua"))
+                    .with(FamilyName.of("Chambers"))
+                    .build();
+            assertThat(n.encodeText()).isEqualTo("Joshua Chambers");
+        }
+
+        @Test
+        @DisplayName("FullName head is the FullName archetype")
         void headIsArchetype() {
-            Name n = Name.of("Joshua", "Chambers");
-            assertThat(n.head()).isEqualTo(ItemRef.iid(Name.KEY));
+            FullName n = FullName.builder().given("Joshua").family("Chambers").build();
+            assertThat(n.head()).isEqualTo(ItemRef.iid(FullName.KEY));
+        }
+
+        @Test
+        @DisplayName("empty FullName is rejected")
+        void emptyRejected() {
+            assertThatThrownBy(() -> FullName.builder().build())
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("at least one");
         }
     }
 
     @Nested
     @DisplayName("CID determinism")
-    class CidDeterminism {
+    class Determinism {
 
         @Test
-        @DisplayName("two equal Names produce identical CIDs")
-        void deterministic() {
-            Name a = Name.of("Joshua", "Chambers");
-            Name b = Name.of("Joshua", "Chambers");
+        @DisplayName("FullName with same parts in same order has same CID")
+        void sameOrderSameCid() {
+            FullName a = FullName.builder().given("Joshua").family("Chambers").build();
+            FullName b = FullName.builder().given("Joshua").family("Chambers").build();
             assertThat(a.datumId()).isEqualTo(b.datumId());
         }
 
         @Test
-        @DisplayName("different parts produce different CIDs")
-        void differentPartsDifferentCids() {
-            Name a = Name.of("Joshua", "Chambers");
-            Name b = Name.of("Bob",    "Chambers");
-            assertThat(a.datumId()).isNotEqualTo(b.datumId());
+        @DisplayName("FullName with parts in different order has different CID (order is structural)")
+        void differentOrderDifferentCid() {
+            FullName western = FullName.builder().given("Wei").family("Wang").build();
+            FullName eastern = FullName.builder().family("Wang").given("Wei").build();
+            assertThat(western.datumId()).isNotEqualTo(eastern.datumId());
         }
 
         @Test
-        @DisplayName("ordering of builder calls doesn't affect CID")
-        void orderIndependent() {
-            Name a = Name.builder().given("Joshua").family("Chambers").build();
-            Name b = Name.builder().family("Chambers").given("Joshua").build();
-            assertThat(a.datumId()).isEqualTo(b.datumId());
+        @DisplayName("Atomic part bodies dedup independently of which FullName contains them")
+        void partsDedup() {
+            FullName a = FullName.builder().given("Joshua").family("Chambers").build();
+            FullName b = FullName.builder().given("Joshua").family("Smith").build();
+            // Both have a GivenName("Joshua") part — same body.  Bindings are
+            // canonical-sorted; find the GivenName target by type.
+            GivenName partA = findFirst(a, GivenName.class);
+            GivenName partB = findFirst(b, GivenName.class);
+            assertThat(partA.datumId()).isEqualTo(partB.datumId());
         }
 
-        @Test
-        @DisplayName("partial Names that share parts produce same CID")
-        void sharedPartsSameCid() {
-            Name a = Name.builder().given("Madonna").build();
-            Name b = Name.builder().given("Madonna").build();
-            assertThat(a.datumId()).isEqualTo(b.datumId());
+        private static <T extends Name> T findFirst(FullName fn, Class<T> type) {
+            return fn.bindings().stream()
+                    .map(b -> b.target())
+                    .filter(type::isInstance)
+                    .map(type::cast)
+                    .findFirst()
+                    .orElseThrow();
         }
     }
 
@@ -182,26 +253,29 @@ class NameTest {
     class WireRoundTrip {
 
         @Test
-        @DisplayName("encode + decode preserves all parts")
-        void roundTrip() {
-            Name original = Name.builder()
+        @DisplayName("Atomic GivenName round-trips through CBOR")
+        void atomicRoundTrip() {
+            GivenName original = GivenName.of("Joshua");
+            byte[] bytes = CgCbor.codec().encode(original);
+            Body decoded = CgCbor.decodeBody(CBORObject.DecodeFromBytes(bytes));
+            assertThat(decoded.head()).isEqualTo(ItemRef.iid(GivenName.KEY));
+            assertThat(decoded.datumId()).isEqualTo(original.datumId());
+            assertThat(decoded.atomicContent()).contains("Joshua");
+        }
+
+        @Test
+        @DisplayName("FullName compound round-trips through CBOR")
+        void compoundRoundTrip() {
+            FullName original = FullName.builder()
                     .given("Joshua")
                     .middle("Brian")
                     .family("Chambers")
-                    .nickname("josh")
                     .build();
             byte[] bytes = CgCbor.codec().encode(original);
             Body decoded = CgCbor.decodeBody(CBORObject.DecodeFromBytes(bytes));
-            assertThat(decoded.head()).isEqualTo(ItemRef.iid(Name.KEY));
-            assertThat(decoded.bindings()).hasSize(4);
+            assertThat(decoded.head()).isEqualTo(ItemRef.iid(FullName.KEY));
+            assertThat(decoded.bindings()).hasSize(3);
             assertThat(decoded.datumId()).isEqualTo(original.datumId());
-
-            // Project back to a Name view and verify accessors
-            Name recovered = Name.from(decoded);
-            assertThat(recovered.given()).contains("Joshua");
-            assertThat(recovered.middle()).contains("Brian");
-            assertThat(recovered.family()).contains("Chambers");
-            assertThat(recovered.nickname()).contains("josh");
         }
     }
 }

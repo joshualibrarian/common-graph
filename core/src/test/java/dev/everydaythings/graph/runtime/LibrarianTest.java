@@ -252,37 +252,8 @@ class LibrarianTest {
     }
 
     @Nested
-    @DisplayName("assembleFrame & onFrameAssembled routing")
+    @DisplayName("assembleFrame")
     class FrameAssembly {
-
-        /** Test subclass that records every frame it receives via onFrameAssembled. */
-        static class CountingItem extends Item {
-            final java.util.List<Frame> received = new java.util.ArrayList<>();
-
-            CountingItem(ItemRef iid, Librarian lib) {
-                super(iid, lib);
-            }
-
-            @Override
-            public void onFrameAssembled(Frame frame) {
-                received.add(frame);
-            }
-        }
-
-        /** Test subclass that throws on every frame. */
-        static class ThrowingItem extends Item {
-            int callCount = 0;
-
-            ThrowingItem(ItemRef iid, Librarian lib) {
-                super(iid, lib);
-            }
-
-            @Override
-            public void onFrameAssembled(Frame frame) {
-                callCount++;
-                throw new RuntimeException("oops");
-            }
-        }
 
         @Test
         @DisplayName("assembleFrame persists body and record")
@@ -299,107 +270,6 @@ class LibrarianTest {
             assertThat(frame.records()).hasSize(1);
             assertThat(lib.has(ContentRef.of(CgCbor.codec().encode(frame.body())))).isTrue();
             assertThat(lib.has(ContentRef.of(CgCbor.codec().encode(frame.records().get(0))))).isTrue();
-        }
-
-        @Test
-        @DisplayName("registered items referenced in body bindings receive onFrameAssembled")
-        void referencedItemsNotified() {
-            Librarian lib = Librarian.inMemory();
-            ItemRef aliceId = ItemRef.fromString("alice");
-            CountingItem alice = new CountingItem(aliceId, lib);
-            lib.register(alice);
-
-            Body body = Body.of(
-                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
-                    List.of(Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId))
-            );
-            Frame frame = lib.assembleFrame(body, lib);
-
-            assertThat(alice.received).containsExactly(frame);
-        }
-
-        @Test
-        @DisplayName("items not referenced are not notified")
-        void unreferencedNotNotified() {
-            Librarian lib = Librarian.inMemory();
-            ItemRef aliceId = ItemRef.fromString("alice");
-            ItemRef bobId = ItemRef.fromString("bob");
-            CountingItem alice = new CountingItem(aliceId, lib);
-            CountingItem bob = new CountingItem(bobId, lib);
-            lib.register(alice);
-            lib.register(bob);
-
-            // Frame mentions only alice.
-            Body body = Body.of(
-                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
-                    List.of(Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId))
-            );
-            lib.assembleFrame(body, lib);
-
-            assertThat(alice.received).hasSize(1);
-            assertThat(bob.received).isEmpty();
-        }
-
-        @Test
-        @DisplayName("an item referenced by multiple bindings is notified exactly once (dedup)")
-        void deduplicates() {
-            Librarian lib = Librarian.inMemory();
-            ItemRef aliceId = ItemRef.fromString("alice");
-            CountingItem alice = new CountingItem(aliceId, lib);
-            lib.register(alice);
-
-            // Frame mentions alice twice (two different roles).
-            Body body = Body.of(
-                    ItemRef.of(ItemRef.fromString("cg.predicate:self-loop")),
-                    List.of(
-                            Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId),
-                            Binding.ref(ItemRef.fromString("cg.role:theme"), aliceId)
-                    )
-            );
-            lib.assembleFrame(body, lib);
-
-            assertThat(alice.received).hasSize(1);
-        }
-
-        @Test
-        @DisplayName("references to unknown items are silently skipped")
-        void unknownItemsSkipped() {
-            Librarian lib = Librarian.inMemory();
-            // No item registered for "ghost".
-            Body body = Body.of(
-                    ItemRef.of(ItemRef.fromString("cg.predicate:authored")),
-                    List.of(Binding.ref(ItemRef.fromString("cg.role:agent"),
-                            ItemRef.fromString("ghost")))
-            );
-
-            // Should not throw.
-            Frame frame = lib.assembleFrame(body, lib);
-            assertThat(frame.records()).hasSize(1);
-        }
-
-        @Test
-        @DisplayName("an exception in one item's handler does not stop the chain")
-        void exceptionsDontPropagate() {
-            Librarian lib = Librarian.inMemory();
-            ItemRef aliceId = ItemRef.fromString("alice");
-            ItemRef bobId = ItemRef.fromString("bob");
-            ThrowingItem alice = new ThrowingItem(aliceId, lib);
-            CountingItem bob = new CountingItem(bobId, lib);
-            lib.register(alice);
-            lib.register(bob);
-
-            Body body = Body.of(
-                    ItemRef.of(ItemRef.fromString("cg.predicate:co-mention")),
-                    List.of(
-                            Binding.ref(ItemRef.fromString("cg.role:agent"), aliceId),
-                            Binding.ref(ItemRef.fromString("cg.role:theme"), bobId)
-                    )
-            );
-
-            lib.assembleFrame(body, lib);
-
-            assertThat(alice.callCount).isEqualTo(1);     // alice was called and threw
-            assertThat(bob.received).hasSize(1);           // bob was still called
         }
 
         @Test
@@ -425,15 +295,8 @@ class LibrarianTest {
 
         /** Public static subclass — Class.forName needs to resolve it via FQN. */
         public static class TestThing extends Item {
-            public final java.util.List<Frame> received = new java.util.ArrayList<>();
-
             public TestThing(ItemRef iid, Librarian lib) {
                 super(iid, lib);
-            }
-
-            @Override
-            public void onFrameAssembled(Frame frame) {
-                received.add(frame);
             }
         }
 
@@ -535,34 +398,6 @@ class LibrarianTest {
             assertThatThrownBy(() -> lib.fetchItem(iid))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("does not extend Item");
-        }
-
-        @Test
-        @DisplayName("hydrated subclass receives onFrameAssembled when frames reference it")
-        void hydratedSubclassReceivesRouting() {
-            Librarian lib = Librarian.inMemory();
-            ItemRef iid = ItemRef.random();
-            // Persist a manifest declaring IMPLEMENTATION → TestThing.
-            Body manifestBody = Body.of(
-                    ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
-                    List.of(
-                            Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.implementation(TestThing.class)
-                    )
-            );
-            lib.persist(manifestBody);
-
-            // Assemble a frame referencing iid; routing internally fetches+hydrates
-            // the TestThing, caches it, and calls onFrameAssembled.
-            Body frameBody = Body.of(
-                    ItemRef.of(ItemRef.fromString("cg.predicate:mention")),
-                    List.of(Binding.ref(ItemRef.fromString("cg.role:theme"), iid))
-            );
-            Frame assembled = lib.assembleFrame(frameBody, lib);
-
-            // Fetch the (now-cached) hydrated TestThing and verify it received the frame.
-            TestThing thing = (TestThing) lib.fetchItem(iid).orElseThrow();
-            assertThat(thing.received).contains(assembled);
         }
 
         @Test

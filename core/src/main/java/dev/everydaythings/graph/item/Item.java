@@ -9,6 +9,7 @@ import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.SubmitResult;
 import dev.everydaythings.graph.text.FrameDraftMerger;
 import dev.everydaythings.graph.text.FrameMap;
 import dev.everydaythings.graph.text.ParseContext;
@@ -16,6 +17,8 @@ import dev.everydaythings.graph.text.ParseEngine;
 import dev.everydaythings.graph.text.ParseParams;
 import lombok.Getter;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -173,29 +176,6 @@ public class Item {
     }
 
     // ==================================================================================
-    // Frame-assembled hook (behavior model)
-    // ==================================================================================
-
-    /**
-     * Hook called by the librarian when a frame referencing this item is assembled.
-     *
-     * <p>This is the "frame-creation-as-action" model: instead of dispatching to
-     * verbs, items react to frames. When {@link Librarian#assembleFrame} publishes
-     * a propositional frame, every item referenced in the frame's body bindings
-     * (via reference targets) gets a single call to this method.
-     *
-     * <p>Default implementation is a no-op. Subclasses override to react:
-     * a {@code ChessGame} updates its board on a {@code MOVE} frame; an activity
-     * log appends an entry on any frame mentioning it; etc.
-     *
-     * <p>Calls are synchronous and single-threaded. An exception thrown here is
-     * caught by the librarian's routing loop and does not prevent other items
-     * from being notified. Implementations should still aim to be defensive.
-     */
-    public void onFrameAssembled(Frame frame) {
-        // default: no-op. Override in subclasses.
-    }
-
     /**
      * The universal handler entrypoint.  Given a frame whose head this item
      * implements (per the archetype's HANDLES contract or self-handling), do
@@ -230,7 +210,7 @@ public class Item {
         if (frame == null) return null;
         ItemRef predicate = frame.body().headRef();
         if (predicate == null) return null;
-        for (java.lang.reflect.Method m : getClass().getMethods()) {
+        for (Method m : getClass().getMethods()) {
             Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
             if (ann == null) continue;
             if (!ItemRef.fromString(ann.predicate()).equals(predicate)) continue;
@@ -238,7 +218,7 @@ public class Item {
             if (params.length != 1 || !params[0].isAssignableFrom(Frame.class)) continue;
             try {
                 return m.invoke(this, frame);
-            } catch (java.lang.reflect.InvocationTargetException e) {
+            } catch (InvocationTargetException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException re) throw re;
                 throw new RuntimeException("Handler '" + m.getName() + "' threw", cause);
@@ -247,6 +227,22 @@ public class Item {
             }
         }
         return null;
+    }
+
+    /**
+     * Execute {@code frame} on behalf of this item as the orchestrator — let it
+     * bubble up the handler chain (this item → … → librarian).  This is how a
+     * parsed command becomes action: the orchestrator that received the input
+     * offers the resulting frame for handling, the first interested entry in the
+     * chain acts, and the librarian is the terminal handler/fallback.
+     *
+     * @throws IllegalStateException if this item has no librarian
+     */
+    public SubmitResult execute(Frame frame) {
+        if (librarian == null) {
+            throw new IllegalStateException("Item has no librarian; cannot execute a frame");
+        }
+        return librarian.submitFrom(this, frame);
     }
 
     /**
@@ -334,6 +330,26 @@ public class Item {
      * @throws IllegalArgumentException if signer is null
      */
     public Manifest commit(Signer signer, List<Binding> bindings) {
+        return commit(signer, bindings, List.of());
+    }
+
+    /**
+     * Commit a new version of this item, attaching {@code recordBindings} as
+     * attestation-level metadata on the manifest's signed record.
+     *
+     * <p>Record bindings carry provenance about the attestation itself —
+     * {@code AGENT}, {@code TIME}, {@code CAUSE}, and similar — as opposed to
+     * the {@code bindings} argument, which is the item's own content.  See
+     * {@link Manifest}'s record model.  Most callers want the two-arg form,
+     * which passes no record bindings; the create path uses this to record the
+     * CREATE command that caused the item to exist.
+     *
+     * @param signer the signer attesting the manifest
+     * @param bindings additional content bindings on the manifest body
+     * @param recordBindings attestation-level metadata on the signed record
+     * @return the newly-committed Manifest (also bound as {@link #current})
+     */
+    public Manifest commit(Signer signer, List<Binding> bindings, List<Binding> recordBindings) {
         if (librarian == null) {
             throw new IllegalStateException("Item has no librarian; cannot commit");
         }
@@ -342,6 +358,7 @@ public class Item {
         }
         Objects.requireNonNull(signer, "signer");
         Objects.requireNonNull(bindings, "bindings");
+        Objects.requireNonNull(recordBindings, "recordBindings");
 
         List<Binding> manifestBindings = new ArrayList<>();
         manifestBindings.add(Binding.ref(Manifest.ITEM_ID, iid));
@@ -361,7 +378,7 @@ public class Item {
         librarian.persist(body);
 
         VarSig signature = signer.sign(HashTree.signingPayload(body));
-        Record record = Record.of(DatumRef.of(body.datumId()), List.of(), signature);
+        Record record = Record.of(DatumRef.of(body.datumId()), recordBindings, signature);
         librarian.persist(record);
 
         Manifest committed = Manifest.of(body, List.of(record));

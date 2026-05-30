@@ -69,7 +69,7 @@ class EncryptDecryptHandlerTest {
                 List.of(
                         Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), alice.iid()),
                         new Binding(ItemRef.iid(ThematicRole.Theme.KEY), plaintext),
-                        Binding.ref(ItemRef.iid(ThematicRole.Beneficiary.KEY), bob.iid()),
+                        Binding.ref(ItemRef.iid(ThematicRole.Recipient.KEY), bob.iid()),
                         Binding.ref(ItemRef.iid(ThematicRole.Instrument.KEY),
                                 ItemRef.iid(DoubleRatchetV1.KEY)),
                         new Binding(ItemRef.iid(ThematicRole.Time.KEY), Instant.now())));

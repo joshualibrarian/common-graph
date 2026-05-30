@@ -38,17 +38,27 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class LocalSession extends UiSession {
 
-    /** Construct a LocalSession bound to an already-existing Session item. */
+    /** Identity-only LocalSession bound to an already-existing Session item. */
     public LocalSession(ItemRef iid, Librarian librarian) {
         super(iid, librarian);
     }
 
     /**
-     * Mint a fresh in-VM session against {@code librarian}: allocate a random
-     * IID, construct a {@link LocalSession}, register it with the librarian's
-     * cache (so dispatch's {@code liveInstanceOf} walk finds it), and publish
-     * a minimal {@code ITEM_VIEW(self)} bootstrap frame so the UI bring-up has
-     * at least one view to enumerate.
+     * Vault-bearing LocalSession — generates an ephemeral signing identity
+     * for the session and derives the IID from it.  Used by
+     * {@link #mint(Librarian)} for fresh sessions.
+     */
+    public LocalSession(Librarian librarian) {
+        super(librarian);
+    }
+
+    /**
+     * Mint a fresh in-VM session against {@code librarian}: generate an
+     * ephemeral signing keypair for the session (IID derived from it),
+     * register the session with the librarian's cache (so dispatch's
+     * {@code liveInstanceOf} walk finds it), and publish a minimal
+     * {@code ITEM_VIEW(self)} bootstrap frame so the UI bring-up has at
+     * least one view to enumerate.
      *
      * <p>The bootstrap frame carries only {@code Theme → sessionIid} and
      * {@code Location → sessionIid} — the session viewing itself.  Device-
@@ -57,22 +67,16 @@ public class LocalSession extends UiSession {
      * bindings are missing.  Concrete device/size assignment happens later
      * (on {@code startUi} resolving a surface, or on user interaction).
      *
-     * <p>The frame is signed by the librarian — sessions don't sign (no vault,
-     * no keys), and the librarian is the minting party.  Future remote-session
-     * flows may shift signing authority to a delegated session keypair; that's
-     * out of scope here.
-     *
-     * <p>Full session lifecycle (publishing a Session manifest, attaching to a
-     * Host, enumerating devices) remains TBD — see the lifecycle TODO on
-     * {@link Session}.
+     * <p>The bootstrap frame is signed by the Session itself — Sessions
+     * are Signers now (per {@link Session}'s class doc), so they sign
+     * their own attestations using their ephemeral keys.
      */
     public static LocalSession mint(Librarian librarian) {
-        ItemRef sessionIid = ItemRef.random();
-        LocalSession session = new LocalSession(sessionIid, librarian);
+        LocalSession session = new LocalSession(librarian);
         librarian.register(session);
 
         // The bootstrap view is the session viewing itself.
-        session.openView(sessionIid);
+        session.openView(session.iid());
 
         return session;
     }

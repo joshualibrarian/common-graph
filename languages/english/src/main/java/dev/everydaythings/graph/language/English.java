@@ -208,22 +208,46 @@ public class English extends Language {
             }
         }
 
-        // Subsequent oblique PPs — {<preposition> <operand>}* .
+        // Subsequent markers — oblique PPs {<preposition> <operand>} and
+        // secondary predication {<participle> <complement>}.  A preposition's
+        // posting names the thematic role it marks; a past-participle verb form
+        // (named, called, ...) names the predicate whose value the complement
+        // fills, attached to the clause's object ("user named bob" → Name→bob).
         while (idx + 1 < tokens.size()) {
-            TokenSpan prepToken = tokens.get(idx);
-            ItemRef prepRoleIid = englishPrepositionRole(prepToken);
-            if (prepRoleIid == null) { idx++; continue; }
+            TokenSpan marker = tokens.get(idx);
 
-            TokenSpan operandToken = tokens.get(idx + 1);
-            Object operandVal = recognizeOperand(operandToken).orElse(null);
-            if (operandVal == null) { idx += 2; continue; }
+            ItemRef prepRoleIid = englishPrepositionRole(marker);
+            if (prepRoleIid != null) {
+                TokenSpan operandToken = tokens.get(idx + 1);
+                Object operandVal = recognizeOperand(operandToken).orElse(null);
+                if (operandVal != null) {
+                    bindings.add(makeBinding(
+                            prepRoleIid, operandVal, operandToken.span(), bindConfidence));
+                }
+                idx += 2;
+                continue;
+            }
 
-            bindings.add(makeBinding(
-                    prepRoleIid,
-                    operandVal,
-                    operandToken.span(),
-                    bindConfidence));
-            idx += 2;
+            ItemRef participlePred = englishParticiplePredicate(marker);
+            if (participlePred != null) {
+                TokenSpan complement = tokens.get(idx + 1);
+                // Proper nouns ("bob") aren't in the dictionary; fall back to the
+                // surface text as the plain-text value of the named-by predicate.
+                Object complementVal = recognizeOperand(complement)
+                        .orElseGet(complement::surfaceText);
+                // Frame compound-key shape: Attribute[<predicate>] → value.  The
+                // predicate (e.g., Name from "named") is the qualifier; Attribute
+                // is the thematic role.  Manifests are free shape, so the
+                // translation back at commit time slides the qualifier into the
+                // role slot — "user named bob" → Name → "bob" on the user's
+                // manifest.
+                bindings.add(makeAttributeBinding(
+                        participlePred, complementVal, complement.span(), bindConfidence));
+                idx += 2;
+                continue;
+            }
+
+            idx++;
         }
 
         if (bindings.isEmpty()) return FrameMap.empty();
@@ -329,6 +353,25 @@ public class English extends Language {
                 && ItemRef.iid(Language.English.KEY).equals(p.scope());
     }
 
+    /** A TokenPosting that came from an English past-participle verb form (named, called, ...). */
+    private static boolean isEnglishParticiplePosting(TokenPosting p) {
+        return isEnglishLexemePosting(p)
+                && p.features().contains(ItemRef.iid(PartOfSpeech.Verb.KEY))
+                && p.features().contains(ItemRef.iid(GrammaticalFeature.Participle.KEY));
+    }
+
+    /**
+     * The predicate a participle token introduces in secondary predication,
+     * taken from its English participle posting's target — e.g. "named" → Name.
+     * Null when the token carries no such posting.
+     */
+    private static ItemRef englishParticiplePredicate(TokenSpan token) {
+        for (TokenPosting p : token.postings()) {
+            if (isEnglishParticiplePosting(p)) return p.target();
+        }
+        return null;
+    }
+
     /** True when any of {@code token}'s postings is an English preposition lemma. */
     private static boolean isEnglishPrepositionToken(TokenSpan token) {
         for (TokenPosting p : token.postings()) {
@@ -358,6 +401,17 @@ public class English extends Language {
         return new BindingMap(
                 new Part<>(ItemRef.of(roleIid), confidence, List.of()),
                 List.of(),
+                new Part<>(target, confidence, List.of(targetSpan)));
+    }
+
+    /** {@code Attribute[<kind>] → target} — the frame compound-key shape for "X has a <kind> attribute set to Y". */
+    private static BindingMap makeAttributeBinding(ItemRef kind, Object target,
+                                                   TextSpan targetSpan, BigDecimal confidence) {
+        Part<CompoundKey.Qualifier> kindPart =
+                new Part<>(new CompoundKey.Sememe(kind), confidence, List.of());
+        return new BindingMap(
+                new Part<>(ItemRef.of(ItemRef.iid(ThematicRole.Attribute.KEY)), confidence, List.of()),
+                List.of(kindPart),
                 new Part<>(target, confidence, List.of(targetSpan)));
     }
 

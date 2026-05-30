@@ -33,6 +33,7 @@ public final class SessionVocabulary {
      *   Theme                    → item        // what's being viewed
      *   Location                 → session     // back-pointer to the session this view lives on
      *   Location[<device-iid>]   → Point       // handle anchor on that device's display
+     *   Agent                    → user        // (optional) which authenticated User's authority this view runs under
      *   Attribute[Expanded]      → Bool        // collapsed (handle-only) vs expanded
      *   Attribute[<Size-archetype>] → Size     // expanded box dimensions
      * }
@@ -44,6 +45,15 @@ public final class SessionVocabulary {
      * names the session, additional bindings carry a device-IID qualifier to
      * say WHERE on that device the view's handle is anchored.  Multi-display
      * mirroring uses multiple Location[device]:Point bindings.
+     *
+     * <p>Agent (optional) names the authenticated User on the Session whose
+     * authority attributes actions taken in this view.  Sessions with no
+     * authenticated User omit Agent and act under the Session's own ephemeral
+     * identity.  Multi-user workspaces use Agent to disambiguate per window
+     * (e.g. one window in a shared workspace acts as Alice, another as Bob).
+     * The session-level authentication table is the source of truth for
+     * which Users may appear here — {@code Session.openView(itemIid, user)}
+     * refuses to publish an Agent for a non-authenticated User.
      *
      * <p>{@link Expanded} is a {@code Quality} sememe used as the qualifier on
      * an {@code Attribute} binding whose target is a {@code Bool}.  Size is

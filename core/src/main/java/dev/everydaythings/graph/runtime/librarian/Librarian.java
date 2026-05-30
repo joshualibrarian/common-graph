@@ -5,6 +5,10 @@ import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.canonical.HashTree;
+import dev.everydaythings.graph.cryptography.OpaqueOpsVocabulary;
+import dev.everydaythings.graph.datum.Opaque;
+import dev.everydaythings.graph.ref.HashID;
+import io.ipfs.multihash.Multihash;
 import dev.everydaythings.graph.canonical.Node;
 import dev.everydaythings.graph.cryptography.MultiKey;
 import dev.everydaythings.graph.cryptography.VarSig;
@@ -19,6 +23,7 @@ import dev.everydaythings.graph.cryptography.IdentityVocabulary;
 import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.encoding.EncodingRegistry;
 import dev.everydaythings.graph.item.Item;
+import dev.everydaythings.graph.item.ItemSketch;
 import dev.everydaythings.graph.network.parley.Parley;
 import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.network.transport.TransportRegistry;
@@ -913,13 +918,17 @@ public class Librarian extends Signer {
      *   <li>Other bindings — carried forward as initial bindings on the new item</li>
      * </ul>
      *
-     * <p>The new item's IID is deterministically derived from the CREATE frame's
-     * body DatumRef. The initial manifest is signed by this librarian (Phase 1;
-     * eventually we'll honor the AGENT identity if signing material is available).
+     * <p>The new item gets a random IID — CREATE mints distinct individuals
+     * (this person, this game), so two structurally-identical creates are two
+     * different items, never aliased.  The initial manifest is signed by this
+     * librarian (Phase 1; eventually we'll honor the AGENT identity if signing
+     * material is available).
      *
-     * <p>No CREATED response frame is emitted — the CREATE frame itself is the
-     * audit-worthy record of "this item was made." The new item is discoverable
-     * via {@link #fetchItem} once created.
+     * <p>Returns the committed manifest as a response frame: its body is the new
+     * item (carrying {@code ITEM_ID → R}), and its signed record is the creation
+     * receipt — head pointing at that body, with a {@code CAUSE} binding back to
+     * this CREATE command plus the acting librarian (AGENT) and time.  The caller
+     * reads the new IID from the body and the provenance from the record.
      */
     @Seed.Handler(predicate = LibrarianVocabulary.Create.KEY)
     public List<Frame> createItem(Frame createFrame) {
@@ -931,8 +940,39 @@ public class Librarian extends Signer {
                     "CREATE frame missing required THEME (archetype) binding");
         }
 
+        // Fold the CREATE frame's content bindings into a sketch against the
+        // archetype's EXPECTS, then require completeness before minting anything.
+        // The sketch is the convergence point: today fed by the frame's bindings,
+        // later also by positional literals and interactive prompts.
+        ItemSketch sketch = ItemSketch.forArchetype(
+                archetype,
+                fetchItem(archetype).map(Item::current).map(Manifest::body).orElse(null),
+                this);
+        ItemRef attributeRole = ItemRef.iid(ThematicRole.Attribute.KEY);
+        for (Binding b : createFrame.body().bindings()) {
+            if (!(b.role() instanceof ItemRef roleIid)) continue;
+            if (STRUCTURAL_CREATE_ROLES.contains(roleIid)) continue;
+            if (!attributeRole.equals(roleIid)) continue;
+            // Command-frame compound Attribute[Kind] → value becomes a manifest
+            // binding Kind → value: the qualifier slides into the role slot,
+            // since manifests are free shape (not subject to the thematic-role
+            // rule that applies to frames).  Other non-structural command
+            // bindings stay command-level metadata and don't fold.
+            for (var q : b.qualifiers()) {
+                if (q instanceof CompoundKey.Sememe(ItemRef kind)) {
+                    sketch.fill(kind, b.target());
+                    break;
+                }
+            }
+        }
+        if (!sketch.isComplete()) {
+            throw new IllegalStateException(
+                    "CREATE of " + archetype.encodeText() + " is missing expected fields: "
+                            + sketch.unfilledRoles().stream().map(ItemRef::encodeText).toList());
+        }
+
         Class<? extends Item> implClass = resolveImplementationClass(createFrame, archetype);
-        ItemRef newIid = mintIidFromCreateFrame(createFrame);
+        ItemRef newIid = ItemRef.random();
 
         Item item;
         try {
@@ -944,7 +984,16 @@ public class Librarian extends Signer {
                             + " for CREATE (requires public (ItemRef, Librarian) constructor)", e);
         }
         register(item);
-        item.commit(List.of());   // librarian signs the initial manifest
+
+        // Commit, recording the CREATE command as the cause on the manifest's
+        // signed record (head → the new item, CAUSE → this create command).
+        List<Binding> recordBindings = new ArrayList<>(3);
+        recordBindings.add(Binding.ref(ItemRef.iid(ThematicRole.Cause.KEY), createFrame.body().datumId()));
+        if (iid() != null) {
+            recordBindings.add(Binding.ref(ItemRef.iid(ThematicRole.Agent.KEY), iid()));
+        }
+        recordBindings.add(new Binding(ItemRef.iid(ThematicRole.Time.KEY), java.time.Instant.now()));
+        Manifest manifest = item.commit(this, sketch.bindings(), recordBindings);
 
         // Fire the post-construct hook. Any archetype with @Handler(predicate=Construct.KEY)
         // gets to set up domain-specific initial state. Default: no-op.
@@ -953,14 +1002,136 @@ public class Librarian extends Signer {
                 .build();
         submit(constructFrame);
 
-        return List.of();
+        return List.of(Frame.of(manifest.body(), manifest.records()));
+    }
+
+    /** Roles on a CREATE frame that drive the mint rather than fill instance fields. */
+    private static final java.util.Set<ItemRef> STRUCTURAL_CREATE_ROLES = java.util.Set.of(
+            ItemRef.iid(ThematicRole.Theme.KEY),
+            ItemRef.iid(ThematicRole.Agent.KEY),
+            ItemRef.iid(ThematicRole.Instrument.KEY));
+
+    /**
+     * Handle an Elide command frame.  Reads THEME → body, computes the body's
+     * structural hash, and returns a result frame whose body has THEME pointing
+     * at an {@link Opaque.Redacted} preserving that hash.  The accompanying
+     * record signs the request body — "I, the librarian, elided this."
+     *
+     * <p>First cut: THEME is an inline {@link Body}.  DatumRef → fetched body
+     * comes when a use case needs it.
+     */
+    @Seed.Handler(predicate = OpaqueOpsVocabulary.Elide.KEY)
+    public Frame handleElide(Frame request) {
+        Body requestBody = request.body();
+        Body source = readThemeBody(requestBody).orElseThrow(() ->
+                new IllegalArgumentException("Elide request lacks an inline THEME body"));
+
+        Record record = signRequest(requestBody);
+        byte[] wrappedHash = HashTree.hashOf(source, Multihash.Type.sha2_256);
+        Opaque.Redacted opaque = new Opaque.Redacted(
+                wrappedHash, java.util.List.of((HashID) DatumRef.of(record.datumId())));
+
+        Body resultBody = Body.of(
+                ItemRef.of(ItemRef.iid(OpaqueOpsVocabulary.Elide.KEY)),
+                java.util.List.of(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), opaque)));
+        return Frame.of(resultBody, java.util.List.of(record));
+    }
+
+    /**
+     * Handle a Compress command frame.  Reads THEME → body, deflates it via
+     * {@link dev.everydaythings.graph.encoding.Compress#compress}, and returns
+     * a result frame whose body has THEME pointing at an
+     * {@link Opaque.Compressed}.  The record signs the request body.
+     *
+     * <p>First cut: THEME is an inline {@link Body}, INSTRUMENT (algorithm) is
+     * ignored and the librarian's current encoding is used as the algorithm.
+     */
+    @Seed.Handler(predicate = OpaqueOpsVocabulary.Compress.KEY)
+    public Frame handleCompress(Frame request) {
+        Body requestBody = request.body();
+        Body source = readThemeBody(requestBody).orElseThrow(() ->
+                new IllegalArgumentException("Compress request lacks an inline THEME body"));
+
+        Encoding encoding = encoder().orElseThrow(() ->
+                new IllegalStateException("Librarian has no encoder; cannot compress"));
+        Opaque.Compressed compressed =
+                dev.everydaythings.graph.encoding.Compress.compress(source, encoding);
+
+        Record record = signRequest(requestBody);
+        // Re-stamp the compressed opaque with the record-ref so the body links
+        // back to "the act that produced me."
+        Opaque.Compressed withRecord = new Opaque.Compressed(
+                compressed.wrappedHash(), compressed.compressedPayload(),
+                java.util.List.of((HashID) DatumRef.of(record.datumId())));
+
+        Body resultBody = Body.of(
+                ItemRef.of(ItemRef.iid(OpaqueOpsVocabulary.Compress.KEY)),
+                java.util.List.of(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), withRecord)));
+        return Frame.of(resultBody, java.util.List.of(record));
+    }
+
+    /**
+     * Handle a Decompress command frame.  Reads THEME → {@link Opaque.Compressed},
+     * inflates it via {@link dev.everydaythings.graph.encoding.Compress#decompress},
+     * and returns a result frame whose body has THEME pointing at the recovered
+     * {@link Body}.  The accompanying record signs the request.
+     *
+     * <p>First cut: THEME is an inline {@link Opaque.Compressed}.
+     */
+    @Seed.Handler(predicate = OpaqueOpsVocabulary.Decompress.KEY)
+    public Frame handleDecompress(Frame request) {
+        Body requestBody = request.body();
+        Opaque.Compressed source = readThemeCompressed(requestBody).orElseThrow(() ->
+                new IllegalArgumentException(
+                        "Decompress request lacks an inline THEME Opaque.Compressed"));
+
+        Encoding encoding = encoder().orElseThrow(() ->
+                new IllegalStateException("Librarian has no encoder; cannot decompress"));
+        Body recovered =
+                dev.everydaythings.graph.encoding.Compress.decompress(source, encoding);
+
+        Record record = signRequest(requestBody);
+        Body resultBody = Body.of(
+                ItemRef.of(ItemRef.iid(OpaqueOpsVocabulary.Decompress.KEY)),
+                java.util.List.of(new Binding(ItemRef.iid(ThematicRole.Theme.KEY), recovered)));
+        return Frame.of(resultBody, java.util.List.of(record));
+    }
+
+    /** Read THEME as an inline Opaque.Compressed.  Empty when missing or wrong type. */
+    private static Optional<Opaque.Compressed> readThemeCompressed(Body requestBody) {
+        return requestBody.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .map(b -> b.target() instanceof Opaque.Compressed c ? c : null)
+                .filter(Objects::nonNull);
+    }
+
+    /** Sign a request body with this librarian's vault — the "I executed this command" attestation. */
+    private Record signRequest(Body requestBody) {
+        if (!canSign()) {
+            throw new IllegalStateException(
+                    "Librarian has no vault; cannot sign the result of a command");
+        }
+        byte[] payload = HashTree.signingPayload(requestBody);
+        VarSig sig = sign(payload);
+        return Record.of(DatumRef.of(requestBody.datumId()), java.util.List.of(), sig);
+    }
+
+    /** Read THEME as an inline Body.  Empty when missing or non-Body. */
+    private static Optional<Body> readThemeBody(Body requestBody) {
+        return requestBody.binding(CompoundKey.of(ItemRef.iid(ThematicRole.Theme.KEY)))
+                .map(b -> b.target() instanceof Body body ? body : null)
+                .filter(Objects::nonNull);
     }
 
     /**
      * Resolve the Java class to instantiate for a CREATE. Priority:
      * <ol>
      *   <li>{@code INSTRUMENT} binding on the CREATE frame, if present.</li>
-     *   <li>Otherwise, the archetype's own {@code IMPLEMENTATION} binding.</li>
+     *   <li>The archetype's own {@code IMPLEMENTATION} binding (single-level
+     *       embodiment, where the archetype and its code are the same item).</li>
+     *   <li>A code-item that {@code IMPLEMENTS} the archetype (two-level
+     *       embodiment via {@code @Seed.Embodies(key=CODE, archetype=KEY)} —
+     *       User, Session, ...): the same two-hop {@code HANDLES → IMPLEMENTS}
+     *       resolution {@link #dispatchViaImplements} uses, applied to minting.</li>
      * </ol>
      *
      * <p>INSTRUMENT may target a Java-class name (text target) directly, or an item
@@ -976,7 +1147,7 @@ public class Librarian extends Signer {
                     instrumentBinding.get(),
                     "INSTRUMENT on CREATE frame");
         }
-        // Step 2: archetype's IMPLEMENTATION binding
+        // Step 2: archetype's own IMPLEMENTATION binding (single-level embodiment).
         Item archetypeItem = fetchItem(archetype)
                 .orElseThrow(() -> new IllegalStateException(
                         "CREATE archetype " + archetype + " has no local manifest; "
@@ -986,13 +1157,24 @@ public class Librarian extends Signer {
             throw new IllegalStateException(
                     "CREATE archetype " + archetype + " has no current manifest");
         }
-        Binding implBinding = manifest.implementation()
-                .orElseThrow(() -> new IllegalStateException(
-                        "CREATE archetype " + archetype + " has no IMPLEMENTATION binding "
-                                + "and no INSTRUMENT was supplied"));
-        return resolveImplementationFromBinding(
-                implBinding,
-                "IMPLEMENTATION on archetype " + archetype);
+        Optional<Binding> implBinding = manifest.implementation();
+        if (implBinding.isPresent()) {
+            return resolveImplementationFromBinding(
+                    implBinding.get(), "IMPLEMENTATION on archetype " + archetype);
+        }
+        // Step 3: two-level embodiment — find a code-item that IMPLEMENTS the archetype.
+        for (DatumRef codeCid : library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, archetype)) {
+            Manifest codeManifest = fetchManifest(codeCid).orElse(null);
+            if (codeManifest == null) continue;
+            Optional<Binding> codeImpl = codeManifest.implementation();
+            if (codeImpl.isPresent()) {
+                return resolveImplementationFromBinding(
+                        codeImpl.get(), "IMPLEMENTS code-item for archetype " + archetype);
+            }
+        }
+        throw new IllegalStateException(
+                "CREATE archetype " + archetype + " has no IMPLEMENTATION binding, "
+                        + "no IMPLEMENTS code-item, and no INSTRUMENT was supplied");
     }
 
     /**
@@ -1058,15 +1240,6 @@ public class Librarian extends Signer {
                     + " does not extend Item");
         }
         return (Class<? extends Item>) raw;
-    }
-
-    /**
-     * Mint a deterministic IID for a freshly-created item from the CREATE frame's
-     * body DatumRef. Same CREATE frame → same IID (idempotent); different CREATEs
-     * → different IIDs.
-     */
-    private static ItemRef mintIidFromCreateFrame(Frame createFrame) {
-        return ItemRef.fromMultikeyBytes(createFrame.body().datumId().encodeBinary());
     }
 
     /**
@@ -1361,17 +1534,12 @@ public class Librarian extends Signer {
 
     /**
      * Assemble a propositional frame: persist its body, sign and persist a record,
-     * then notify every item referenced in the body's bindings via
-     * {@link Item#onFrameAssembled}.
+     * then run {@code @Handler} dispatch on the frame.
      *
-     * <p>This is the "frame-creation-as-action" entry point. Building and publishing
-     * a frame IS the action; subject items react via their {@code onFrameAssembled}
-     * override. Routing is synchronous and single-threaded; an exception in one
-     * item's handler is caught and logged, and the chain continues.
-     *
-     * <p>Each referenced item is notified at most once even if multiple bindings
-     * reference it. Items not currently in the cache nor recoverable from storage
-     * are silently skipped — they don't logically exist on this node.
+     * <p>This is the older publish entry point; {@link #submit(Frame)} is the
+     * unified one.  Dispatch resolves via the two-hop {@code HANDLES → IMPLEMENTS}
+     * contract — items react to frames through their {@code @Seed.Handler}
+     * methods, not a notification hook.
      *
      * @param body the frame body (must be a propositional body, not a manifest)
      * @param signer the signer attesting the frame
@@ -1387,9 +1555,6 @@ public class Librarian extends Signer {
         persist(record);
 
         Frame frame = Frame.of(body, List.of(record));
-        notifyReferencedItems(frame);
-        // Run @Handler dispatch so callers using this older assembleFrame
-        // entry get the same actor-model behavior submit() does.
         ItemRef predicateIid = ((ItemRef) body.head()).iid();
         dispatchToHandlers(frame, predicateIid, ContextChain.singleton(this));
         return frame;
@@ -1407,8 +1572,6 @@ public class Librarian extends Signer {
      *   <li><b>Persist</b> — if the predicate is not marked ephemeral via
      *       {@code CONFIG[RETENTION] → @Ephemeral}, the body and any attached
      *       records are written to local storage.</li>
-     *   <li><b>Notify</b> — items referenced by the frame learn it happened via
-     *       {@link Item#onFrameAssembled}, regardless of retention.</li>
      *   <li><b>Dispatch</b> — any {@code @Handler}-annotated method on this
      *       Librarian whose predicate matches the frame's head is invoked. Its
      *       return value (if any) becomes response frames.</li>
@@ -1422,7 +1585,25 @@ public class Librarian extends Signer {
      * @return submitted frame + response frames from handlers (if any)
      */
     public SubmitResult submit(Frame frame) {
+        return submit(frame, ContextChain.singleton(this));
+    }
+
+    /**
+     * Submit a frame with an explicit {@link ContextChain} in scope — the
+     * persist-then-dispatch flow, but dispatching through {@code chain} rather
+     * than the librarian alone.  This is what lets a frame "bubble up" a chain
+     * of potential handlers (orchestrator → session → librarian): the first
+     * chain entry whose archetype handles the predicate consumes it, and the
+     * librarian is the terminal fallback (persisting the frame as a stored
+     * assertion when nothing else acts).
+     *
+     * @param frame the frame being sent
+     * @param chain the handler chain, most-specific first
+     * @return submitted frame + response frames from handlers (if any)
+     */
+    public SubmitResult submit(Frame frame, ContextChain chain) {
         Objects.requireNonNull(frame, "frame");
+        Objects.requireNonNull(chain, "chain");
 
         // Routing decision: is this frame a query or an assertion?
         // A query carries TypeRef references (or, eventually, partially-applied
@@ -1450,11 +1631,25 @@ public class Librarian extends Signer {
             }
         }
 
-        notifyReferencedItems(frame);
-        List<Frame> responses = dispatchToHandlers(
-                frame, predicateIid, ContextChain.singleton(this));
+        List<Frame> responses = dispatchToHandlers(frame, predicateIid, chain);
 
         return SubmitResult.of(frame, responses);
+    }
+
+    /**
+     * Execute a frame on behalf of {@code orchestrator} — the entry the
+     * orchestrator item uses to let a frame bubble up for handling.  Builds the
+     * chain {@code [orchestrator, this-librarian]} (the orchestrator gets first
+     * crack; the librarian is the terminal handler/fallback) and runs the
+     * persist-then-dispatch flow.  A session slots between the two once
+     * orchestrators carry a session reference.
+     */
+    public SubmitResult submitFrom(Item orchestrator, Frame frame) {
+        Objects.requireNonNull(orchestrator, "orchestrator");
+        ContextChain chain = orchestrator == this
+                ? ContextChain.singleton(this)
+                : new ContextChain(java.util.List.of(orchestrator, this));
+        return submit(frame, chain);
     }
 
     /**
@@ -1720,32 +1915,6 @@ public class Librarian extends Signer {
         return List.of();
     }
 
-    private void notifyReferencedItems(Frame frame) {
-        Set<ItemRef> notified = new HashSet<>();
-
-        // Notify the predicate (head of the body). Predicates are sememes — items
-        // that can react to their own invocation (CREATE-the-sememe handles the
-        // CREATE frame's intent, etc.).
-        ItemRef headIid = ((ItemRef) frame.body().head()).iid();
-        notifyOne(headIid, frame, notified);
-
-        // Notify each item referenced as a target in body bindings.
-        for (Binding b : frame.body().bindings()) {
-            extractReferencedIid(b.target()).ifPresent(iid -> notifyOne(iid, frame, notified));
-        }
-    }
-
-    private void notifyOne(ItemRef iid, Frame frame, Set<ItemRef> notified) {
-        if (!notified.add(iid)) return;
-        fetchItem(iid).ifPresent(item -> {
-            try {
-                item.onFrameAssembled(frame);
-            } catch (RuntimeException e) {
-                // Log and continue; one item's failure must not prevent others.
-                logger.warn("onFrameAssembled threw on item {}", item.iid(), e);
-            }
-        });
-    }
 
     private static Optional<ItemRef> extractReferencedIid(Object target) {
         if (target instanceof ItemRef ir && !ir.isPinned()) {
