@@ -4,8 +4,8 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.NetworkVocabulary;
 import dev.everydaythings.graph.network.tunnel.LoopbackTunnel;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
-import dev.everydaythings.graph.value.Endpoint;
-import dev.everydaythings.graph.value.LoopbackEndpoint;
+import dev.everydaythings.graph.network.Endpoint;
+import dev.everydaythings.graph.network.LoopbackEndpoint;
 
 import java.util.Map;
 import java.util.Objects;

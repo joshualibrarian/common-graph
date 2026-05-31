@@ -810,6 +810,6 @@ public final class InMemoryVault implements Vault {
      */
     private static VarSig signWith(Signing algorithm, KeyPair keyPair, byte[] message) {
         byte[] sig = algorithm.sign(message, keyPair.getPrivate());
-        return VarSig.of(algorithm, sig);
+        return VarSig.of((int) algorithm.varsigCode(), sig);
     }
 }

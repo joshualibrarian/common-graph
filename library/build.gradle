@@ -1,0 +1,30 @@
+// =============================================================================
+// :library — the storage and indexing layer
+//
+// Content-addressed object store + four derived indexes (ITEMS, FRAME_BY_ITEM,
+// RECORD_BY_BODY, HEADS).  Three backends: RocksDB (production), MapDB
+// (lightweight), SkipList (in-memory).  Plus the puremap and materialized
+// data stores, transaction scaffolding, query/schema walkers.
+//
+// Depends only on :annotations + :substrate — Library knows about graph data
+// (bodies, frames, manifests) but not about runtime concepts (Item, Librarian,
+// dispatch).  The orchestration layer (Librarian) lives in :core and uses
+// :library as its storage backend.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':annotations')
+    api project(':substrate')
+
+    // Storage backends
+    implementation "org.rocksdb:rocksdbjni:${rocksdbVersion}"
+    implementation "org.mapdb:mapdb:${mapdbVersion}"
+
+    // Used by data/index implementations
+    implementation "org.apache.commons:commons-lang3:${commonsLang3Version}"
+    implementation "com.upokecenter:cbor:${cborVersion}"
+}

@@ -2,7 +2,7 @@ package dev.everydaythings.graph.bridges.unix;
 
 import dev.everydaythings.graph.network.transport.Transport.Listener;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
-import dev.everydaythings.graph.value.UnixEndpoint;
+import dev.everydaythings.graph.network.UnixEndpoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

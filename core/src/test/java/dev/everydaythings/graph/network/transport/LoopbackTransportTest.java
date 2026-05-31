@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.network.transport;
 
 import dev.everydaythings.graph.network.tunnel.Tunnel;
-import dev.everydaythings.graph.value.LoopbackEndpoint;
-import dev.everydaythings.graph.value.TcpEndpoint;
-import dev.everydaythings.graph.network.IpAddress;
+import dev.everydaythings.graph.network.LoopbackEndpoint;
+import dev.everydaythings.graph.network.TcpEndpoint;
+import dev.everydaythings.graph.value.IpAddress;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -9,7 +9,7 @@ import dev.everydaythings.graph.network.tunnel.Tunnel;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.librarian.LibrarianPresence;
-import dev.everydaythings.graph.value.UnixEndpoint;
+import dev.everydaythings.graph.network.UnixEndpoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

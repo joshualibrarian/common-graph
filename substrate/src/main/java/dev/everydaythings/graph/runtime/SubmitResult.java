@@ -1,12 +1,11 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
 
 import java.util.List;
 
 /**
- * Outcome of {@link Librarian#submit(Frame)}.
+ * Outcome of {@code Librarian.submit(Frame)}.
  *
  * <p>Contains the submitted frame (as assembled — body plus any records that
  * came with it) and any response frames the handlers produced. Whether either

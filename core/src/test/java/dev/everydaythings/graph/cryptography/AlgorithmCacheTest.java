@@ -58,26 +58,17 @@ class AlgorithmCacheTest {
     }
 
     @Test
-    @DisplayName("end-to-end: sign with the librarian's vault, verify through the algorithm-wrapped VarSig")
+    @DisplayName("end-to-end: sign with the librarian's vault, verify through the librarian's algorithm dispatch")
     void signAndVerifyThroughAlgorithm() {
         Librarian librarian = Librarian.ephemeral(ItemStage.javaOnly());
         librarian.bootstrap();
 
         byte[] message = "hello, common graph".getBytes();
-        VarSig rawSignature = librarian.sign(message);
-
-        // Re-decode the signature through the librarian — this is the wire-boundary
-        // resolution that attaches the algorithm to the VarSig.
-        VarSig wrapped = VarSig.decode(rawSignature.encoded(), librarian);
-        assertThat(wrapped.algorithm()).isNotNull();
-
-        // Similarly wrap the librarian's public key as a MultiKey with resolved algorithm.
+        VarSig signature = librarian.sign(message);
         MultiKey publicKey = librarian.signingPublicKey().orElseThrow();
-        MultiKey wrappedKey = MultiKey.decode(publicKey.encoded(), librarian);
-        assertThat(wrappedKey.algorithm()).isNotNull();
 
-        // Verify entirely through the wrapper — zero further lookups.
-        assertThat(wrapped.verify(message, wrappedKey)).isTrue();
-        assertThat(wrapped.verify("tampered".getBytes(), wrappedKey)).isFalse();
+        // Verify through the librarian — it dispatches to the algorithm by codec.
+        assertThat(librarian.verify(publicKey, message, signature)).isTrue();
+        assertThat(librarian.verify(publicKey, "tampered".getBytes(), signature)).isFalse();
     }
 }

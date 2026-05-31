@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.bridges.http;
 
-import dev.everydaythings.graph.value.TcpEndpoint;
+import dev.everydaythings.graph.network.TcpEndpoint;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;

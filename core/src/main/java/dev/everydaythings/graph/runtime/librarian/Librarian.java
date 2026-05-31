@@ -39,7 +39,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.Signer;
 import dev.everydaythings.graph.cryptography.SignerHandle;
 import dev.everydaythings.graph.library.Library;
-import dev.everydaythings.graph.library.MatcherOrchestrator;
+import dev.everydaythings.graph.runtime.MatcherOrchestrator;
 import dev.everydaythings.graph.library.QueryWalker;
 import dev.everydaythings.graph.library.SchemaWalker;
 import dev.everydaythings.graph.library.ValidationResult;
@@ -47,7 +47,7 @@ import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
-import dev.everydaythings.graph.value.UnixEndpoint;
+import dev.everydaythings.graph.network.UnixEndpoint;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 

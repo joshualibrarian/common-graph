@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.network.transport;
 
-import dev.everydaythings.graph.value.Endpoint;
+import dev.everydaythings.graph.network.Endpoint;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -11,7 +11,7 @@ import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.librarian.LibrarianOptions;
 import dev.everydaythings.graph.runtime.librarian.LibrarianPresence;
 import dev.everydaythings.graph.runtime.session.SessionOptions;
-import dev.everydaythings.graph.value.UnixEndpoint;
+import dev.everydaythings.graph.network.UnixEndpoint;
 import lombok.extern.log4j.Log4j2;
 import picocli.CommandLine;
 import picocli.CommandLine.Mixin;

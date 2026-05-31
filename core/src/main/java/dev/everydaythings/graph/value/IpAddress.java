@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.network;
+package dev.everydaythings.graph.value;
 
 import dev.everydaythings.graph.canonical.Decode;
 import dev.everydaythings.graph.canonical.Encode;

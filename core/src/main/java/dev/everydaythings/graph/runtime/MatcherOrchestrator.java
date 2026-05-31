@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.library;
+package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.datum.Binding;

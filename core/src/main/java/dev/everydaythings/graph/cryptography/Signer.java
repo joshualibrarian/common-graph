@@ -546,10 +546,7 @@ public class Signer extends Item implements SignerHandle {
      * resolved for either codec.
      */
     private static boolean verifyWithResolvedAlgorithm(MultiKey publicKey, byte[] message, VarSig varsig) {
-        Signing sigAlg = varsig.algorithm();
-        if (sigAlg == null) {
-            sigAlg = Signing.builtinByVarsigCode(varsig.code());
-        }
+        Signing sigAlg = Signing.builtinByVarsigCode(varsig.code());
         if (sigAlg == null) return false;
         Signing keyAlg = publicKey.signingAlgorithm();
         if (keyAlg == null && sigAlg.multikeyCode() == publicKey.code()) {
@@ -658,9 +655,9 @@ public class Signer extends Item implements SignerHandle {
      * @return true if the signature is valid; false otherwise (including all error cases)
      */
     public boolean verify(MultiKey publicKey, byte[] message, VarSig varsig) {
-        Signing sigAlg = varsig.algorithm();
-        if (sigAlg == null && librarian != null) {
-            sigAlg = librarian.algorithmByVarsigCode(varsig.code());
+        Signing sigAlg = null;
+        if (librarian != null) {
+            sigAlg = ((Librarian) librarian).algorithmByVarsigCode(varsig.code());
         }
         if (sigAlg == null) {
             sigAlg = Signing.builtinByVarsigCode(varsig.code());
@@ -669,7 +666,7 @@ public class Signer extends Item implements SignerHandle {
 
         Signing keyAlg = publicKey.signingAlgorithm();
         if (keyAlg == null && librarian != null) {
-            keyAlg = librarian.algorithmByMultikeyCode(publicKey.code());
+            keyAlg = ((Librarian) librarian).algorithmByMultikeyCode(publicKey.code());
         }
         // If only the sig algorithm is around and it happens to match the key's
         // codec, reuse it to decode the key.  Common case: Ed25519 sig + Ed25519

@@ -3,7 +3,7 @@ package dev.everydaythings.graph.bridges.http;
 import dev.everydaythings.graph.bridges.tcp.TcpTransport;
 import dev.everydaythings.graph.bridges.tls.TlsTunnel;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
-import dev.everydaythings.graph.value.TcpEndpoint;
+import dev.everydaythings.graph.network.TcpEndpoint;
 import io.netty.handler.ssl.SslContext;
 import lombok.extern.log4j.Log4j2;
 

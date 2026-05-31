@@ -17,6 +17,7 @@ dependencies {
     // -------------------------------------------------------------------------
     api project(':annotations')
     api project(':substrate')
+    api project(':library')
 
     // -------------------------------------------------------------------------
     // CLI (Picocli) — used by core commands, action system

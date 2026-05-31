@@ -5,7 +5,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.transport.LoopbackTransport;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.value.LoopbackEndpoint;
+import dev.everydaythings.graph.network.LoopbackEndpoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -1,12 +1,12 @@
 package dev.everydaythings.graph.bridges.tcp;
 
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.network.IpAddress;
+import dev.everydaythings.graph.value.IpAddress;
 import dev.everydaythings.graph.network.NetworkVocabulary;
 import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
-import dev.everydaythings.graph.value.Endpoint;
-import dev.everydaythings.graph.value.TcpEndpoint;
+import dev.everydaythings.graph.network.Endpoint;
+import dev.everydaythings.graph.network.TcpEndpoint;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;

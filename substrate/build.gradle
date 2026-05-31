@@ -22,4 +22,8 @@ dependencies {
     implementation "com.upokecenter:cbor:${cborVersion}"
     implementation "org.apache.commons:commons-lang3:${commonsLang3Version}"
     implementation "org.apache.commons:commons-compress:${commonsCompressVersion}"
+
+    // Substrate's Hashing helper auto-installs BouncyCastle for the algos
+    // JDK doesn't natively carry (BLAKE family).
+    implementation "org.bouncycastle:bcprov-jdk18on:${bouncycastleVersion}"
 }

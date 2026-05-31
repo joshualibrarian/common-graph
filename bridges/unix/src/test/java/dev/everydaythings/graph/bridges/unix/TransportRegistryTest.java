@@ -4,7 +4,7 @@ import dev.everydaythings.graph.network.NetworkVocabulary;
 import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.network.transport.TransportRegistry;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.value.UnixEndpoint;
+import dev.everydaythings.graph.network.UnixEndpoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

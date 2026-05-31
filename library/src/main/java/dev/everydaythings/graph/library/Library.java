@@ -408,7 +408,7 @@ public final class Library implements AutoCloseable {
     private Set<ItemRef> knownLanguages() {
         Set<ItemRef> cached = knownLanguagesCache;
         if (cached != null) return cached;
-        ItemRef langArchetype = ItemRef.iid(dev.everydaythings.graph.language.Language.KEY);
+        ItemRef langArchetype = ItemRef.iid(dev.everydaythings.graph.Language.KEY);
         Set<ItemRef> langs = new HashSet<>();
         for (DatumRef manifestId : index.manifestsForType(langArchetype)) {
             fetchManifest(manifestId).ifPresent(m -> {

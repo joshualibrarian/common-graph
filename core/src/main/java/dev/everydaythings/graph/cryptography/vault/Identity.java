@@ -4,10 +4,8 @@ import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Current;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.KeyAgreement;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Next;
-import dev.everydaythings.graph.cryptography.IdentityVocabulary.Retained;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.SignedPreKey;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Signing;
-import dev.everydaythings.graph.cryptography.IdentityVocabulary.OneTimePreKey;
 import dev.everydaythings.graph.ref.ItemRef;
 
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package dev.everydaythings.graph.value;
+package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
@@ -9,7 +9,6 @@ import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
 import dev.everydaythings.graph.PartOfSpeech;
 import dev.everydaythings.graph.ThematicRole;
-import dev.everydaythings.graph.network.NetworkVocabulary;
 
 import java.util.List;
 import java.util.Objects;

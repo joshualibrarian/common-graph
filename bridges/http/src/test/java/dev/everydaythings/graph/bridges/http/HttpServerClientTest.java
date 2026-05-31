@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.bridges.http;
 
-import dev.everydaythings.graph.value.TcpEndpoint;
+import dev.everydaythings.graph.network.TcpEndpoint;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

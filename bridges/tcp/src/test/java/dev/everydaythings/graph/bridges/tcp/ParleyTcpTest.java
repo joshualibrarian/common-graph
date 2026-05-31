@@ -7,7 +7,7 @@ import dev.everydaythings.graph.network.parley.RemoteConnection;
 import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.value.TcpEndpoint;
+import dev.everydaythings.graph.network.TcpEndpoint;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

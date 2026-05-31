@@ -1,7 +1,6 @@
 package dev.everydaythings.graph.runtime.librarian;
 
 import dev.everydaythings.graph.cryptography.SignerHandle;
-import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.datum.Frame;
@@ -96,13 +95,4 @@ public interface LibrarianHandle extends SignerHandle {
     /** Assemble a signed frame from a body, signed by {@code signer}. */
     Frame assembleFrame(Body body, SignerHandle signer);
 
-    // ==================================================================================
-    // Algorithm dispatch (used by substrate-shape crypto)
-    // ==================================================================================
-
-    /** Resolve the {@link Signing} algorithm for a varsig codec code. */
-    Signing algorithmByVarsigCode(long code);
-
-    /** Resolve the {@link Signing} algorithm for a multikey codec code. */
-    Signing algorithmByMultikeyCode(long code);
 }

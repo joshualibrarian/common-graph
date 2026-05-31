@@ -2,7 +2,7 @@ package dev.everydaythings.graph.network.transport;
 
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
-import dev.everydaythings.graph.value.Endpoint;
+import dev.everydaythings.graph.network.Endpoint;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;

@@ -4,7 +4,7 @@ import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.network.IpAddress;
+import dev.everydaythings.graph.value.IpAddress;
 import dev.everydaythings.graph.value.Value;
 
 import java.lang.reflect.Field;

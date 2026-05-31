@@ -6,7 +6,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.network.tunnel.Tunnel;
 import dev.everydaythings.graph.network.transport.Transport;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.value.Endpoint;
+import dev.everydaythings.graph.network.Endpoint;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import lombok.extern.log4j.Log4j2;

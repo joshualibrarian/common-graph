@@ -1,9 +1,10 @@
-package dev.everydaythings.graph.value;
+package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.ref.ItemRef;
+import dev.everydaythings.graph.value.Value;
 import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;

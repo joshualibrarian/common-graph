@@ -23,7 +23,7 @@ class EncodingRegistryTest {
         @Test
         @DisplayName("Contains CG-CBOR-v1")
         void containsCgCbor() {
-            EncodingRegistry r = EncodingRegistry.defaultRegistry();
+            dev.everydaythings.graph.encoding.EncodingRegistry r = EncodingRegistry.defaultRegistry();
             Optional<Encoding> cgcbor = r.get(ItemRef.iid(Encoding.CgCborV1.KEY));
             assertThat(cgcbor).isPresent();
             assertThat(cgcbor.get()).isInstanceOf(CgCbor.class);
