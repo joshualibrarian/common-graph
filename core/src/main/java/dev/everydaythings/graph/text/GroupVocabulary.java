@@ -2,7 +2,7 @@ package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.language.Language;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.language.LexicalVocabulary;
 
 /**

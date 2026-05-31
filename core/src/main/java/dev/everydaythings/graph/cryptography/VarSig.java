@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.cryptography;
 
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.librarian.LibrarianHandle;
 import dev.everydaythings.graph.value.Varint;
 
 import java.io.ByteArrayOutputStream;
@@ -39,7 +39,7 @@ public final class VarSig {
     /**
      * Construct from a raw codec code and signature bytes.  No validation
      * against a registered algorithm is performed here — pass through a
-     * librarian (via {@link #decode(byte[], Librarian)}) to resolve an
+     * librarian (via {@link #decode(byte[], LibrarianHandle)}) to resolve an
      * algorithm and enable verification.
      */
     public static VarSig of(int code, byte[] rawSig) {
@@ -51,7 +51,7 @@ public final class VarSig {
      * Decode a varsig from its full encoded form.  Does not resolve the
      * algorithm; the resulting {@link VarSig} carries the codec but
      * {@link #algorithm()} returns {@code null}.  Use
-     * {@link #decode(byte[], Librarian)} when algorithm resolution is wanted.
+     * {@link #decode(byte[], LibrarianHandle)} when algorithm resolution is wanted.
      */
     public static VarSig decode(byte[] bytes) {
         Objects.requireNonNull(bytes, "bytes");
@@ -68,7 +68,7 @@ public final class VarSig {
      * The resulting {@link VarSig} can {@link #verify(byte[], MultiKey)}
      * with zero further lookups.
      */
-    public static VarSig decode(byte[] bytes, Librarian librarian) {
+    public static VarSig decode(byte[] bytes, LibrarianHandle librarian) {
         Objects.requireNonNull(bytes, "bytes");
         Objects.requireNonNull(librarian, "librarian");
         if (bytes.length == 0) {

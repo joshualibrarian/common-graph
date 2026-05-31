@@ -7,8 +7,9 @@ import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.datum.*;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.cryptography.Signer;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.cryptography.SignerHandle;
+import dev.everydaythings.graph.runtime.librarian.LibrarianHandle;
+import dev.everydaythings.graph.runtime.Implementations;
 import dev.everydaythings.graph.runtime.SubmitResult;
 import dev.everydaythings.graph.text.FrameDraftMerger;
 import dev.everydaythings.graph.text.FrameMap;
@@ -74,7 +75,7 @@ public class Item {
      * Runtime context. Null for seed/siloed items; settable via {@link #bindLibrarian}
      * for the narrow bootstrap fix-up case.
      */
-    protected Librarian librarian;
+    protected LibrarianHandle librarian;
 
     /** Seed/siloed item — no librarian context. */
     public Item(ItemRef iid) {
@@ -89,7 +90,7 @@ public class Item {
      * anonymous-Librarian path; they cannot commit, cannot be registered, and
      * cannot be the target of a binding.
      */
-    public Item(ItemRef iid, Librarian librarian) {
+    public Item(ItemRef iid, LibrarianHandle librarian) {
         this.iid = iid;
         this.librarian = librarian;
     }
@@ -107,7 +108,7 @@ public class Item {
      *
      * <p>Not for general use. Most callers should pass librarian via the constructor.
      */
-    public void bindLibrarian(Librarian librarian) {
+    public void bindLibrarian(LibrarianHandle librarian) {
         this.librarian = librarian;
     }
 
@@ -211,7 +212,7 @@ public class Item {
         ItemRef predicate = frame.body().headRef();
         if (predicate == null) return null;
         for (Method m : getClass().getMethods()) {
-            Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
+            Handles ann = m.getAnnotation(Handles.class);
             if (ann == null) continue;
             if (!ItemRef.fromString(ann.predicate()).equals(predicate)) continue;
             Class<?>[] params = m.getParameterTypes();
@@ -329,7 +330,7 @@ public class Item {
      * @throws IllegalStateException if no librarian is bound
      * @throws IllegalArgumentException if signer is null
      */
-    public Manifest commit(Signer signer, List<Binding> bindings) {
+    public Manifest commit(SignerHandle signer, List<Binding> bindings) {
         return commit(signer, bindings, List.of());
     }
 
@@ -349,7 +350,7 @@ public class Item {
      * @param recordBindings attestation-level metadata on the signed record
      * @return the newly-committed Manifest (also bound as {@link #current})
      */
-    public Manifest commit(Signer signer, List<Binding> bindings, List<Binding> recordBindings) {
+    public Manifest commit(SignerHandle signer, List<Binding> bindings, List<Binding> recordBindings) {
         if (librarian == null) {
             throw new IllegalStateException("Item has no librarian; cannot commit");
         }
@@ -370,7 +371,7 @@ public class Item {
         // Auto-inject IMPLEMENTATION for non-bare-Item subclasses so future
         // hydration of this item's manifest can dispatch to the right Java class.
         if (this.getClass() != Item.class) {
-            manifestBindings.add(Manifest.implementation(this.getClass()));
+            manifestBindings.add(Implementations.forJava(this.getClass()));
         }
         manifestBindings.addAll(bindings);
 

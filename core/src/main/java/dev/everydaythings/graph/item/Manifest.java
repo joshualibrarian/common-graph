@@ -11,7 +11,6 @@ import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.HashID;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.runtime.RuntimeVocabulary;
 
 import java.util.List;
 import java.util.Optional;
@@ -139,52 +138,13 @@ public final class Manifest extends AttributedBody {
     }
 
     /**
-     * Implementation reference — the first binding whose role is a known runtime
-     * language sememe (Java, Python, Lisp, JavaScript, Clojure, Rust).
-     *
-     * <p>A manifest can have multiple implementation bindings under different
-     * language roles (e.g., {@code JAVA:[ClassName]} alongside
-     * {@code PYTHON:[SourceCode]}). This convenience returns the first one;
-     * callers needing all variants should use {@link #implementations()} or
-     * the language-specific filter {@link #implementationFor(ItemRef)}.
-     *
-     * <p>Returns empty if no implementation is declared.
-     */
-    public Optional<Binding> implementation() {
-        for (Binding b : body().bindings()) {
-            if (isLanguageRole(b.role())) return Optional.of(b);
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * All implementation bindings on this manifest — bindings whose role is a
-     * known runtime language sememe.
-     */
-    public List<Binding> implementations() {
-        return body().bindings().stream()
-                .filter(b -> isLanguageRole(b.role()))
-                .toList();
-    }
-
-    /**
      * Find the implementation binding for a specific language, if any.
      *
-     * <p>Example: {@code manifest.implementationFor(ItemRef.iid(RuntimeVocabulary.Java.KEY))}
+     * <p>Example: {@code manifest.implementationFor(ItemRef.iid(Java.KEY))}
      * returns the Java implementation binding (if this manifest declares one).
      */
     public Optional<Binding> implementationFor(ItemRef language) {
         return body().bindingsByRole(language).stream().findFirst();
-    }
-
-    /** Whether this role is one of the known runtime language sememes. */
-    private static boolean isLanguageRole(HashID role) {
-        return ItemRef.iid(RuntimeVocabulary.Java.KEY).equals(role)
-                || ItemRef.iid(RuntimeVocabulary.Python.KEY).equals(role)
-                || ItemRef.iid(RuntimeVocabulary.Lisp.KEY).equals(role)
-                || ItemRef.iid(RuntimeVocabulary.JavaScript.KEY).equals(role)
-                || ItemRef.iid(RuntimeVocabulary.Clojure.KEY).equals(role)
-                || ItemRef.iid(RuntimeVocabulary.Rust.KEY).equals(role);
     }
 
     /**
@@ -202,40 +162,20 @@ public final class Manifest extends AttributedBody {
      * form for an item's runtime realization.
      *
      * <p>Shape: {@code <language>:[<form>] → target}. The role is the language
-     * sememe ({@link RuntimeVocabulary.Java}, {@link RuntimeVocabulary.Python},
-     * {@link RuntimeVocabulary.Lisp}, etc.); the qualifier is the form
-     * ({@link RuntimeVocabulary.ClassName} for class identifiers,
-     * {@link RuntimeVocabulary.SourceCode} for source text); the target is the
-     * actual reference (text for class/source, CID for bytecode eventually).
+     * sememe (Java, Python, Lisp, etc.); the qualifier is the form
+     * (ClassName for class identifiers, SourceCode for source text); the target
+     * is the actual reference (text for class/source, CID for bytecode).
      *
-     * <p>Examples:
-     * <pre>
-     * Manifest.implementation(Java.IID,   ClassName.IID,  "com.example.AddJava")
-     * Manifest.implementation(Python.IID, SourceCode.IID, "def evaluate(b): ...")
-     * Manifest.implementation(Lisp.IID,   SourceCode.IID, "(defun evaluate ...)")
-     * </pre>
-     *
-     * <p>The whole item is the implementation; this binding just declares the
-     * language and the actual code reference within it. There is no separate
-     * {@code IMPLEMENTATION} role — the language sememe occupies that slot.
+     * <p>Language-specific convenience constructors live in
+     * {@code dev.everydaythings.graph.runtime.Implementations} (e.g.
+     * {@code Implementations.forJava(Class)}); Manifest itself stays
+     * language-agnostic.
      */
     public static Binding implementation(ItemRef language, ItemRef form, Object target) {
         return Binding.qualified(
                 language,
                 List.of(new CompoundKey.Sememe(form)),
                 target);
-    }
-
-    /**
-     * Java convenience: build an implementation binding for the given Java class.
-     *
-     * <p>Shape: {@code JAVA:[ClassName] → fqcn}.
-     */
-    public static Binding implementation(Class<?> clazz) {
-        return implementation(
-                ItemRef.iid(RuntimeVocabulary.Java.KEY),
-                ItemRef.iid(RuntimeVocabulary.ClassName.KEY),
-                clazz.getName());
     }
 
     /**
@@ -297,24 +237,6 @@ public final class Manifest extends AttributedBody {
         return body().bindingsByRole(IMPLEMENTS).stream()
                 .map(b -> readIidFromTarget(b.target(), IMPLEMENTS_KEY))
                 .toList();
-    }
-
-    /**
-     * Whether a binding is a Java implementation binding under the new shape —
-     * role is {@link RuntimeVocabulary.Java} and the qualifier list includes
-     * {@link RuntimeVocabulary.ClassName}.
-     */
-    public static boolean isJavaImplementation(Binding b) {
-        if (!ItemRef.iid(RuntimeVocabulary.Java.KEY).equals(b.role())) {
-            return false;
-        }
-        for (var q : b.qualifiers()) {
-            if (q instanceof CompoundKey.Sememe s
-                    && ItemRef.iid(RuntimeVocabulary.ClassName.KEY).equals(s.id())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

@@ -2,7 +2,7 @@ package dev.everydaythings.graph.ui;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
@@ -135,7 +135,7 @@ public abstract class UiSession extends Session {
      * archetype's, on up the chain) without further wiring.
      */
     private void enumerateItemViewWindows(Surface intoSurface) {
-        Librarian lib = librarian();
+        Librarian lib = (Librarian) librarian();
         ItemRef sessionIid = iid();
         if (lib == null || sessionIid == null) return;
 
@@ -198,7 +198,7 @@ public abstract class UiSession extends Session {
      * of the chain via {@link ContextChain}'s null-filtering.
      */
     private ContextChain contextChainFor(ItemRef contextItemIid) {
-        Librarian lib = librarian();
+        Librarian lib = (Librarian) librarian();
         dev.everydaythings.graph.item.Item contextItem = lib != null
                 ? lib.fetchItem(contextItemIid).orElse(null)
                 : null;

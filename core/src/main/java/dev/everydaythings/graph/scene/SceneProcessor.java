@@ -2,7 +2,6 @@ package dev.everydaythings.graph.scene;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.language.ThematicRole;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.HashID;
 import dev.everydaythings.graph.ref.ItemRef;
@@ -416,9 +415,9 @@ public final class SceneProcessor {
 
     private static final ItemRef TRANSFORM_KEY = ItemRef.fromString("cg.predicate:transform");
     private static final ItemRef THEME_ROLE = ItemRef.iid(
-            dev.everydaythings.graph.language.ThematicRole.Theme.KEY);
+            dev.everydaythings.graph.ThematicRole.Theme.KEY);
     private static final ItemRef INSTRUMENT_ROLE = ItemRef.iid(
-            dev.everydaythings.graph.language.ThematicRole.Instrument.KEY);
+            dev.everydaythings.graph.ThematicRole.Instrument.KEY);
 
     private static void appendChildBindings(Class<?> cls, List<Binding> bindings) {
         Class<?>[] declared = cls.getDeclaredClasses();

@@ -11,7 +11,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.text.AnchorTable.TokenAnchor;
 import dev.everydaythings.graph.text.FrameMap;

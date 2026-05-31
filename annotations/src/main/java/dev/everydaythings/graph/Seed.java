@@ -1,11 +1,14 @@
 package dev.everydaythings.graph;
 
 
-import dev.everydaythings.graph.language.GrammaticalFeature;
-import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
-
 import java.lang.annotation.*;
+
+// NB: this module is at the bottom of the dependency stack — it can't import
+// vocabulary classes (ThematicRole, GrammaticalFeature) or runtime classes
+// (Librarian) because those depend on the annotations defined here.
+// Annotation defaults that conceptually refer to vocabulary KEYs are inlined
+// as the literal canonical strings, with comments naming the source of truth.
+// Javadoc {@link}s to those classes resolve at the consumer site.
 
 /**
  * Holder for the bootstrap-time annotation family. All members live nested
@@ -21,7 +24,7 @@ import java.lang.annotation.*;
  *       "this class IS the seed item itself" (singleton)</li>
  *   <li>{@link Mints} — class-level: declares "this class is the runtime form of
  *       instances of K" (instance class)</li>
- *   <li>{@link Handler} — method-level: marks a method as the handler for a predicate</li>
+ *   <li>{@link Handles} — method-level: marks a method as the handler for a predicate</li>
  * </ul>
  *
  * <p><b>Nested-body targets:</b> Java's annotation rules forbid mutually recursive
@@ -204,14 +207,16 @@ public class Seed {
          * {@link ThematicRole.Theme}; set {@code role = ""} to suppress this
          * binding entirely.
          */
-        Binding clazz() default @Binding(role = ThematicRole.Theme.KEY);
+        // role inlined; canonical KEY is ThematicRole.Theme.KEY in :core's vocabulary.
+        Binding clazz() default @Binding(role = "cg.role:theme");
 
         /**
          * The binding carrying the field's value as its target. Default role is
          * {@link ThematicRole.Value}; set {@code role = ""} to suppress. Override
          * to attach qualifiers (e.g., {@code @Binding(role = Value.KEY, qualifiers = {English.KEY})}).
          */
-        Binding field() default @Binding(role = ThematicRole.Value.KEY);
+        // role inlined; canonical KEY is ThematicRole.Value.KEY in :core's vocabulary.
+        Binding field() default @Binding(role = "cg.role:value");
 
         /**
          * Additional bindings on the same frame, with explicit literal or reference
@@ -604,56 +609,6 @@ public class Seed {
     }
 
     /**
-     * Marks a method as the handler for frames whose head is a given predicate.
-     *
-     * <p>At seed-processing time, the annotation produces a HANDLES frame on
-     * the enclosing archetype's manifest (predicate-as-data, queryable and
-     * inheritable across language runtimes) and an endorsement on the
-     * embodying CodeItem.  At dispatch time, the librarian's two-hop walk
-     * ({@code HANDLES → IMPLEMENTS}) routes incoming frames to a live
-     * instance of the handling archetype and invokes its method via
-     * {@link dev.everydaythings.graph.runtime.stage.ItemStage#deliver
-     * ItemStage.deliver}.
-     *
-     * <p><b>Method signature:</b> {@code Object handler(Frame frame)}.  The
-     * universal shape is a single {@link
-     * dev.everydaythings.graph.datum.Frame Frame} parameter; handlers that
-     * need specific values read them from the frame's bindings inside the
-     * method body.  Return value (a single Frame or a {@code List<Frame>})
-     * becomes the response.
-     *
-     * <p>The Java method named here is the truth — direct in-VM callers can
-     * invoke it without constructing a frame.  The annotation marks it as
-     * <i>also</i> reachable via frame dispatch.
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    public static @interface Handler {
-
-        /** Canonical key of the predicate whose frames this method handles. */
-        String predicate();
-
-        /**
-         * Optional canonical key of the binding-role on incoming frames that
-         * names the <i>target instance</i> for dispatch.
-         *
-         * <p>When set, the dispatcher reads the incoming frame's
-         * {@code binding[role]} to find the IID of the item-instance this
-         * frame is about; it then looks up the live instance of the handling
-         * archetype at that IID and invokes the handler on it.  Used for
-         * archetypes whose handlers care about <i>which specific instance</i>
-         * is being addressed (Session via {@code Location}, Signer via
-         * {@code Agent}, etc.).
-         *
-         * <p>When empty (default), dispatch is singleton: the handler runs on
-         * a code-item instance (cached if previously materialized, freshly
-         * hydrated otherwise) without consulting frame bindings.  Used for
-         * stateless operator-style archetypes (Add, Between, Sqrt, ...).
-         */
-        String role() default "";
-    }
-
-    /**
      * Class-level shortcut for declaring an English gloss on the enclosing
      * {@link Item @Seed.Item}.  Expands to a {@link Frame @Seed.Frame} whose
      * predicate is {@code cg.predicate:gloss}, with a back-link THEME binding
@@ -848,7 +803,8 @@ public class Seed {
          * {@link GrammaticalFeature.Lemma} — the canonical citation form.
          * Override for inflected lexemes (past, plural, participle, etc.).
          */
-        String feature() default GrammaticalFeature.Lemma.KEY;
+        // canonical KEY is GrammaticalFeature.Lemma.KEY in :core's vocabulary.
+        String feature() default "cg.feat:lemma";
 
         /** Container for repeated {@code @Seed.Lexeme} annotations on the same class. */
         @Target(ElementType.TYPE)

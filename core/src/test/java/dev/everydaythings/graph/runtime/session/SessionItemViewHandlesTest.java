@@ -3,7 +3,7 @@ package dev.everydaythings.graph.runtime.session;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ol>
  */
 @DisplayName("Session.handleItemView dispatch + listener notification")
-class SessionItemViewHandlerTest {
+class SessionItemViewHandlesTest {
 
     @Test
     @DisplayName("Submitting an ITEM_VIEW frame fires the targeted session's listeners")

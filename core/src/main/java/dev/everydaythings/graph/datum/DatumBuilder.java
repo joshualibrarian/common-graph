@@ -3,7 +3,7 @@ package dev.everydaythings.graph.datum;
 
 import dev.everydaythings.graph.item.ManifestBuilder;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 import java.time.Instant;
 import java.util.ArrayList;

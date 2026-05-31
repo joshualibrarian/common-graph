@@ -13,7 +13,7 @@ import dev.everydaythings.graph.cryptography.EncryptionVocabulary;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary;
 import dev.everydaythings.graph.cryptography.MultiKey;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import io.ipfs.multihash.Multihash;
 
 import java.util.ArrayList;

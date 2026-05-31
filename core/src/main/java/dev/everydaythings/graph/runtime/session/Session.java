@@ -1,11 +1,11 @@
 package dev.everydaythings.graph.runtime.session;
 
+import dev.everydaythings.graph.Handles;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.user.User;
@@ -426,7 +426,7 @@ public class Session extends dev.everydaythings.graph.cryptography.Signer {
      * <p>Supersedence (an ITEM_VIEW frame {@code FOLLOWS}-ing a prior one),
      * CLOSE handling, and frame-binding interpretation are slice-4+ work.
      */
-    @Seed.Handler(predicate = SessionVocabulary.ItemView.KEY, role = ThematicRole.Location.KEY)
+    @Handles(predicate = SessionVocabulary.ItemView.KEY, role = ThematicRole.Location.KEY)
     public List<Frame> handleItemView(Frame request) {
         logger.debug("[Session {}] ITEM_VIEW frame received — body head={}",
                 iid(), request.body().headRef());
@@ -448,7 +448,7 @@ public class Session extends dev.everydaythings.graph.cryptography.Signer {
      * <p>Per-device close (multi-monitor mirroring close one mirror but not
      * another) lands when device-qualified Location on ITEM_VIEW lands.
      */
-    @Seed.Handler(predicate = SessionVocabulary.Close.KEY, role = ThematicRole.Location.KEY)
+    @Handles(predicate = SessionVocabulary.Close.KEY, role = ThematicRole.Location.KEY)
     public List<Frame> handleClose(Frame request) {
         logger.debug("[Session {}] CLOSE frame received — body head={}",
                 iid(), request.body().headRef());

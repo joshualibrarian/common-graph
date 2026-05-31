@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.quality;
 
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.GrammaticalFeature;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.language.*;
 
 import static dev.everydaythings.graph.Seed.*;
@@ -29,7 +30,7 @@ public final class PresentationVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "primary";
     }
 
@@ -44,7 +45,7 @@ public final class PresentationVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "secondary";
     }
 
@@ -59,7 +60,7 @@ public final class PresentationVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "accent";
     }
 
@@ -74,7 +75,7 @@ public final class PresentationVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "surface";
     }
 
@@ -111,7 +112,7 @@ public final class PresentationVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "error";
     }
 
@@ -126,7 +127,7 @@ public final class PresentationVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "outline";
     }
 
@@ -141,7 +142,7 @@ public final class PresentationVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "muted";
     }
 }

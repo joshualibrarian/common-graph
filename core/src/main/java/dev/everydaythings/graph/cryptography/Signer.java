@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.cryptography;
 
 
-import dev.everydaythings.graph.Seed;
+import dev.everydaythings.graph.Handles;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Decrypt;
@@ -29,7 +29,7 @@ import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Multikey;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Next;
 import dev.everydaythings.graph.CoreVocabulary.Expires;
 import dev.everydaythings.graph.CoreVocabulary.Sequence;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -67,7 +67,7 @@ import java.util.Optional;
  *       whose private key isn't local.</li>
  * </ul>
  */
-public class Signer extends Item {
+public class Signer extends Item implements SignerHandle {
 
     /** Canonical key for Signer-the-archetype. */
     public static final String KEY = "cg.archetype:signer";
@@ -331,7 +331,7 @@ public class Signer extends Item {
 
     private Optional<MultiKey> fetchPeerPreKey(ItemRef peerIid, ItemRef predicateIid) {
         if (librarian == null) return Optional.empty();
-        List<DatumRef> candidates = librarian.library()
+        List<DatumRef> candidates = librarian
                 .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), peerIid);
 
         Frame chosen = null;
@@ -420,7 +420,7 @@ public class Signer extends Item {
      */
     public List<MultiKey> currentKeys(ItemRef identity, ItemRef purpose) {
         if (librarian == null) return List.of();
-        List<DatumRef> candidates = librarian.library()
+        List<DatumRef> candidates = librarian
                 .bodyCidsForReferenceBinding(ItemRef.iid(ThematicRole.Theme.KEY), identity);
 
         Frame chosen = null;
@@ -714,7 +714,7 @@ public class Signer extends Item {
      *       for first cut; ref-resolution comes later)</li>
      * </ul>
      */
-    @Seed.Handler(predicate = Encrypt.KEY, role = ThematicRole.Agent.KEY)
+    @Handles(predicate = Encrypt.KEY, role = ThematicRole.Agent.KEY)
     public Frame handleEncrypt(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
 
@@ -774,7 +774,7 @@ public class Signer extends Item {
      * message from the peer).  Returns the plaintext bytes; no body is
      * republished.
      */
-    @Seed.Handler(predicate = Decrypt.KEY, role = ThematicRole.Agent.KEY)
+    @Handles(predicate = Decrypt.KEY, role = ThematicRole.Agent.KEY)
     public byte[] handleDecrypt(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
 
@@ -794,7 +794,7 @@ public class Signer extends Item {
         Record metadataRecord = opaque.recordRefs().stream()
                 .filter(h -> h instanceof DatumRef)
                 .map(h -> (DatumRef) h)
-                .map(dr -> librarian.library().fetchRecord(dr).orElse(null))
+                .map(dr -> librarian.fetchRecord(dr).orElse(null))
                 .filter(java.util.Objects::nonNull)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -822,7 +822,7 @@ public class Signer extends Item {
      * Handle an Inception command frame.  Reads PURPOSE → key-track, asks the
      * vault to incept that track.  Returns the resulting Inception event frame.
      */
-    @Seed.Handler(predicate = Inception.KEY, role = ThematicRole.Agent.KEY)
+    @Handles(predicate = Inception.KEY, role = ThematicRole.Agent.KEY)
     public Frame handleInception(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
         ItemRef purpose = readPurpose(request.body()).orElseThrow(() ->
@@ -835,7 +835,7 @@ public class Signer extends Item {
      * to rotate that track (reveal the previously-committed next, commit a fresh
      * one).  Returns the resulting Rotation event frame.
      */
-    @Seed.Handler(predicate = Rotation.KEY, role = ThematicRole.Agent.KEY)
+    @Handles(predicate = Rotation.KEY, role = ThematicRole.Agent.KEY)
     public Frame handleRotation(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
         ItemRef purpose = readPurpose(request.body()).orElseThrow(() ->
@@ -848,7 +848,7 @@ public class Signer extends Item {
      * → scope.  ATTRIBUTE[EXPIRES] threading lands when conditions parsing wants
      * it; first cut uses unlimited.
      */
-    @Seed.Handler(predicate = Delegation.KEY, role = ThematicRole.Agent.KEY)
+    @Handles(predicate = Delegation.KEY, role = ThematicRole.Agent.KEY)
     public Frame handleDelegation(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
         Body body = request.body();
@@ -863,7 +863,7 @@ public class Signer extends Item {
      * Handle a Revocation command frame.  Reads THEME → target (the thing being
      * revoked) and the optional CAUSE → reason sememe.
      */
-    @Seed.Handler(predicate = Revocation.KEY, role = ThematicRole.Agent.KEY)
+    @Handles(predicate = Revocation.KEY, role = ThematicRole.Agent.KEY)
     public Frame handleRevocation(Frame request) {
         if (vault == null) throw new IllegalStateException("Signer has no vault");
         Body body = request.body();

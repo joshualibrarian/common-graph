@@ -61,7 +61,7 @@ class CreateUserParseTest {
                 .as("predicate is CREATE")
                 .isEqualTo(ItemRef.iid(LibrarianVocabulary.Create.KEY));
 
-        BindingMap theme = bindingForRole(result, ThematicRole.Theme.KEY);
+        BindingMap theme = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Theme.KEY);
         assertThat(theme).as("THEME binding present").isNotNull();
         assertThat(theme.target().value())
                 .as("THEME = User archetype")
@@ -78,7 +78,7 @@ class CreateUserParseTest {
                 .as("predicate is CREATE")
                 .isEqualTo(ItemRef.iid(LibrarianVocabulary.Create.KEY));
 
-        BindingMap theme = bindingForRole(result, ThematicRole.Theme.KEY);
+        BindingMap theme = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Theme.KEY);
         assertThat(theme).as("THEME binding present").isNotNull();
         assertThat(theme.target().value()).as("THEME = User").isEqualTo(User.ARCHETYPE);
 
@@ -146,7 +146,7 @@ class CreateUserParseTest {
 
     /** First binding with role=Attribute and a Sememe qualifier matching {@code kindKey}. */
     private static BindingMap attributeBinding(FrameMap fm, String kindKey) {
-        ItemRef attribute = ItemRef.iid(ThematicRole.Attribute.KEY);
+        ItemRef attribute = ItemRef.iid(dev.everydaythings.graph.ThematicRole.Attribute.KEY);
         ItemRef kind = ItemRef.iid(kindKey);
         for (BindingMap b : fm.bindings()) {
             if (b.role() == null || b.role().value() == null) continue;

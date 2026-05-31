@@ -3,7 +3,7 @@ package dev.everydaythings.graph.cryptography;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 /**
  * Cryptographic algorithm vocabulary.

@@ -6,7 +6,7 @@ import dev.everydaythings.graph.cryptography.algorithm.Algorithm;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.librarian.LibrarianHandle;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,7 +48,7 @@ public final class AlgorithmCache {
 
     private volatile boolean warmed = false;
 
-    /** Whether {@link #warm(Librarian)} has been called at least once. */
+    /** Whether {@link #warm(LibrarianHandle)} has been called at least once. */
     public boolean isWarmed() {
         return warmed;
     }
@@ -86,9 +86,9 @@ public final class AlgorithmCache {
      * its embodied Item, register it.  Safe to call repeatedly — later calls
      * overwrite existing entries.
      */
-    public synchronized void warm(Librarian librarian) {
+    public synchronized void warm(LibrarianHandle librarian) {
         ItemRef signingArchetype = ItemRef.iid(Signing.KEY);
-        for (DatumRef manifestId : librarian.library().manifestCidsForType(signingArchetype)) {
+        for (DatumRef manifestId : librarian.manifestCidsForType(signingArchetype)) {
             librarian.fetchManifest(manifestId).ifPresent(manifest -> {
                 Signing algorithm = hydrate(librarian, manifest);
                 if (algorithm != null) register(algorithm);
@@ -103,7 +103,7 @@ public final class AlgorithmCache {
      * {@link dev.everydaythings.graph.item.BodyBinder BodyBinder} run as
      * usual, yielding a fully-populated concrete algorithm instance.
      */
-    private static Signing hydrate(Librarian librarian, Manifest manifest) {
+    private static Signing hydrate(LibrarianHandle librarian, Manifest manifest) {
         ItemRef sememeIid = manifest.itemId();
         Item item = librarian.fetchItem(sememeIid).orElse(null);
         if (item instanceof Signing signing) return signing;

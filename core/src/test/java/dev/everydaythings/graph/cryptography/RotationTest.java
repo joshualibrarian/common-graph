@@ -11,7 +11,7 @@ import dev.everydaythings.graph.cryptography.IdentityVocabulary.Next;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Rotation;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.CoreVocabulary.Sequence;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

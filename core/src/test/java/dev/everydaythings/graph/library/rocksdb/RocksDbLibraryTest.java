@@ -7,7 +7,7 @@ import dev.everydaythings.graph.datum.Datum;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.library.Library;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

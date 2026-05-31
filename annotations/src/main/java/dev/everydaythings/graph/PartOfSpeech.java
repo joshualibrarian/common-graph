@@ -1,6 +1,4 @@
-package dev.everydaythings.graph.language;
-
-import dev.everydaythings.graph.Seed;
+package dev.everydaythings.graph;
 
 /**
  * Part-of-speech sememes — grammatical category targets of {@code POS}-qualified

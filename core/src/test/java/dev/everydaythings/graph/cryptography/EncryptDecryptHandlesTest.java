@@ -10,7 +10,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Decrypt;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.DoubleRatchetV1;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Encrypt;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * auto-bootstrap.
  */
 @DisplayName("Encrypt and Decrypt command handlers on Signer")
-class EncryptDecryptHandlerTest {
+class EncryptDecryptHandlesTest {
 
     @Test
     @DisplayName("Alice encrypts to Bob; Bob decrypts via command frames")

@@ -83,7 +83,7 @@ public final class ParseEngine {
             return FrameMap.empty();
         }
 
-        Librarian librarian = orchestrator.librarian();
+        Librarian librarian = (Librarian) orchestrator.librarian();
         ULocale locale = activeLocale(params, librarian);
 
         Function<String, List<TokenPosting>> lookup = librarian != null

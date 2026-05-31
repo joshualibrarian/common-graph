@@ -1,9 +1,7 @@
 package dev.everydaythings.graph.quality;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.language.PartOfSpeech;
-
-import static dev.everydaythings.graph.Seed.*;
+import dev.everydaythings.graph.PartOfSpeech;
 
 /**
  * Location vocabulary — the {@link Place} meta-archetype and the sememes

@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.runtime.session;
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.SchemaVocabulary;
 import dev.everydaythings.graph.ref.ContentRef;
 import dev.everydaythings.graph.language.*;
@@ -56,13 +57,13 @@ public final class PresenceVocabulary {
         private Present() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "asserts that a signer is currently present in an item context";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "enter";
     }
 
@@ -80,12 +81,12 @@ public final class PresenceVocabulary {
         private Leave() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "revoke presence — leave an item context";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "leave";
     }
 
@@ -104,7 +105,7 @@ public final class PresenceVocabulary {
         private AvatarState() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "real-time avatar position and orientation in a shared space — "
                         + "ephemeral, latest-wins";
@@ -117,13 +118,13 @@ public final class PresenceVocabulary {
         private Typing() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "typing indicator — the signer is composing input in this context";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "typing";
     }
 
@@ -134,13 +135,13 @@ public final class PresenceVocabulary {
         private Cursor() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "cursor or selection position in shared content — ephemeral";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "cursor";
     }
 
@@ -151,13 +152,13 @@ public final class PresenceVocabulary {
         private Focus() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "what the user is currently focused on or interacting with — ephemeral";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "focus";
     }
 }

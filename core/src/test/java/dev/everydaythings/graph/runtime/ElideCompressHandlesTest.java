@@ -6,7 +6,7 @@ import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Opaque;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * corresponding {@link Opaque} form, with a record signing the request.
  */
 @DisplayName("Elide / Compress command handlers on Librarian")
-class ElideCompressHandlerTest {
+class ElideCompressHandlesTest {
 
     /** A small body to elide/compress: a generic predicate with one string binding. */
     private static Body sampleSource() {

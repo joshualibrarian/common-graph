@@ -15,13 +15,15 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.librarian.LibrarianHandle;
 import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.runtime.RuntimeVocabulary;
+import dev.everydaythings.graph.runtime.Implementations;
 import dev.everydaythings.graph.language.CiliId;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.CoreVocabulary;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -84,6 +86,29 @@ public final class SeedProcessor {
             }
             CLASS_BY_KEY.set(classByKey);
 
+            // Pre-build EMBODIES_BY_KEY: every class with a single-level
+            // @Seed.Embodies(key=K) where K has its @Seed.Item declaration on
+            // a different class.  processSeed consults this to pin the
+            // runtime class onto the foundational seed's manifest.
+            Map<String, Class<?>> embodiesByKey = new HashMap<>();
+            ClassInfoList allEmbodies =
+                    result.getClassesWithAnnotation(Seed.Embodies.class.getName());
+            for (ClassInfo classInfo : allEmbodies) {
+                Class<?> cls = classInfo.loadClass();
+                Seed.Embodies emb = cls.getAnnotation(Seed.Embodies.class);
+                if (!emb.archetype().isEmpty()) continue;
+                Seed.Item localItem = cls.getAnnotation(Seed.Item.class);
+                if (localItem != null && localItem.key().equals(emb.key())) continue;
+                Class<?> previous = embodiesByKey.put(emb.key(), cls);
+                if (previous != null) {
+                    throw new IllegalStateException(
+                            "Two classes claim single-level @Seed.Embodies(key="
+                                    + emb.key() + "): "
+                                    + previous.getName() + " and " + cls.getName());
+                }
+            }
+            EMBODIES_BY_KEY.set(embodiesByKey);
+
             try {
                 for (ClassInfo classInfo : seedClasses) {
                     Class<?> cls = classInfo.loadClass();
@@ -91,6 +116,7 @@ public final class SeedProcessor {
                 }
             } finally {
                 CLASS_BY_KEY.remove();
+                EMBODIES_BY_KEY.remove();
             }
 
             // Pass 2: @Seed.Mints classes — publishes IMPLEMENTS frames for
@@ -117,31 +143,29 @@ public final class SeedProcessor {
                 processEmbodies(librarian, cls);
             }
 
-            // Validate: every @Seed.Embodies declaration must be consistent.
-            //   Single-level (no archetype()): requires @Seed.Item(K) on the same class.
-            //   Two-level (archetype=AK): the archetype K must exist as a real seed
-            //     item somewhere in the classpath — but it does NOT have to be the
-            //     same class. The annotations are orthogonal.
+            // Validate: every @Seed.Embodies declaration must point at a real seed.
+            //   Single-level (no archetype()): the seed K must exist somewhere on
+            //     the classpath as an @Seed.Item — co-located on this class OR
+            //     declared upstream (e.g., a foundational seed in :annotations
+            //     embodied by a runtime class in a downstream module).
+            //   Two-level (archetype=AK): the archetype AK must likewise exist
+            //     as a real seed item somewhere in the classpath.
             for (ClassInfo classInfo : embodiesClasses) {
                 Class<?> cls = classInfo.loadClass();
                 Seed.Embodies embodies = cls.getAnnotation(Seed.Embodies.class);
-                if (embodies.archetype().isEmpty()) {
-                    Seed.Item seedItem = cls.getAnnotation(Seed.Item.class);
-                    if (seedItem == null || !seedItem.key().equals(embodies.key())) {
-                        throw new IllegalStateException(
-                                "@Seed.Embodies(key=" + embodies.key()
-                                        + ") on " + cls.getName()
-                                        + " (single-level) requires @Seed.Item(\""
-                                        + embodies.key() + "\") on the same class");
-                    }
-                } else if (librarian.library()
-                        .manifestCidsForItem(ItemRef.fromString(embodies.archetype()))
+                String required = embodies.archetype().isEmpty()
+                        ? embodies.key()
+                        : embodies.archetype();
+                if (librarian.library()
+                        .manifestCidsForItem(ItemRef.fromString(required))
                         .isEmpty()) {
                     throw new IllegalStateException(
                             "@Seed.Embodies(key=" + embodies.key()
-                                    + ", archetype=" + embodies.archetype()
+                                    + (embodies.archetype().isEmpty()
+                                            ? ""
+                                            : ", archetype=" + embodies.archetype())
                                     + ") on " + cls.getName()
-                                    + " — archetype \"" + embodies.archetype()
+                                    + " — \"" + required
                                     + "\" has no @Seed.Item declaration on the classpath");
                 }
             }
@@ -181,12 +205,24 @@ public final class SeedProcessor {
         // here — its work happens in processEmbodies, producing a separate
         // CodeItem manifest with its own IMPLEMENTS → @archetype binding.
         Seed.Embodies embodies = cls.getAnnotation(Seed.Embodies.class);
-        boolean singleLevel = embodies != null
+        boolean selfEmbodies = embodies != null
                 && embodies.archetype().isEmpty()
                 && seedItem.key().equals(embodies.key());
-        if (singleLevel) {
-            validateRuntimeClass(cls, "@Embodies");
-            bindings.add(Manifest.implementation(cls));
+        Class<?> embodyingClass = null;
+        if (selfEmbodies) {
+            embodyingClass = cls;
+        } else {
+            // Cross-class single-level @Seed.Embodies: the seed declaration is
+            // on this plain class, the runtime implementation is on a downstream
+            // class with @Seed.Embodies(key=K).
+            Map<String, Class<?>> crossMap = EMBODIES_BY_KEY.get();
+            if (crossMap != null) {
+                embodyingClass = crossMap.get(seedItem.key());
+            }
+        }
+        if (embodyingClass != null) {
+            validateRuntimeClass(embodyingClass, "@Embodies");
+            bindings.add(Implementations.forJava(embodyingClass));
             bindings.add(Manifest.implementsArchetype(ItemRef.fromString(seedItem.key())));
             // Self-handling: a single-level Embodies asserts "this archetype IS
             // its own runtime form" — meaning this predicate handles itself
@@ -322,7 +358,7 @@ public final class SeedProcessor {
     }
 
     /**
-     * Walk {@link Seed.Handler @Seed.Handler}-annotated methods on the class
+     * Walk {@link Handles @Seed.Handler}-annotated methods on the class
      * and append a {@code @HANDLES → @<predicate>} binding for each.  HANDLES
      * lives on the archetype manifest; the method name is not recorded here
      * (the new dispatch model uses {@code Item.receive(Frame)} with internal
@@ -330,7 +366,7 @@ public final class SeedProcessor {
      */
     private static void addHandlesBindings(Class<?> cls, List<Binding> bindings) {
         for (Method m : cls.getDeclaredMethods()) {
-            Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
+            Handles ann = m.getAnnotation(Handles.class);
             if (ann == null) continue;
             bindings.add(Manifest.handles(ItemRef.fromString(ann.predicate())));
         }
@@ -558,7 +594,7 @@ public final class SeedProcessor {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(Binding.ref(Manifest.ITEM_ID, codeIid));
         bindings.add(Manifest.implementsArchetype(archetypeIid));
-        bindings.add(Manifest.implementation(cls));
+        bindings.add(Implementations.forJava(cls));
         for (DatumRef handlesCid : buildHandlesFrames(librarian, cls)) {
             bindings.add(new Binding(Manifest.ENDORSES, handlesCid));
         }
@@ -566,7 +602,7 @@ public final class SeedProcessor {
     }
 
     /**
-     * Build and persist one HANDLES frame body per {@link Seed.Handler}-annotated method
+     * Build and persist one HANDLES frame body per {@link Handles}-annotated method
      * on the class, returning their DatumIDs (suitable as ENDORSES targets on a
      * CodeItem manifest).
      *
@@ -580,7 +616,7 @@ public final class SeedProcessor {
     private static List<DatumRef> buildHandlesFrames(Librarian librarian, Class<?> cls) {
         List<DatumRef> cids = new ArrayList<>();
         for (Method m : cls.getDeclaredMethods()) {
-            Seed.Handler ann = m.getAnnotation(Seed.Handler.class);
+            Handles ann = m.getAnnotation(Handles.class);
             if (ann == null) continue;
             List<Binding> bindings = new ArrayList<>(3);
             bindings.add(Binding.ref(ItemRef.iid(ThematicRole.Theme.KEY),
@@ -642,7 +678,7 @@ public final class SeedProcessor {
      */
     private static void requireExpects(Librarian librarian, ItemRef conceptIid, String mintsClassName) {
         // The seed manifest must already be persisted (pass 1 ran first).
-        List<DatumRef> manifestCids = librarian.library().manifestCidsForItem(conceptIid);
+        List<DatumRef> manifestCids = librarian.manifestCidsForItem(conceptIid);
         if (manifestCids.isEmpty()) {
             throw new IllegalStateException(
                     "@Mints(\"" + conceptIid + "\") on " + mintsClassName
@@ -669,8 +705,9 @@ public final class SeedProcessor {
 
     /**
      * Validate that a class meets the runtime-form contract: extends Item and has
-     * a public {@code (ItemRef, Librarian)} constructor. Used for both
-     * {@code @Seed.Embodies} (when paired with {@code @Seed.Item}) and {@code @Seed.Mints}.
+     * a public {@code (ItemRef, LibrarianHandle)} or {@code (ItemRef, Librarian)}
+     * constructor. Used for both {@code @Seed.Embodies} (when paired with
+     * {@code @Seed.Item}) and {@code @Seed.Mints}.
      */
     private static void validateRuntimeClass(Class<?> cls, String annotationName) {
         if (!Item.class.isAssignableFrom(cls)) {
@@ -678,11 +715,16 @@ public final class SeedProcessor {
                     annotationName + " class " + cls.getName() + " must extend Item");
         }
         try {
-            cls.getConstructor(ItemRef.class, Librarian.class);
+            cls.getConstructor(ItemRef.class, LibrarianHandle.class);
         } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(
-                    annotationName + " class " + cls.getName()
-                            + " must have a public (ItemRef, Librarian) constructor", e);
+            try {
+                cls.getConstructor(ItemRef.class, Librarian.class);
+            } catch (NoSuchMethodException e2) {
+                throw new IllegalStateException(
+                        annotationName + " class " + cls.getName()
+                                + " must have a public (ItemRef, LibrarianHandle) "
+                                + "or (ItemRef, Librarian) constructor", e2);
+            }
         }
     }
 
@@ -698,6 +740,15 @@ public final class SeedProcessor {
      * stomp each other.
      */
     private static final ThreadLocal<Map<String, Class<?>>> CLASS_BY_KEY = new ThreadLocal<>();
+
+    /**
+     * Map from canonical key to the class with a single-level {@code @Seed.Embodies(key=K)}
+     * for that key.  Lets {@link #processSeed} discover cross-class embodiments — the
+     * seed declaration lives in {@code :annotations} as a plain class, the runtime
+     * implementation lives in a downstream module with {@code @Seed.Embodies} pointing
+     * at the seed's key.  ThreadLocal for the same reason as {@link #CLASS_BY_KEY}.
+     */
+    private static final ThreadLocal<Map<String, Class<?>>> EMBODIES_BY_KEY = new ThreadLocal<>();
 
     /**
      * Process all {@code @Seed.Frame}-annotated fields on {@code cls}, persist the

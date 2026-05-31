@@ -11,7 +11,7 @@ import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.value.Bool;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 /** Inequality. Infix, non-associative, precedence 5. Numeric-aware (same as {@link Equal} negated). */
 @Seed.Item(key = NotEqual.KEY, head = Operator.KEY)

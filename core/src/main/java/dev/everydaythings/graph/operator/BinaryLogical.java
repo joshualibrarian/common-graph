@@ -2,7 +2,7 @@ package dev.everydaythings.graph.operator;
 
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 
 /**

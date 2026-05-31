@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.runtime;
 
 
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.encoding.CgCbor;
 
 import dev.everydaythings.graph.canonical.HashTree;
@@ -11,9 +12,10 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.runtime.Implementations;
 import dev.everydaythings.graph.ref.ContentRef;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
@@ -307,7 +309,7 @@ class LibrarianTest {
             TestThing thing = new TestThing(ItemRef.random(), lib);
             Manifest committed = thing.commit(List.of());
 
-            Optional<Binding> impl = committed.implementation();
+            Optional<Binding> impl = Implementations.firstKnownLanguage(committed);
             assertThat(impl).isPresent();
             assertThat(impl.get().target()).isEqualTo(TestThing.class.getName());
         }
@@ -319,7 +321,7 @@ class LibrarianTest {
             Item bare = new Item(ItemRef.random(), lib);
             Manifest committed = bare.commit(List.of());
 
-            assertThat(committed.implementation()).isEmpty();
+            assertThat(Implementations.firstKnownLanguage(committed)).isEmpty();
         }
 
         @Test
@@ -333,7 +335,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:test-thing")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.implementation(TestThing.class)
+                            Implementations.forJava(TestThing.class)
                     )
             );
             lib.persist(manifestBody);
@@ -390,7 +392,7 @@ class LibrarianTest {
                     ItemRef.of(ItemRef.fromString("cg.archetype:bogus")),
                     List.of(
                             Binding.ref(Manifest.ITEM_ID, iid),
-                            Manifest.implementation(String.class)
+                            Implementations.forJava(String.class)
                     )
             );
             lib.persist(manifestBody);
@@ -534,9 +536,9 @@ class LibrarianTest {
                             Binding.qualified(ItemRef.iid(ThematicRole.Value.KEY), List.of(
                                             new CompoundKey.Sememe(
                                                     ItemRef.iid(dev.everydaythings.graph.language.Language.English.KEY)), new CompoundKey.Sememe(
-                                                    ItemRef.iid(dev.everydaythings.graph.language.PartOfSpeech.Verb.KEY)),
+                                                    ItemRef.iid(dev.everydaythings.graph.PartOfSpeech.Verb.KEY)),
                                             new CompoundKey.Sememe(
-                                                    ItemRef.iid(dev.everydaythings.graph.language.GrammaticalFeature.Lemma.KEY))),
+                                                    ItemRef.iid(GrammaticalFeature.Lemma.KEY))),
                                     token)));
 
             // persist() walks the Body's text-typed bindings and writes token
@@ -562,8 +564,8 @@ class LibrarianTest {
             if (p.scope() != null) allQualifiers.add(p.scope());
             assertThat(allQualifiers).containsExactlyInAnyOrder(
                     ItemRef.iid(dev.everydaythings.graph.language.Language.English.KEY),
-                    ItemRef.iid(dev.everydaythings.graph.language.PartOfSpeech.Verb.KEY),
-                    ItemRef.iid(dev.everydaythings.graph.language.GrammaticalFeature.Lemma.KEY));
+                    ItemRef.iid(dev.everydaythings.graph.PartOfSpeech.Verb.KEY),
+                    ItemRef.iid(GrammaticalFeature.Lemma.KEY));
             // Source is the Body's semantic identity (DatumRef) — flipped from
             // ContentRef as part of the store-domain refactor (task #48).
             assertThat(p.source()).isEqualTo(body.datumId());

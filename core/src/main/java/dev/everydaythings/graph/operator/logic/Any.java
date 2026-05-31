@@ -5,6 +5,7 @@ import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.value.Bool;
@@ -36,7 +37,7 @@ public class Any extends Operator {
     static final SchemaRef returns = SchemaRef.iid(Bool.KEY);
 
     @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Seed.Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "the universal-truth wildcard — fully applied returns TRUE; in a binding-target "
                     + "with no candidate, becomes the trivial pattern that accepts any value";

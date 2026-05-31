@@ -5,12 +5,13 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.value.Numeric;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.operator.BinaryArithmetic;
 import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.operator.OperatorNotation;
 
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 /** The multiplication operator. Infix, left-associative, precedence 20 (above add/sub). */
 @Seed.Item(key = Multiply.KEY, head = Operator.KEY)

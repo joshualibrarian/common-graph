@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.ref;
 
 import dev.everydaythings.graph.canonical.Decode;
-import dev.everydaythings.graph.cryptography.algorithm.Hash;
+import dev.everydaythings.graph.canonical.Hashing;
 import io.ipfs.multibase.Multibase;
 import io.ipfs.multihash.Multihash;
 
@@ -63,8 +63,8 @@ public final class DatumRef extends HashID {
      */
     public static DatumRef of(byte[] bytes) {
         Objects.requireNonNull(bytes, "bytes");
-        byte[] digest = Hash.Sha256.digestOf(bytes);
-        return new DatumRef(digest, Hash.Sha256.MULTIHASH_TYPE);
+        byte[] digest = Hashing.sha256(bytes);
+        return new DatumRef(digest, Hashing.SHA256_TYPE);
     }
 
     /** Parse a DatumRef from text, guessing the format. */

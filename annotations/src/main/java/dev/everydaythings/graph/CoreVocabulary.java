@@ -1,12 +1,5 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.language.*;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.scene.Scene;
-import dev.everydaythings.graph.scene.SceneVocabulary;
-
 import static dev.everydaythings.graph.Seed.*;
 
 /**
@@ -45,12 +38,12 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.structural:item-id";
         private ItemId() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the binding head whose target is an item's stable identity (IID)";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"identity", "item id"};
@@ -69,18 +62,18 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.structural:endorses";
         private Endorses() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the manifest binding head whose target is the body of a frame "
                         + "this item version endorses";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "endorse";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "endorsement";
@@ -97,13 +90,13 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.structural:follows";
         private Follows() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the manifest binding head whose target is a parent version this "
                         + "manifest follows in the version history";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "follow";
@@ -149,18 +142,18 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:handles";
         private Handles() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the predicate declaring an item's API — frames endorsed by an item "
                         + "to declare which message types it handles and how";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "handle";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "handler";
@@ -183,66 +176,20 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.archetype:archetype";
         private Archetype() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the root archetype — the kind-of-thing every item's manifest is, "
                         + "the meta-root every head chain terminates at";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "archetype";
 
-        /**
-         * Terminal default scene at the root of the {@code CONFIG[Presentation]}
-         * cascade.  Every other archetype's manifest body has head = Archetype
-         * (directly or via a chain); when nothing more specific is declared
-         * along the chain, the cascade falls through to here.
-         *
-         * <p>The literal "Common Graph item" is a deliberate placeholder.  If
-         * a user sees it in their UI, the archetype chain for that item
-         * neglected to declare a more specific scene.  Loud-but-rendering:
-         * tells you exactly which archetypes are missing declarations without
-         * breaking the render path.
-         */
-        @Scene.Text(schemaRole = SceneVocabulary.Scene.KEY)
-        public static class DefaultScene {
-            @Scene.Property(role = SceneVocabulary.Text.KEY)
-            static String text = "Common Graph item";
-        }
-
-        /**
-         * Terminal default Handle scene — the compact / glanceable form
-         * every archetype falls through to when no more specific
-         * {@code !Scene[Handle]} declaration exists in the chain.  Renders
-         * inside chains, lists, swarm dots, breadcrumbs — anywhere the
-         * item shows up in a small visual representation.  Same loud-but-
-         * rendering placeholder strategy as {@link DefaultScene}.
-         */
-        @Scene.Text(schemaRole = SceneVocabulary.Scene.KEY,
-                    qualifiers = {SceneVocabulary.Handle.KEY})
-        public static class DefaultHandle {
-            @Scene.Property(role = SceneVocabulary.Text.KEY)
-            static String text = "[item]";
-        }
-
-        /**
-         * Terminal default Aura scene — the per-item overlay framework
-         * every archetype falls through to when no more specific
-         * {@code !Scene[Aura]} declaration exists.  Empty container by
-         * default: nothing renders unless the session explicitly activates
-         * the aura for an item (a notification arrived, a chain is open
-         * here, a drag preview is anchored).  Per-archetype overrides
-         * (e.g., a Chess game declaring a richer aura framework) supersede
-         * this in the cascade.
-         */
-        @Scene.Container(schemaRole = SceneVocabulary.Scene.KEY,
-                         qualifiers = {SceneVocabulary.Aura.KEY})
-        public static class DefaultAura {
-            // No properties, no children.  Activation + content is the
-            // session's job at render time, not the archetype's.
-        }
+        // Terminal default scenes (DefaultScene / DefaultHandle / DefaultAura)
+        // moved to scene.ArchetypeDefaults so Archetype-the-seed has no scene
+        // dependency.  Reattachment via a scene-side record is pending.
 
         // The previous "universal item-hood rule" lived here as an endorsed
         // EXPECTS frame, claiming every instance must carry ITEM_ID.  That's
@@ -265,13 +212,13 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.archetype:predicate";
         private Predicate() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the archetype of all predicates — items used as the head of frame bodies; "
                         + "predicates declare role-keyed EXPECTS for their frame-instances";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "predicate";
@@ -299,14 +246,14 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.archetype:variable";
         private Variable() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the archetype of free variables — sememes whose values come from the "
                         + "resolution context (session, layout, conversation) rather than "
                         + "being declared statically";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "variable";
     }
@@ -338,13 +285,13 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.archetype:quality";
         private Quality() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the archetype of qualities — sememes used in binding-role positions to "
                         + "predicate properties of things (Width, Color, FontSize, …)";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "quality";
     }
@@ -368,11 +315,11 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:sequence";
         private Sequence() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "an ordered series; an ordinal position within it";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "sequence";
     }
@@ -383,11 +330,11 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:threshold";
         private Threshold() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "a numeric cutoff or quorum; the minimum count required";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "threshold";
     }
@@ -398,16 +345,16 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:expires";
         private Expires() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the moment something ceases to be valid; an expiration time";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "expire";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"expiry", "expiration"};
     }
@@ -427,12 +374,12 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.predicate:result";
         private Result() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the predicate the matcher emits to wrap each item that satisfied a query";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "result";
     }
@@ -459,13 +406,13 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:salt";
         private Salt() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "random bytes mixed into a value to randomize its structural hash; "
                         + "defeats brute-force enumeration of low-entropy elided values";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "salt";
     }
@@ -493,17 +440,12 @@ public final class CoreVocabulary {
      * pure-data targets, no behavior of their own).
      */
     @Seed.Item(key = Source.KEY)
-    @Embodies(key = Source.KEY)
-    public static class Source extends Item {
+    public static final class Source {
 
         /** Canonical key for the source-attribution sememe. */
         public static final String KEY = "cg.sememe:source";
 
-        /** The deterministic IID for the source-attribution sememe. */
-
-        public Source(ItemRef iid, Librarian librarian) {
-            super(iid, librarian);
-        }
+        private Source() {}
 
         // ==================================================================================
         // Source-vocabulary sememes (targets of SOURCE → VALUE bindings)
@@ -539,11 +481,11 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:preferred";
         private Preferred() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "chosen in preference to another";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishAdjLemmas = {"preferred", "selected"};
     }
@@ -567,13 +509,13 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.qualifier:comment";
         private Comment() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier marking a binding's value as free-form human annotation, "
                         + "optional metadata on a frame distinct from the structured Cause";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "comment";
     }
@@ -596,12 +538,12 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.variable:current-time";
         private CurrentTime() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the resolution-context variable carrying the current wall-clock time";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
                   qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String[] englishNounLemmas = {"current time", "now"};
@@ -613,16 +555,16 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:witness";
         private Witness() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "one who attests to the truth of an assertion or the occurrence of an event";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "witness";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "witness";
     }
@@ -640,16 +582,16 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:compromise";
         private Compromise() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "an exposure or breach — cryptographic, structural, or social";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "compromise";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "compromise";
     }
@@ -660,16 +602,16 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:retirement";
         private Retirement() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "routine cessation of use or service; no incident, just no longer active";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "retirement";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "retire";
     }
@@ -680,11 +622,11 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:fraud";
         private Fraud() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "deceit; intentional misrepresentation";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "fraud";
     }
@@ -695,15 +637,15 @@ public final class CoreVocabulary {
         public static final String KEY = "cg.sememe:mistake";
         private Mistake() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "an honest error; no malice intended";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "mistake";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "mistake";
     }

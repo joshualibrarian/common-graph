@@ -1,11 +1,11 @@
 package dev.everydaythings.graph.messaging;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.PartOfSpeech;
+import dev.everydaythings.graph.ThematicRole;
 
 /**
  * Messaging vocabulary — predicates for content-bearing frames sent between

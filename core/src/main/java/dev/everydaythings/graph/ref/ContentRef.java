@@ -1,7 +1,7 @@
 package dev.everydaythings.graph.ref;
 
 import dev.everydaythings.graph.canonical.Decode;
-import dev.everydaythings.graph.cryptography.algorithm.Hash;
+import dev.everydaythings.graph.canonical.Hashing;
 import io.ipfs.multibase.Multibase;
 import io.ipfs.multihash.Multihash;
 
@@ -56,12 +56,12 @@ public final class ContentRef extends HashID {
 
     /**
      * Create a ContentRef by hashing raw content bytes.
-     * Uses {@link Hash.Sha256} — the protocol-pinned default for content addressing.
+     * Uses {@link Hashing} — the protocol-pinned default for content addressing.
      */
     public static ContentRef of(byte[] content) {
         Objects.requireNonNull(content, "content");
-        byte[] digest = Hash.Sha256.digestOf(content);
-        return new ContentRef(digest, Hash.Sha256.MULTIHASH_TYPE);
+        byte[] digest = Hashing.sha256(content);
+        return new ContentRef(digest, Hashing.SHA256_TYPE);
     }
 
     /** Parse a content ref from text, guessing the format. */

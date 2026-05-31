@@ -56,12 +56,12 @@ class EnglishParseTest {
                 .as("predicate is ADD")
                 .isEqualTo(ItemRef.iid(Add.KEY));
 
-        BindingMap theme = bindingForRole(result, ThematicRole.Theme.KEY);
+        BindingMap theme = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Theme.KEY);
         assertThat(theme).as("THEME binding present").isNotNull();
         assertThat(theme.target().value())
                 .as("THEME = 5").isEqualTo(5L);
 
-        BindingMap goal = bindingForRole(result, ThematicRole.Goal.KEY);
+        BindingMap goal = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Goal.KEY);
         assertThat(goal).as("GOAL binding present").isNotNull();
         assertThat(goal.target().value())
                 .as("GOAL = 3").isEqualTo(3L);
@@ -78,13 +78,13 @@ class EnglishParseTest {
                 .as("predicate is SUBTRACT")
                 .isEqualTo(ItemRef.iid(Subtract.KEY));
 
-        BindingMap theme = bindingForRole(result, ThematicRole.Theme.KEY);
+        BindingMap theme = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Theme.KEY);
         assertThat(theme).as("THEME binding present").isNotNull();
         assertThat(theme.target().value())
                 .as("THEME = 3 (the quantity being removed)")
                 .isEqualTo(3L);
 
-        BindingMap source = bindingForRole(result, ThematicRole.Source.KEY);
+        BindingMap source = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Source.KEY);
         assertThat(source).as("SOURCE binding present").isNotNull();
         assertThat(source.target().value())
                 .as("SOURCE = 10 (the quantity removed from)")
@@ -104,11 +104,11 @@ class EnglishParseTest {
                 .as("OperatorNotation wins — predicate is ADD")
                 .isEqualTo(ItemRef.iid(Add.KEY));
 
-        BindingMap theme = bindingForRole(result, ThematicRole.Theme.KEY);
+        BindingMap theme = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Theme.KEY);
         assertThat(theme).isNotNull();
         assertThat(theme.target().value()).isEqualTo(5L);
 
-        BindingMap goal = bindingForRole(result, ThematicRole.Goal.KEY);
+        BindingMap goal = bindingForRole(result, dev.everydaythings.graph.ThematicRole.Goal.KEY);
         assertThat(goal).isNotNull();
         assertThat(goal.target().value()).isEqualTo(3L);
     }

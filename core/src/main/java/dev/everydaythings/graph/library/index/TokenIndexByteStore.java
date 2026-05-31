@@ -10,7 +10,7 @@ import dev.everydaythings.graph.ref.HashID;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.library.bytestore.ByteStore;
 import dev.everydaythings.graph.library.bytestore.KeyEncoder;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import java.math.BigDecimal;
 
 import java.nio.charset.StandardCharsets;

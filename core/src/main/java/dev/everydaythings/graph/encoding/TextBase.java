@@ -1,9 +1,11 @@
 package dev.everydaythings.graph.encoding;
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.GrammaticalFeature;
+import dev.everydaythings.graph.Language;
+import dev.everydaythings.graph.PartOfSpeech;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.language.*;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import io.ipfs.multibase.Multibase;
 
 /**
@@ -29,7 +31,7 @@ import io.ipfs.multibase.Multibase;
  * a single character prefix on a text-encoded string identifying which
  * encoding was used.
  */
-@Seed.Item(key = TextBase.KEY, head = CoreVocabulary.Archetype.KEY)
+@Seed.Item(key = TextBase.KEY)
 public final class TextBase {
 
     /** Canonical key for the TextBase archetype. */
@@ -39,13 +41,13 @@ public final class TextBase {
 
     private TextBase() {}
 
-    @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+    @Seed.Frame(predicate = Language.Gloss.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
     static final String englishGloss =
             "a scheme for representing arbitrary binary data as text using a "
                     + "fixed alphabet — e.g. base16 (hex), base32, base58, base64";
 
-    @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+    @Seed.Frame(predicate = Language.Lexeme.KEY,
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
     static final String englishNounLemma = "text base";
 
@@ -59,7 +61,7 @@ public final class TextBase {
         public static final String KEY = "cg.predicate:multibase-code";
         private MultibaseCode() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the multibase code character identifying a text encoding";
@@ -82,11 +84,11 @@ public final class TextBase {
 
         private Base32Lower() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Base32 lowercase text encoding (RFC 4648)";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "base32";
 
@@ -107,7 +109,7 @@ public final class TextBase {
 
         private Base32Upper() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Base32 uppercase text encoding (RFC 4648)";
 
@@ -128,11 +130,11 @@ public final class TextBase {
 
         private Base58Btc() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Base58 text encoding with Bitcoin-style alphabet";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "base58";
 
@@ -153,7 +155,7 @@ public final class TextBase {
 
         private Base64Url() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Base64 URL-safe text encoding (RFC 4648)";
 
@@ -174,11 +176,11 @@ public final class TextBase {
 
         private Base16Lower() {}
 
-        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Seed.Frame(predicate = Language.Gloss.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "Base16 (hex) lowercase text encoding";
 
-        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Seed.Frame(predicate = Language.Lexeme.KEY,
               field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "hex";
 

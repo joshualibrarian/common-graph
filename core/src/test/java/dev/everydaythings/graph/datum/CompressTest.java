@@ -5,7 +5,7 @@ import dev.everydaythings.graph.encoding.CgCbor;
 import dev.everydaythings.graph.encoding.Compress;
 import dev.everydaythings.graph.encoding.Encoding;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import com.upokecenter.cbor.CBORObject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

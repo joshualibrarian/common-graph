@@ -2,7 +2,7 @@ package dev.everydaythings.graph.cryptography;
 
 import dev.everydaythings.graph.cryptography.algorithm.PublicKeyAlgorithm;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.runtime.librarian.LibrarianHandle;
 import dev.everydaythings.graph.value.Varint;
 
 import java.io.ByteArrayOutputStream;
@@ -43,7 +43,7 @@ public final class MultiKey {
     /**
      * Construct from a raw codec code and key bytes.  No validation against a
      * registered algorithm is performed here — pass through a librarian (via
-     * {@link #decode(byte[], Librarian)}) to resolve an algorithm and enable
+     * {@link #decode(byte[], LibrarianHandle)}) to resolve an algorithm and enable
      * length-aware decoding.
      */
     public static MultiKey of(int code, byte[] rawKey) {
@@ -55,7 +55,7 @@ public final class MultiKey {
      * Decode a multikey from its full encoded form.  Does not resolve the
      * algorithm; the resulting {@link MultiKey} carries the codec but
      * {@link #algorithm()} returns {@code null}.  Use
-     * {@link #decode(byte[], Librarian)} when algorithm resolution is wanted.
+     * {@link #decode(byte[], LibrarianHandle)} when algorithm resolution is wanted.
      */
     public static MultiKey decode(byte[] bytes) {
         Objects.requireNonNull(bytes, "bytes");
@@ -72,7 +72,7 @@ public final class MultiKey {
      * The resulting {@link MultiKey} can produce a JCA {@link java.security.PublicKey}
      * directly via {@link #publicKey()} with zero further lookups.
      */
-    public static MultiKey decode(byte[] bytes, Librarian librarian) {
+    public static MultiKey decode(byte[] bytes, LibrarianHandle librarian) {
         Objects.requireNonNull(bytes, "bytes");
         Objects.requireNonNull(librarian, "librarian");
         if (bytes.length == 0) {

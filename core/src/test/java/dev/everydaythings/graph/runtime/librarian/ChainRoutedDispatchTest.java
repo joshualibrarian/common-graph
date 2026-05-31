@@ -1,5 +1,6 @@
 package dev.everydaythings.graph.runtime.librarian;
 
+import dev.everydaythings.graph.Handles;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
@@ -135,7 +136,7 @@ class ChainRoutedDispatchTest {
             return ItemRef.fromString(FOO_KEY);
         }
 
-        @Seed.Handler(predicate = BAR_KEY)
+        @Handles(predicate = BAR_KEY)
         public Frame handleBar(Frame frame) {
             if (fired != null) fired.incrementAndGet();
             return Frame.of(Body.of(ItemRef.iid(BAR_KEY), List.of()), List.of());

@@ -2,11 +2,11 @@ package dev.everydaythings.graph.value.identifier;
 
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.canonical.Decode;
-import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.PartOfSpeech;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 
 /** MiddleName — a name positioned between given and family.  Atomic-text {@link Name} subtype. */

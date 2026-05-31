@@ -1,7 +1,5 @@
 package dev.everydaythings.graph;
 
-import dev.everydaythings.graph.language.*;
-
 import static dev.everydaythings.graph.Seed.*;
 
 /**
@@ -67,19 +65,19 @@ public final class SchemaVocabulary {
         public static final String KEY = "cg.sememe:implements";
         private Implements() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        @Frame(predicate = Language.Gloss.KEY,
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "predicate declaring that an artifact realizes a concept — its frames "
                         + "carry THEME → concept and AGENT → implementation reference "
                         + "(typically a class name or source code), letting CREATE find "
                         + "runnable forms and items declare what they implement";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "implement";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "implementation";
     }
@@ -102,13 +100,13 @@ public final class SchemaVocabulary {
         public static final String KEY = "cg.qualifier:required";
         private Required() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier marking an EXPECTS declaration as mandatory rather than "
                         + "merely permitted";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "required";
     }
@@ -131,12 +129,12 @@ public final class SchemaVocabulary {
         public static final String KEY = "cg.role:retention";
         private Retention() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "record-binding role declaring a predicate's frame-persistence policy";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "retention";
     }
@@ -156,13 +154,13 @@ public final class SchemaVocabulary {
         public static final String KEY = "cg.value:ephemeral";
         private Ephemeral() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "value marking a predicate's frames as non-persisted — handler fires, "
                         + "response flows back, nothing stored";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "ephemeral";
     }
@@ -194,13 +192,13 @@ public final class SchemaVocabulary {
         public static final String KEY = "cg.quality:returns";
         private Returns() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "the binding role on an operator's manifest naming the type of value the "
                         + "operator produces when its frame is evaluated";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "return";
     }
@@ -220,13 +218,13 @@ public final class SchemaVocabulary {
         public static final String KEY = "cg.qualifier:limit";
         private Limit() {}
 
-        @Frame(predicate = LexicalVocabulary.Gloss.KEY,
+        @Frame(predicate = Language.Gloss.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "qualifier on ATTRIBUTE bindings declaring a result-count cap "
                         + "for set-returning queries";
 
-        @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+        @Frame(predicate = Language.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "limit";
     }

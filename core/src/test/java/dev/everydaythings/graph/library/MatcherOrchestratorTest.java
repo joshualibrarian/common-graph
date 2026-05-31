@@ -6,7 +6,7 @@ import dev.everydaythings.graph.datum.Body;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.TypeRef;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.operator.compare.Between;
 import dev.everydaythings.graph.operator.compare.Equal;

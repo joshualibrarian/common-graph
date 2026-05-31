@@ -7,8 +7,8 @@ import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.language.ThematicRole;
-import dev.everydaythings.graph.runtime.librarian.Librarian;
+import dev.everydaythings.graph.ThematicRole;
+import dev.everydaythings.graph.runtime.librarian.LibrarianHandle;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -74,7 +74,7 @@ public final class AttestationChain {
      * Walk Attestation frames starting from the given identity.  Uses the
      * default depth limit.
      */
-    public static List<Frame> walk(Librarian librarian, ItemRef startIid) {
+    public static List<Frame> walk(LibrarianHandle librarian, ItemRef startIid) {
         return walk(librarian, startIid, DEFAULT_MAX_DEPTH);
     }
 
@@ -82,7 +82,7 @@ public final class AttestationChain {
      * Walk Attestation frames starting from the given identity with an
      * explicit depth limit.  Returns the frames in DFS visit order.
      */
-    public static List<Frame> walk(Librarian librarian, ItemRef startIid, int maxDepth) {
+    public static List<Frame> walk(LibrarianHandle librarian, ItemRef startIid, int maxDepth) {
         Objects.requireNonNull(librarian, "librarian");
         Objects.requireNonNull(startIid, "startIid");
         if (maxDepth < 0) {
@@ -94,7 +94,7 @@ public final class AttestationChain {
         return chain;
     }
 
-    private static void walkInto(Librarian librarian, ItemRef iid, int remainingDepth,
+    private static void walkInto(LibrarianHandle librarian, ItemRef iid, int remainingDepth,
                                  List<Frame> chain, Set<ItemRef> visited) {
         if (!visited.add(iid)) return;       // cycle — already visited this IID
         if (remainingDepth <= 0) return;
@@ -103,13 +103,13 @@ public final class AttestationChain {
         ItemRef attestationHead = ItemRef.iid(IdentityVocabulary.Attestation.KEY);
 
         List<DatumRef> candidateBodies =
-                librarian.library().bodyCidsForReferenceBinding(themeRole, iid);
+                librarian.bodyCidsForReferenceBinding(themeRole, iid);
 
         // Frames whose body head is Attestation about this iid — pull each
         // into the chain, verify, then recurse on its AGENT.
         Set<ItemRef> nextAttesters = new LinkedHashSet<>();
         for (DatumRef bodyId : candidateBodies) {
-            librarian.library().fetchFrame(bodyId).ifPresent(frame -> {
+            librarian.fetchFrame(bodyId).ifPresent(frame -> {
                 if (!attestationHead.equals(frame.body().headRef())) return;
                 chain.add(frame);
                 if (verifyAttestation(librarian, frame)) {
@@ -147,7 +147,7 @@ public final class AttestationChain {
      * subject's INSTRUMENT pubkey AND the attestation is self-shaped
      * (AGENT == THEME).
      */
-    private static boolean verifyAttestation(Librarian librarian, Frame frame) {
+    private static boolean verifyAttestation(LibrarianHandle librarian, Frame frame) {
         Body body = frame.body();
         Optional<ItemRef> attester = Attestations.attester(body);
         Optional<ItemRef> subject = Attestations.subject(body);
@@ -179,7 +179,7 @@ public final class AttestationChain {
      * [newRecord]) effectively just appends the new record to the existing
      * frame's record set — content-addressing dedupes the body bytes.
      */
-    private static void emitVerifiedAnchor(Librarian librarian, Frame frame) {
+    private static void emitVerifiedAnchor(LibrarianHandle librarian, Frame frame) {
         if (!librarian.canSign()) return;
         Body body = frame.body();
         byte[] payload = HashTree.signingPayload(body);

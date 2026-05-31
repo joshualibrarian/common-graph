@@ -1,0 +1,25 @@
+// =============================================================================
+// :substrate — the data primitives
+//
+// Frame, Body, Binding, Record, Manifest, Opaque, DatumNode, refs (HashID,
+// ItemRef, DatumRef, ContentRef, SchemaRef, TypeRef, CompoundKey, multibase
+// helpers), canonical (HashTree, walkers), the canonical encoder.
+//
+// What graph bytes look like.  No Item, no librarian, no runtime state.
+// Depends on :annotations (its classes use @Seed.*) and :vocabulary (it
+// references the canonical KEY constants for ITEM_ID, FOLLOWS, etc.).
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':annotations')
+
+    // Picked up from the third-party deps that substrate classes actually use:
+    api 'com.github.multiformats:java-multihash:v1.3.6'
+    implementation "com.upokecenter:cbor:${cborVersion}"
+    implementation "org.apache.commons:commons-lang3:${commonsLang3Version}"
+    implementation "org.apache.commons:commons-compress:${commonsCompressVersion}"
+}

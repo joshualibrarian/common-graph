@@ -1,0 +1,11 @@
+// =============================================================================
+// :annotations — annotation type definitions
+//
+// The smallest module: @Handles, @Seed, and any other annotations the SDK
+// surfaces.  No dependencies on other CG modules; everything that uses CG
+// annotations depends on this module.
+// =============================================================================
+
+plugins {
+    id 'java-library'
+}

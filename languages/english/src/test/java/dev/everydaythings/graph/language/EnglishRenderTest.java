@@ -49,8 +49,8 @@ class EnglishRenderTest {
                 new Part<>(ItemRef.of(ItemRef.iid(Add.KEY)),
                         new BigDecimal("1.0"), List.of()),
                 List.of(
-                        binding(ThematicRole.Theme.KEY, 5L),
-                        binding(ThematicRole.Goal.KEY, 3L)),
+                        binding(dev.everydaythings.graph.ThematicRole.Theme.KEY, 5L),
+                        binding(dev.everydaythings.graph.ThematicRole.Goal.KEY, 3L)),
                 List.of());
 
         FrameMap rendered = english.render(input, ParseParams.defaults());

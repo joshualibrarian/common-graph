@@ -10,7 +10,7 @@ import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.cryptography.vault.Vault;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 import java.time.Instant;
 import java.util.ArrayList;

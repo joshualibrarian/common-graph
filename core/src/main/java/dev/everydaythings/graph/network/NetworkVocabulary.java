@@ -2,11 +2,11 @@ package dev.everydaythings.graph.network;
 
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.PartOfSpeech;
+import dev.everydaythings.graph.ThematicRole;
 
 import static dev.everydaythings.graph.Seed.Binding;
 import static dev.everydaythings.graph.Seed.Frame;

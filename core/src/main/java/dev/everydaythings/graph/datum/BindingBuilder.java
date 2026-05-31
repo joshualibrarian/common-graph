@@ -3,7 +3,7 @@ package dev.everydaythings.graph.datum;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.CompoundKey.Qualifier;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.cryptography.Signer;
+import dev.everydaythings.graph.cryptography.SignerHandle;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ import java.util.Objects;
  * optional ordinal {@link #index(long)}.
  *
  * <p>The binding does not need to be explicitly closed for the common
- * chain-terminators.  {@link #build()}, {@link #record(Signer)}, and {@link
+ * chain-terminators.  {@link #build()}, {@link #record(SignerHandle)}, and {@link
  * #binding(ItemRef)} all auto-close the current binding (materializing it
  * into the parent's bindings list) before delegating to the parent.  For any
  * other parent method, call {@link #done()} to escape back to the typed
@@ -112,7 +112,7 @@ public final class BindingBuilder<P extends DatumBuilder<P>> {
      * Close this binding and return the typed parent builder.  Use this to
      * continue with any parent method not covered by the convenience
      * forwarders ({@link #binding(ItemRef)}, {@link #build()},
-     * {@link #record(Signer)}).
+     * {@link #record(SignerHandle)}).
      */
     public P done() {
         return seal();
@@ -133,7 +133,7 @@ public final class BindingBuilder<P extends DatumBuilder<P>> {
      * AttributedBodyBuilder} subclasses, {@link RecordBuilder}); bare-body
      * builders ({@link BodyBuilder}) reject this.
      */
-    public Object record(Signer signer) {
+    public Object record(SignerHandle signer) {
         P p = seal();
         if (p instanceof AttributedBodyBuilder<?, ?> ab) {
             return ab.record(signer);

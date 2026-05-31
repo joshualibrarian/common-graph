@@ -1,6 +1,4 @@
-package dev.everydaythings.graph.language;
-
-import dev.everydaythings.graph.Seed;
+package dev.everydaythings.graph;
 
 /**
  * Grammatical feature sememes — narrowing qualifiers on lexemes and other

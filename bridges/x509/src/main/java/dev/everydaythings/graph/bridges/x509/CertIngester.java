@@ -13,7 +13,7 @@ import dev.everydaythings.graph.cryptography.MultiKey;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.cryptography.vault.Vault;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import org.bouncycastle.openssl.PEMParser;
 
 import java.io.ByteArrayInputStream;

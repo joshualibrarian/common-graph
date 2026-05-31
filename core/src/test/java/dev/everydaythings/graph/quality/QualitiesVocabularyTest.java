@@ -7,7 +7,7 @@ import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.operator.math.Multiply;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.value.Quantity;

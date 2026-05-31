@@ -9,7 +9,7 @@ import dev.everydaythings.graph.cryptography.IdentityVocabulary;
 import dev.everydaythings.graph.cryptography.MultiKey;
 import dev.everydaythings.graph.cryptography.vault.InMemoryVault;
 import dev.everydaythings.graph.cryptography.vault.Vault;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;

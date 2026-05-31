@@ -4,7 +4,7 @@ import dev.everydaythings.graph.SchemaVocabulary;
 
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.ref.ItemRef;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.runtime.librarian.LibrarianVocabulary;
 import org.junit.jupiter.api.DisplayName;

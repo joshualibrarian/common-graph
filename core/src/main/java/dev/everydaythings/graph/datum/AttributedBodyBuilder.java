@@ -5,8 +5,8 @@ import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.ref.DatumRef;
-import dev.everydaythings.graph.cryptography.Signer;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.cryptography.SignerHandle;
+import dev.everydaythings.graph.ThematicRole;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.List;
  * dev.everydaythings.graph.item.Manifest Manifest}, future Query).  For
  * bare bodies (no records) use {@link BodyBuilder} instead.
  *
- * <p>Adds {@link #record(Signer)} for attaching attestations and {@link #build()}
+ * <p>Adds {@link #record(SignerHandle)} for attaching attestations and {@link #build()}
  * for materializing the final aggregate.  The orchestration order is:
  *
  * <ol>
@@ -41,7 +41,7 @@ public abstract class AttributedBodyBuilder<SELF extends AttributedBodyBuilder<S
      * Open a record sub-builder with the given signer. Any open binding and any
      * prior open record is closed first.
      */
-    public RecordBuilder<SELF, R> record(Signer signer) {
+    public RecordBuilder<SELF, R> record(SignerHandle signer) {
         closeOpenBinding();
         closeOpenRecord();
         openRecord = new RecordBuilder<>(self(), signer);
@@ -90,10 +90,10 @@ public abstract class AttributedBodyBuilder<SELF extends AttributedBodyBuilder<S
      * signed Record.
      */
     static final class RecordIntent {
-        private final Signer signer;
+        private final SignerHandle signer;
         private final List<Binding> bindings;
 
-        RecordIntent(Signer signer, List<Binding> bindings) {
+        RecordIntent(SignerHandle signer, List<Binding> bindings) {
             this.signer = signer;
             this.bindings = bindings;
         }

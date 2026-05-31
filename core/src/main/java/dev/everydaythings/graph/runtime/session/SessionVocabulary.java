@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.runtime.session;
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.scene.Scene;
 import dev.everydaythings.graph.scene.SceneVocabulary;
@@ -71,13 +72,13 @@ public final class SessionVocabulary {
         private ItemView() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "a persistent view of an item within a session";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "view";
 
         /**
@@ -115,13 +116,13 @@ public final class SessionVocabulary {
         private Expanded() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "whether a window is showing its content scene or only its handle";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "expanded";
     }
 
@@ -136,12 +137,12 @@ public final class SessionVocabulary {
         private Close() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "close an open view of an item";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "close";
     }
 
@@ -160,13 +161,13 @@ public final class SessionVocabulary {
         private DisplayLayout() {}
 
         @Frame(predicate = LexicalVocabulary.Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "placement of a display within a session's coordinate space";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "display-layout";
     }
 }

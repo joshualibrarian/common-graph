@@ -1,8 +1,9 @@
 package dev.everydaythings.graph.runtime;
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.item.Item;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.language.*;
 import dev.everydaythings.graph.runtime.librarian.LibrarianVocabulary;
@@ -35,7 +36,7 @@ public final class RuntimeVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "java";
     }
 
@@ -51,7 +52,7 @@ public final class RuntimeVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "python";
     }
 
@@ -67,7 +68,7 @@ public final class RuntimeVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "javascript";
     }
 
@@ -83,7 +84,7 @@ public final class RuntimeVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "rust";
     }
 
@@ -99,7 +100,7 @@ public final class RuntimeVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "clojure";
     }
 
@@ -120,7 +121,7 @@ public final class RuntimeVocabulary {
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
           field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "lisp";
     }
 
@@ -157,11 +158,11 @@ public final class RuntimeVocabulary {
                         + "so the archetype can set up its initial state (default bindings, etc.)";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "construct";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "construction";
     }
 
@@ -202,7 +203,7 @@ public final class RuntimeVocabulary {
                         + "data they operate on";
 
         @Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "code";
     }
 

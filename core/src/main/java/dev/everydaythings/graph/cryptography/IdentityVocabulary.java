@@ -2,10 +2,11 @@ package dev.everydaythings.graph.cryptography;
 
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.language.*;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.TypeRef;
 
 /**
@@ -58,11 +59,11 @@ public final class IdentityVocabulary {
                 "the cryptographic signing-key track of an identity (e.g., Ed25519)";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "signing";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "sign";
     }
 
@@ -86,7 +87,7 @@ public final class IdentityVocabulary {
                         + "distinct from algorithms that encrypt content directly";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "key-agreement";
     }
 
@@ -116,7 +117,7 @@ public final class IdentityVocabulary {
                         + "derives keys other algorithms use to encrypt)";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "encryption";
     }
 
@@ -157,11 +158,11 @@ public final class IdentityVocabulary {
                 "the founding key-state declaration for one identity's one key-track";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "inception";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "incept";
 
         /** Which key-track to incept (signing / encryption / key-agreement). */
@@ -200,11 +201,11 @@ public final class IdentityVocabulary {
                 "evolving an identity's committed keys for one key-track, with pre-rotation reveal";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "rotation";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "rotate";
 
         /** Which key-track to rotate. */
@@ -245,11 +246,11 @@ public final class IdentityVocabulary {
                 "a parent identity's authorization for a child identity to operate under its authority";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "delegation";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "delegate";
 
         /** The party receiving the delegation. */
@@ -297,11 +298,11 @@ public final class IdentityVocabulary {
                 "the generic withdrawal of any prior assertion — \"I take it back\"";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "revocation";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "revoke";
 
         /** What's being revoked (identity, event, delegation, claim — polymorphic). */
@@ -377,11 +378,11 @@ public final class IdentityVocabulary {
                         + "to a subject identity";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "attestation";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "attest";
     }
 
@@ -448,7 +449,7 @@ public final class IdentityVocabulary {
         static final String englishGloss = "the one immediately following in sequence";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "next";
     }
 
@@ -474,7 +475,7 @@ public final class IdentityVocabulary {
         static final String englishGloss = "the present or active one in a sequence";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "current";
     }
 
@@ -499,7 +500,7 @@ public final class IdentityVocabulary {
                 "kept for historical or fallback access after being superseded";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishAdjectiveLemma = "retained";
     }
 
@@ -518,7 +519,7 @@ public final class IdentityVocabulary {
         static final String englishGloss = "one who delegates authority, responsibility, or a task";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "delegator";
     }
 
@@ -566,7 +567,7 @@ public final class IdentityVocabulary {
                         + "Double-Ratchet session asynchronously";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "signed pre-key";
     }
 
@@ -607,7 +608,7 @@ public final class IdentityVocabulary {
                         + "even if the signed pre-key is later compromised";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "one-time pre-key";
     }
 
@@ -649,7 +650,7 @@ public final class IdentityVocabulary {
                         + "relation between signers that share an operator";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "represent";
     }
 
@@ -684,7 +685,7 @@ public final class IdentityVocabulary {
                         + "many across federation and multi-device";
 
         @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
-              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+              field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "serve";
     }
 

@@ -143,7 +143,7 @@ public final class ContextChain {
             if (hit.isPresent()) return Optional.ofNullable(hit.get().target());
         }
         for (Item item : entries) {
-            Librarian lib = item.librarian();
+            Librarian lib = (Librarian) item.librarian();
             Optional<Object> hit = walkArchetypeChainForBinding(item, lib, key);
             if (hit.isPresent()) return hit;
         }
@@ -214,7 +214,7 @@ public final class ContextChain {
      */
     public Optional<Librarian> librarian() {
         for (Item item : entries) {
-            Librarian lib = item.librarian();
+            Librarian lib = (Librarian) item.librarian();
             if (lib != null) return Optional.of(lib);
         }
         return Optional.empty();
@@ -272,7 +272,7 @@ public final class ContextChain {
         CompoundKey styleKey = compoundStyleKey(qualifierKeys);
         List<Body> out = new ArrayList<>();
         for (Item item : entries) {
-            collectStylesAlongArchetypeChain(item, item.librarian(), styleKey, out);
+            collectStylesAlongArchetypeChain(item, (Librarian) item.librarian(), styleKey, out);
         }
         return out;
     }

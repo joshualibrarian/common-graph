@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import com.ibm.icu.util.ULocale;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Frame;
@@ -49,7 +50,6 @@ import java.util.Optional;
  * When a sub-Language doesn't override a behavior, it inherits this base
  * implementation.
  */
-@Seed.Item(key = Language.English.KEY, head = Language.KEY)
 @Seed.Embodies(key = Language.English.KEY)
 public class English extends Language {
 
@@ -118,7 +118,7 @@ public class English extends Language {
 
         BindingMap themeBinding = null;
         List<BindingMap> obliques = new ArrayList<>();
-        ItemRef themeRole = ItemRef.iid(ThematicRole.Theme.KEY);
+        ItemRef themeRole = ItemRef.iid(dev.everydaythings.graph.ThematicRole.Theme.KEY);
         for (BindingMap b : frameMap.bindings()) {
             if (b.role() == null || b.role().value() == null) continue;
             if (themeRole.equals(b.role().value().iid())) {
@@ -200,7 +200,7 @@ public class English extends Language {
             Object themeVal = recognizeOperand(tokens.get(idx)).orElse(null);
             if (themeVal != null) {
                 bindings.add(makeBinding(
-                        ItemRef.iid(ThematicRole.Theme.KEY),
+                        ItemRef.iid(dev.everydaythings.graph.ThematicRole.Theme.KEY),
                         themeVal,
                         tokens.get(idx).span(),
                         bindConfidence));
@@ -295,12 +295,12 @@ public class English extends Language {
 
     /** Pull an English verb-lemma string from a Lexeme frame (Value + English + Verb + Lemma). */
     private static Optional<String> readEnglishVerbLemma(Frame lexemeFrame) {
-        return readLemma(lexemeFrame, ItemRef.iid(PartOfSpeech.Verb.KEY));
+        return readLemma(lexemeFrame, ItemRef.iid(dev.everydaythings.graph.PartOfSpeech.Verb.KEY));
     }
 
     /** Pull an English preposition-lemma string from a Lexeme frame (Value + English + Preposition + Lemma). */
     private static Optional<String> readEnglishPrepositionLemma(Frame lexemeFrame) {
-        return readLemma(lexemeFrame, ItemRef.iid(PartOfSpeech.Preposition.KEY));
+        return readLemma(lexemeFrame, ItemRef.iid(dev.everydaythings.graph.PartOfSpeech.Preposition.KEY));
     }
 
     /**
@@ -308,7 +308,7 @@ public class English extends Language {
      * English + the given POS + Lemma, and return its String target.
      */
     private static Optional<String> readLemma(Frame lexemeFrame, ItemRef pos) {
-        ItemRef valueRole = ItemRef.iid(ThematicRole.Value.KEY);
+        ItemRef valueRole = ItemRef.iid(dev.everydaythings.graph.ThematicRole.Value.KEY);
         ItemRef english = ItemRef.iid(Language.English.KEY);
         ItemRef lemma = ItemRef.iid(GrammaticalFeature.Lemma.KEY);
         return lexemeFrame.bindings().stream()
@@ -336,14 +336,14 @@ public class English extends Language {
     /** A TokenPosting that came from an English verb-lemma Lexeme. */
     private static boolean isEnglishVerbLemmaPosting(TokenPosting p) {
         return isEnglishLexemePosting(p)
-                && p.features().contains(ItemRef.iid(PartOfSpeech.Verb.KEY))
+                && p.features().contains(ItemRef.iid(dev.everydaythings.graph.PartOfSpeech.Verb.KEY))
                 && p.features().contains(ItemRef.iid(GrammaticalFeature.Lemma.KEY));
     }
 
     /** A TokenPosting that came from an English preposition-lemma Lexeme. */
     private static boolean isEnglishPrepositionLemmaPosting(TokenPosting p) {
         return isEnglishLexemePosting(p)
-                && p.features().contains(ItemRef.iid(PartOfSpeech.Preposition.KEY))
+                && p.features().contains(ItemRef.iid(dev.everydaythings.graph.PartOfSpeech.Preposition.KEY))
                 && p.features().contains(ItemRef.iid(GrammaticalFeature.Lemma.KEY));
     }
 
@@ -356,7 +356,7 @@ public class English extends Language {
     /** A TokenPosting that came from an English past-participle verb form (named, called, ...). */
     private static boolean isEnglishParticiplePosting(TokenPosting p) {
         return isEnglishLexemePosting(p)
-                && p.features().contains(ItemRef.iid(PartOfSpeech.Verb.KEY))
+                && p.features().contains(ItemRef.iid(dev.everydaythings.graph.PartOfSpeech.Verb.KEY))
                 && p.features().contains(ItemRef.iid(GrammaticalFeature.Participle.KEY));
     }
 
@@ -410,7 +410,7 @@ public class English extends Language {
         Part<CompoundKey.Qualifier> kindPart =
                 new Part<>(new CompoundKey.Sememe(kind), confidence, List.of());
         return new BindingMap(
-                new Part<>(ItemRef.of(ItemRef.iid(ThematicRole.Attribute.KEY)), confidence, List.of()),
+                new Part<>(ItemRef.of(ItemRef.iid(dev.everydaythings.graph.ThematicRole.Attribute.KEY)), confidence, List.of()),
                 List.of(kindPart),
                 new Part<>(target, confidence, List.of(targetSpan)));
     }

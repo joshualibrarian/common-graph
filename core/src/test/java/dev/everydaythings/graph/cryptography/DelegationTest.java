@@ -8,7 +8,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Delegation;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import dev.everydaythings.graph.CoreVocabulary;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

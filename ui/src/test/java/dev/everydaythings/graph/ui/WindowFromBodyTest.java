@@ -3,7 +3,7 @@ package dev.everydaythings.graph.ui;
 import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.runtime.session.SessionVocabulary;
 import org.junit.jupiter.api.DisplayName;

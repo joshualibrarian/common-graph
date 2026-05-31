@@ -24,7 +24,7 @@ import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Multikey;
 import dev.everydaythings.graph.cryptography.IdentityVocabulary.Next;
 import dev.everydaythings.graph.CoreVocabulary.Expires;
 import dev.everydaythings.graph.CoreVocabulary.Sequence;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 import java.security.KeyPair;
 import java.time.Instant;

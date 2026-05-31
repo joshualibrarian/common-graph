@@ -6,11 +6,11 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.algorithm.Hash;
 import dev.everydaythings.graph.cryptography.algorithm.KeyAgreement;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
-import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.PartOfSpeech;
+import dev.everydaythings.graph.ThematicRole;
 import io.ipfs.multihash.Multihash;
 
 import java.util.LinkedHashMap;

@@ -1,11 +1,11 @@
 package dev.everydaythings.graph.cryptography;
 
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.language.GrammaticalFeature;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.language.LexicalVocabulary;
-import dev.everydaythings.graph.language.PartOfSpeech;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.PartOfSpeech;
+import dev.everydaythings.graph.ThematicRole;
 
 /**
  * Credential vocabulary — sememes for user-facing credentials stored in a

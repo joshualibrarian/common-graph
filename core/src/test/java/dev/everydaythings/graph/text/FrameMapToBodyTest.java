@@ -2,7 +2,7 @@ package dev.everydaythings.graph.text;
 
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;

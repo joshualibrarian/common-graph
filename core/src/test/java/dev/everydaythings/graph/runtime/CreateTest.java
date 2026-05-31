@@ -6,7 +6,8 @@ import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.datum.Record;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.runtime.Implementations;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.SchemaRef;
@@ -61,7 +62,7 @@ class CreateTest {
                 ItemRef.of(GADGET),
                 List.of(
                         Binding.ref(Manifest.ITEM_ID, GADGET),
-                        Manifest.implementation(Gadget.class),
+                        Implementations.forJava(Gadget.class),
                         new Binding(SchemaRef.of(COLOR), TypeRef.iid("cg.value:color-test"))));
         lib.persist(archetypeManifest);
     }

@@ -11,7 +11,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.operator.OperatorNotation;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.text.FrameMap.BindingMap;
 import dev.everydaythings.graph.text.FrameMap.Part;
 import java.math.BigDecimal;

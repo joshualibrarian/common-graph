@@ -4,12 +4,13 @@ import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.operator.BinaryArithmetic;
 import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.operator.OperatorNotation;
 
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.value.Numeric;
 
 /**

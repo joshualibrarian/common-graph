@@ -10,7 +10,7 @@ import dev.everydaythings.graph.cryptography.EncryptionVocabulary.ConsumedPreKey
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Decrypt;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.DoubleRatchetV1;
 import dev.everydaythings.graph.cryptography.EncryptionVocabulary.Encrypt;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

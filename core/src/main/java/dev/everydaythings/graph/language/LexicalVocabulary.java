@@ -1,6 +1,7 @@
 package dev.everydaythings.graph.language;
 
 import dev.everydaythings.graph.CoreVocabulary;
+import dev.everydaythings.graph.GrammaticalFeature;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.item.Item;
@@ -38,11 +39,11 @@ public final class LexicalVocabulary {
         private Hypernym() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "is a kind of; is a type of; is a subclass of";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i69569";
     }
 
@@ -52,11 +53,11 @@ public final class LexicalVocabulary {
         private Hyponym() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "has subtype; has kind; is a superclass of";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i69570";
     }
 
@@ -66,11 +67,11 @@ public final class LexicalVocabulary {
         private InstanceOf() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "is an instance of; has type; is a member of class";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i35284";
     }
 
@@ -84,11 +85,11 @@ public final class LexicalVocabulary {
         private Holonym() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "is a part of; is contained in";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i69567";
     }
 
@@ -98,11 +99,11 @@ public final class LexicalVocabulary {
         private Meronym() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "has as a part; contains";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i69575";
     }
 
@@ -116,11 +117,11 @@ public final class LexicalVocabulary {
         private Antonym() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "is the opposite of; contrasts with";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i69547";
     }
 
@@ -130,11 +131,11 @@ public final class LexicalVocabulary {
         private SimilarTo() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "is similar to; resembles in meaning";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i34992";
     }
 
@@ -144,11 +145,11 @@ public final class LexicalVocabulary {
         private Derivation() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "is derivationally related to";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i37467";
     }
 
@@ -158,11 +159,11 @@ public final class LexicalVocabulary {
         private Domain() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "belongs to domain; is in the category of";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i68336";
     }
 
@@ -172,16 +173,16 @@ public final class LexicalVocabulary {
         private Entails() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "entails; necessarily implies";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i34848";
 
         @Frame(predicate = Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "entails";
     }
 
@@ -191,16 +192,16 @@ public final class LexicalVocabulary {
         private Causes() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "causes; brings about";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i29966";
 
         @Frame(predicate = Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Verb.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishVerbLemma = "causes";
     }
 
@@ -210,11 +211,11 @@ public final class LexicalVocabulary {
         private SeeAlso() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss = "see also; is related to";
 
         @Frame(predicate = CiliId.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY))
         static final String cili = "i25271";
     }
 
@@ -251,12 +252,12 @@ public final class LexicalVocabulary {
      * <p>Phase 1 is pure persistence — the seed body is enough.  Future:
      * token-dictionary indexing for word→sememe lookup at parse time.
      */
-    @Seed.Item(key = Lexeme.KEY, head = CoreVocabulary.Predicate.KEY)
     @Embodies(key = Lexeme.KEY)
     public static class Lexeme extends Item {
 
-        /** Canonical key for the lexeme sememe. */
-        public static final String KEY = "cg.sememe:lexeme";
+        /** Canonical key for the lexeme sememe.  Single source of truth lives in
+         *  {@link dev.everydaythings.graph.Language.Lexeme#KEY} (:annotations). */
+        public static final String KEY = dev.everydaythings.graph.Language.Lexeme.KEY;
 
         /** The deterministic IID for the lexeme sememe. */
 
@@ -290,12 +291,12 @@ public final class LexicalVocabulary {
      * <p>Phase 1 is pure persistence — the seed body is enough.  Future:
      * token-dictionary indexing for "find sememes whose gloss matches X."
      */
-    @Seed.Item(key = Gloss.KEY, head = CoreVocabulary.Predicate.KEY)
     @Embodies(key = Gloss.KEY)
     public static class Gloss extends Item {
 
-        /** Canonical key for the gloss sememe. */
-        public static final String KEY = "cg.sememe:gloss";
+        /** Canonical key for the gloss sememe.  Single source of truth lives in
+         *  {@link dev.everydaythings.graph.Language.Gloss#KEY} (:annotations). */
+        public static final String KEY = dev.everydaythings.graph.Language.Gloss.KEY;
 
         /** The deterministic IID for the gloss sememe. */
 
@@ -323,7 +324,7 @@ public final class LexicalVocabulary {
         private AssignedRole() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "declares which thematic role a lexeme (typically a preposition or "
                         + "other function word) assigns to its object";
@@ -333,7 +334,7 @@ public final class LexicalVocabulary {
      * Alias — a qualifier marking a {@link Lexeme} (or similar) value as an
      * alternate name rather than the canonical lemma.
      *
-     * <p>Parallel to {@link dev.everydaythings.graph.language.GrammaticalFeature.Lemma
+     * <p>Parallel to {@link GrammaticalFeature.Lemma
      * Lemma}: a Lexeme frame qualified by {@code Lemma} carries the
      * canonical dictionary form; the same predicate qualified by
      * {@code Alias} carries an alternate name (historical, legacy,
@@ -368,14 +369,14 @@ public final class LexicalVocabulary {
         private Alias() {}
 
         @Frame(predicate = Gloss.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
         static final String englishGloss =
                 "marks a name as an alias — an alternate name for the same underlying "
                         + "concept, rather than the canonical lemma";
 
         @Frame(predicate = Lexeme.KEY,
-          field = @Binding(role = ThematicRole.Value.KEY,
-            qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+          field = @Binding(role = dev.everydaythings.graph.ThematicRole.Value.KEY,
+            qualifiers = {Language.English.KEY, dev.everydaythings.graph.PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "alias";
     }
 }

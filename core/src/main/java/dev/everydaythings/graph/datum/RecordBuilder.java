@@ -1,6 +1,6 @@
 package dev.everydaythings.graph.datum;
 
-import dev.everydaythings.graph.cryptography.Signer;
+import dev.everydaythings.graph.cryptography.SignerHandle;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -9,23 +9,23 @@ import java.util.Objects;
  * Fluent sub-builder for a record's bindings, nested inside an
  * {@link AttributedBodyBuilder}.
  *
- * <p>Returned by {@link AttributedBodyBuilder#record(Signer)}.  Inherits
+ * <p>Returned by {@link AttributedBodyBuilder#record(SignerHandle)}.  Inherits
  * the role helpers from {@link DatumBuilder} — they operate on this
  * builder's own bindings list (the record's bindings, not the body's).
  * At parent build time, the record's bindings are augmented with default
  * AGENT (from the signer) and TIME (now) if not explicitly set, the
  * body's signing payload is signed, and the final Record is produced.
  *
- * <p>Calling {@link #record(Signer)} or {@link #build()} forwards to the
+ * <p>Calling {@link #record(SignerHandle)} or {@link #build()} forwards to the
  * parent, auto-closing this record's intent.  Multi-sig flows chain
  * naturally: {@code .record(alice).record(bob).build()}.
  */
 public final class RecordBuilder<P extends AttributedBodyBuilder<P, R>, R> extends DatumBuilder<RecordBuilder<P, R>> {
 
     private final P parent;
-    private final Signer signer;
+    private final SignerHandle signer;
 
-    RecordBuilder(P parent, Signer signer) {
+    RecordBuilder(P parent, SignerHandle signer) {
         this.parent = Objects.requireNonNull(parent, "parent");
         this.signer = Objects.requireNonNull(signer, "signer");
     }
@@ -42,9 +42,9 @@ public final class RecordBuilder<P extends AttributedBodyBuilder<P, R>, R> exten
 
     /**
      * Open a new record (and close this one).  Forwards to the parent's
-     * {@link AttributedBodyBuilder#record(Signer)} after closing self.
+     * {@link AttributedBodyBuilder#record(SignerHandle)} after closing self.
      */
-    public RecordBuilder<P, R> record(Signer next) {
+    public RecordBuilder<P, R> record(SignerHandle next) {
         // The parent will see openRecord==this; closeOpenRecord materializes us.
         return parent.record(next);
     }

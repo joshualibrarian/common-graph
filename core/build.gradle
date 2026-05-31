@@ -13,6 +13,12 @@ plugins {
 dependencies {
 
     // -------------------------------------------------------------------------
+    // CG modules — annotations, vocabulary, etc.
+    // -------------------------------------------------------------------------
+    api project(':annotations')
+    api project(':substrate')
+
+    // -------------------------------------------------------------------------
     // CLI (Picocli) — used by core commands, action system
     // -------------------------------------------------------------------------
     api "info.picocli:picocli:${picocliVersion}"

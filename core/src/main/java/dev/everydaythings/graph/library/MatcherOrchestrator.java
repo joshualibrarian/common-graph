@@ -11,7 +11,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.TypeRef;
 import dev.everydaythings.graph.item.Item;
 import dev.everydaythings.graph.item.Manifest;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
 
 import java.util.ArrayList;
@@ -73,7 +73,7 @@ public final class MatcherOrchestrator {
         ItemRef archetype = typeRef.iid();
 
         List<Frame> results = new ArrayList<>();
-        for (DatumRef manifestCid : librarian.library().manifestCidsForType(archetype)) {
+        for (DatumRef manifestCid : librarian.manifestCidsForType(archetype)) {
             Optional<Manifest> manifestOpt = librarian.fetchManifest(manifestCid);
             if (manifestOpt.isEmpty()) continue;
             Manifest manifest = manifestOpt.get();

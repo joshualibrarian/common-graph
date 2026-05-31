@@ -1,9 +1,9 @@
 package dev.everydaythings.graph.runtime.librarian;
 
 
+import dev.everydaythings.graph.Handles;
 import dev.everydaythings.graph.SchemaVocabulary;
 
-import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.cryptography.OpaqueOpsVocabulary;
 import dev.everydaythings.graph.datum.Opaque;
@@ -37,6 +37,7 @@ import dev.everydaythings.graph.ref.ContentRef;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.cryptography.Signer;
+import dev.everydaythings.graph.cryptography.SignerHandle;
 import dev.everydaythings.graph.library.Library;
 import dev.everydaythings.graph.library.MatcherOrchestrator;
 import dev.everydaythings.graph.library.QueryWalker;
@@ -44,7 +45,7 @@ import dev.everydaythings.graph.library.SchemaWalker;
 import dev.everydaythings.graph.library.ValidationResult;
 import dev.everydaythings.graph.library.index.TokenPosting;
 import dev.everydaythings.graph.Seed;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.runtime.stage.ItemStage;
 import dev.everydaythings.graph.value.UnixEndpoint;
 import lombok.Getter;
@@ -77,7 +78,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Seed.Item(key = Librarian.KEY)
 @Seed.Embodies(key = Librarian.CODE_KEY, archetype = Librarian.KEY)
 @Log4j2
-public class Librarian extends Signer {
+public class Librarian extends Signer implements LibrarianHandle {
 
     /** Canonical key for Librarian-the-archetype. */
     public static final String KEY = "cg.archetype:librarian";
@@ -90,7 +91,7 @@ public class Librarian extends Signer {
      * <p>The CodeItem's manifest is minted at bootstrap by
      * {@link Seed.Embodies @Seed.Embodies}'s two-level mode. It carries the class
      * literal as IMPLEMENTATION and endorses one HANDLES frame per
-     * {@link Seed.Handler @Handler}-annotated method on this class — attributing the
+     * {@link Handles @Handler}-annotated method on this class — attributing the
      * predicate→method-name mapping to this specific implementation. A different
      * Librarian implementation (e.g., Clojure, Python) would have its own CodeItem
      * with its own key and its own HANDLES in its own naming convention.
@@ -842,14 +843,14 @@ public class Librarian extends Signer {
      *
      * <p>Direct in-VM callers can invoke this method straight; the same method
      * is also reachable through the frame-dispatch pipeline via the
-     * {@link Seed.Handler} annotation, which keys it to the LOOKUP predicate.
+     * {@link Handles} annotation, which keys it to the LOOKUP predicate.
      *
      * <p>Returns response frames (rather than raw Postings) so the result fits
      * the actor-model pipeline uniformly. Each posting becomes a frame body
      * carrying the surface form, target item, predicate kind, etc. — the same
      * fields a remote caller would receive.
      */
-    @Seed.Handler(predicate = LibrarianVocabulary.Lookup.KEY)
+    @Handles(predicate = LibrarianVocabulary.Lookup.KEY)
     public List<Frame> lookup(Frame lookupFrame) {
         Objects.requireNonNull(lookupFrame, "lookupFrame");
 
@@ -930,7 +931,7 @@ public class Librarian extends Signer {
      * this CREATE command plus the acting librarian (AGENT) and time.  The caller
      * reads the new IID from the body and the provenance from the record.
      */
-    @Seed.Handler(predicate = LibrarianVocabulary.Create.KEY)
+    @Handles(predicate = LibrarianVocabulary.Create.KEY)
     public List<Frame> createItem(Frame createFrame) {
         Objects.requireNonNull(createFrame, "createFrame");
 
@@ -1020,7 +1021,7 @@ public class Librarian extends Signer {
      * <p>First cut: THEME is an inline {@link Body}.  DatumRef → fetched body
      * comes when a use case needs it.
      */
-    @Seed.Handler(predicate = OpaqueOpsVocabulary.Elide.KEY)
+    @Handles(predicate = OpaqueOpsVocabulary.Elide.KEY)
     public Frame handleElide(Frame request) {
         Body requestBody = request.body();
         Body source = readThemeBody(requestBody).orElseThrow(() ->
@@ -1046,7 +1047,7 @@ public class Librarian extends Signer {
      * <p>First cut: THEME is an inline {@link Body}, INSTRUMENT (algorithm) is
      * ignored and the librarian's current encoding is used as the algorithm.
      */
-    @Seed.Handler(predicate = OpaqueOpsVocabulary.Compress.KEY)
+    @Handles(predicate = OpaqueOpsVocabulary.Compress.KEY)
     public Frame handleCompress(Frame request) {
         Body requestBody = request.body();
         Body source = readThemeBody(requestBody).orElseThrow(() ->
@@ -1078,7 +1079,7 @@ public class Librarian extends Signer {
      *
      * <p>First cut: THEME is an inline {@link Opaque.Compressed}.
      */
-    @Seed.Handler(predicate = OpaqueOpsVocabulary.Decompress.KEY)
+    @Handles(predicate = OpaqueOpsVocabulary.Decompress.KEY)
     public Frame handleDecompress(Frame request) {
         Body requestBody = request.body();
         Opaque.Compressed source = readThemeCompressed(requestBody).orElseThrow(() ->
@@ -1157,7 +1158,7 @@ public class Librarian extends Signer {
             throw new IllegalStateException(
                     "CREATE archetype " + archetype + " has no current manifest");
         }
-        Optional<Binding> implBinding = manifest.implementation();
+        Optional<Binding> implBinding = Implementations.firstKnownLanguage(manifest);
         if (implBinding.isPresent()) {
             return resolveImplementationFromBinding(
                     implBinding.get(), "IMPLEMENTATION on archetype " + archetype);
@@ -1166,7 +1167,7 @@ public class Librarian extends Signer {
         for (DatumRef codeCid : library.bodyCidsForReferenceBinding(Manifest.IMPLEMENTS, archetype)) {
             Manifest codeManifest = fetchManifest(codeCid).orElse(null);
             if (codeManifest == null) continue;
-            Optional<Binding> codeImpl = codeManifest.implementation();
+            Optional<Binding> codeImpl = Implementations.firstKnownLanguage(codeManifest);
             if (codeImpl.isPresent()) {
                 return resolveImplementationFromBinding(
                         codeImpl.get(), "IMPLEMENTS code-item for archetype " + archetype);
@@ -1190,7 +1191,7 @@ public class Librarian extends Signer {
     private Class<? extends Item> resolveImplementationFromBinding(
             Binding binding, String contextDescription) {
         // Direct Java implementation binding: role Java, qualifier ClassName, text target.
-        if (Manifest.isJavaImplementation(binding)) {
+        if (Implementations.isJava(binding)) {
             if (!(binding.target() instanceof String className)) {
                 throw new IllegalStateException(contextDescription
                         + " is a Java implementation binding but target is not a String: "
@@ -1213,11 +1214,11 @@ public class Librarian extends Signer {
             throw new IllegalStateException(contextDescription
                     + " references item " + implItemIid + " with no current manifest");
         }
-        Binding nested = manifest.implementation()
+        Binding nested = Implementations.firstKnownLanguage(manifest)
                 .orElseThrow(() -> new IllegalStateException(contextDescription
                         + " references item " + implItemIid
                         + " which lacks an IMPLEMENTATION binding"));
-        if (!Manifest.isJavaImplementation(nested)
+        if (!Implementations.isJava(nested)
                 || !(nested.target() instanceof String className)) {
             throw new IllegalStateException(contextDescription
                     + " via item " + implItemIid
@@ -1261,7 +1262,7 @@ public class Librarian extends Signer {
      * cascaded — those may be referenced elsewhere; dangling references are
      * an accepted cost, reconciled by future GC.
      */
-    @Seed.Handler(predicate = LibrarianVocabulary.Delete.KEY)
+    @Handles(predicate = LibrarianVocabulary.Delete.KEY)
     public List<Frame> deleteItem(Frame deleteFrame) {
         Objects.requireNonNull(deleteFrame, "deleteFrame");
         ItemRef targetIid = readReferencedIid(deleteFrame, ItemRef.iid(ThematicRole.Theme.KEY));
@@ -1351,6 +1352,26 @@ public class Librarian extends Signer {
         return library.hasContent(cid);
     }
 
+    /** Fetch a Record by its content-address, if locally available. */
+    public Optional<Record> fetchRecord(DatumRef datumId) {
+        return library.fetchRecord(datumId);
+    }
+
+    /** All manifest CIDs whose body's head matches {@code archetypeIid}. */
+    public List<DatumRef> manifestCidsForType(ItemRef archetypeIid) {
+        return library.manifestCidsForType(archetypeIid);
+    }
+
+    /** All manifest CIDs for the item identified by {@code itemIid}. */
+    public List<DatumRef> manifestCidsForItem(ItemRef itemIid) {
+        return library.manifestCidsForItem(itemIid);
+    }
+
+    /** All body CIDs containing a binding with role {@code role} referencing {@code target}. */
+    public List<DatumRef> bodyCidsForReferenceBinding(ItemRef role, ItemRef target) {
+        return library.bodyCidsForReferenceBinding(role, target);
+    }
+
     /**
      * Verify that the given signature is valid for the given message under one of
      * the signing keys committed by the given identity's KEL.
@@ -1429,7 +1450,7 @@ public class Librarian extends Signer {
             return new Item(iid, this);
         }
 
-        Optional<Binding> impl = manifest.implementation();
+        Optional<Binding> impl = Implementations.firstKnownLanguage(manifest);
         if (impl.isEmpty()) {
             return new Item(iid, this);
         }
@@ -1445,7 +1466,7 @@ public class Librarian extends Signer {
     }
 
     private static Class<? extends Item> resolveImplementationClass(Binding binding, ItemRef iid) {
-        if (!Manifest.isJavaImplementation(binding)) {
+        if (!Implementations.isJava(binding)) {
             throw new IllegalStateException(
                     "Manifest for " + iid + " has implementation binding that is not "
                             + "Java+ClassName; cannot hydrate as Java");
@@ -1545,7 +1566,7 @@ public class Librarian extends Signer {
      * @param signer the signer attesting the frame
      * @return the assembled Frame (body + the new record), already persisted
      */
-    public Frame assembleFrame(Body body, Signer signer) {
+    public Frame assembleFrame(Body body, SignerHandle signer) {
         Objects.requireNonNull(body, "body");
         Objects.requireNonNull(signer, "signer");
 
@@ -1877,7 +1898,7 @@ public class Librarian extends Signer {
      * code-archetype manifests — we explicitly want the embodied class.
      */
     private Item instantiateFromCodeManifest(Manifest codeManifest, ItemRef iid) {
-        Optional<Binding> impl = codeManifest.implementation();
+        Optional<Binding> impl = Implementations.firstKnownLanguage(codeManifest);
         if (impl.isEmpty()) return new Item(iid, this);
         Class<? extends Item> clazz = resolveImplementationClass(impl.get(), iid);
         try {

@@ -4,7 +4,7 @@ import dev.everydaythings.graph.CoreVocabulary;
 import dev.everydaythings.graph.Seed;
 import dev.everydaythings.graph.datum.Binding;
 import dev.everydaythings.graph.datum.Body;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 import dev.everydaythings.graph.value.identifier.Identifier;
 import dev.everydaythings.graph.ref.DatumRef;
 import dev.everydaythings.graph.ref.ItemRef;

@@ -7,6 +7,7 @@ import dev.everydaythings.graph.canonical.HashTree;
 import dev.everydaythings.graph.cryptography.algorithm.Signing;
 import dev.everydaythings.graph.cryptography.VarSig;
 import dev.everydaythings.graph.item.Manifest;
+import dev.everydaythings.graph.runtime.Implementations;
 import dev.everydaythings.graph.runtime.RuntimeVocabulary;
 import dev.everydaythings.graph.ref.CompoundKey;
 import dev.everydaythings.graph.ref.ContentRef;
@@ -414,7 +415,7 @@ class DatumTest {
             Body bodyNoImpl = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid)
             ));
-            assertThat(Manifest.of(bodyNoImpl).implementation()).isEmpty();
+            assertThat(Implementations.firstKnownLanguage(Manifest.of(bodyNoImpl))).isEmpty();
 
             Body bodyWithImpl = Body.of(ItemRef.of(DOC), List.of(
                     Binding.ref(Manifest.ITEM_ID, iid),
@@ -423,7 +424,7 @@ class DatumTest {
                             ItemRef.iid(RuntimeVocabulary.ClassName.KEY),
                             "impl.Class")
             ));
-            assertThat(Manifest.of(bodyWithImpl).implementation()).isPresent();
+            assertThat(Implementations.firstKnownLanguage(Manifest.of(bodyWithImpl))).isPresent();
         }
     }
 }

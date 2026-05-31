@@ -3,6 +3,7 @@ package dev.everydaythings.graph.operator.set;
 import dev.everydaythings.graph.*;
 import dev.everydaythings.graph.datum.Frame;
 import dev.everydaythings.graph.language.*;
+import dev.everydaythings.graph.language.Language;
 import dev.everydaythings.graph.operator.Operator;
 import dev.everydaythings.graph.operator.OperatorNotation;
 
@@ -10,7 +11,7 @@ import dev.everydaythings.graph.ref.ItemRef;
 import dev.everydaythings.graph.ref.SchemaRef;
 import dev.everydaythings.graph.value.Bool;
 import dev.everydaythings.graph.runtime.librarian.Librarian;
-import dev.everydaythings.graph.language.ThematicRole;
+import dev.everydaythings.graph.ThematicRole;
 
 /**
  * The set-membership operator. Infix, non-associative, precedence 5. Tests whether

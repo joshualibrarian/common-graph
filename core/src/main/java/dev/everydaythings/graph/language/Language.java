@@ -54,11 +54,13 @@ import java.util.Optional;
  * Syntactic notations use descriptive keys ({@code cg.lang:operator-notation},
  * {@code cg.lang:s-expr}, ...).
  */
-@Seed.Item(key = Language.KEY)
+@Seed.Embodies(key = dev.everydaythings.graph.Language.KEY)
 public class Language extends Item {
 
-    /** Canonical key for the language meta-sememe. */
-    public static final String KEY = "cg.sememe:language";
+    /** Canonical key for the language meta-sememe.  Single source of truth lives
+     *  in {@link dev.everydaythings.graph.Language#KEY} (:annotations);
+     *  this reference re-exports it for callers that import the runtime class. */
+    public static final String KEY = dev.everydaythings.graph.Language.KEY;
 
     /** Seed/siloed constructor (no librarian). */
     public Language(ItemRef iid) {
@@ -386,15 +388,14 @@ public class Language extends Item {
     }
 
     /**
-     * English — ISO 639-3 code "eng". Static-key holder for {@code @Bind} references.
-     *
-     * <p>The seed declaration and Java implementation for English live in the
-     * {@code :english} module's {@code English} class. This inner class exists only to
-     * provide the {@code KEY}/{@code IID} constants for {@code @Bind} qualifiers used
-     * across {@code :core} (which can't depend on {@code :english}).
+     * English — ISO 639-3 code "eng".  Backward-compat KEY holder that mirrors
+     * {@link dev.everydaythings.graph.Language.English#KEY}.  Existing callers
+     * across :core continue to use {@code Language.English.KEY} through this
+     * class; the foundational seed declaration lives in :annotations.  The Java
+     * implementation for English lives in :languages/english.
      */
     public static final class English {
-        public static final String KEY = "cg.lang:eng";
+        public static final String KEY = dev.everydaythings.graph.Language.English.KEY;
         private English() {}
     }
 }
