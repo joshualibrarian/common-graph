@@ -35,6 +35,7 @@ public final class RemoteConnection implements AutoCloseable {
     private final Tunnel tunnel;
     private final ItemRef agreedCodec;
     private final Encoding encoder;
+    private volatile ParleyDispatcher dispatcher;
 
     public RemoteConnection(Tunnel tunnel, ItemRef agreedCodec, Encoding encoder) {
         this.tunnel = Objects.requireNonNull(tunnel, "tunnel");
@@ -50,6 +51,22 @@ public final class RemoteConnection implements AutoCloseable {
     /** The codec agreed during point-and-grunt. */
     public ItemRef agreedCodec() {
         return agreedCodec;
+    }
+
+    /**
+     * The {@link ParleyDispatcher} that processes incoming values on this
+     * connection.  Set by {@link Parley#attach} during pipeline wiring;
+     * available to callers that need to drive HELLO-phase state (e.g.,
+     * an initiator calling {@code dispatcher().sendHello}).  Null briefly
+     * during construction.
+     */
+    public ParleyDispatcher dispatcher() {
+        return dispatcher;
+    }
+
+    /** Package-private: Parley.attach wires this during pipeline construction. */
+    void bindDispatcher(ParleyDispatcher dispatcher) {
+        this.dispatcher = dispatcher;
     }
 
     // ==================================================================================

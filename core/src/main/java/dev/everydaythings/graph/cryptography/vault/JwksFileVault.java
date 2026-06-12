@@ -64,7 +64,7 @@ import java.util.Optional;
  */
 public final class JwksFileVault implements Vault {
 
-    private static final String KEYS_FILE_NAME = "keys.jwks";
+    public static final String KEYS_FILE_NAME = "keys.jwks";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Path vaultDir;

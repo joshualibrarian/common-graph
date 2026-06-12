@@ -59,14 +59,46 @@ import java.util.concurrent.CompletableFuture;
 @Log4j2
 public class Parley {
 
-    private final Librarian librarian;
-
-    public Parley(Librarian librarian) {
-        this.librarian = librarian;
+    /**
+     * Strategy for constructing a dispatcher when a Parley conversation
+     * attaches.  Different roles want different dispatchers:
+     * server-side gets {@link ServerParleyDispatcher} (submits to a
+     * Librarian); client-side gets {@link ClientParleyDispatcher} (routes
+     * responses by RESPONSE_TO to awaiting futures).
+     */
+    @FunctionalInterface
+    public interface DispatcherFactory {
+        ParleyDispatcher create(RemoteConnection connection);
     }
 
-    public Librarian librarian() {
-        return librarian;
+    private final DispatcherFactory dispatcherFactory;
+
+    /** Server-side Parley constructor — dispatcher submits to {@code librarian}. */
+    public Parley(Librarian librarian) {
+        this(connection -> new ServerParleyDispatcher(librarian, connection));
+    }
+
+    /**
+     * General-purpose constructor taking a dispatcher factory.  Callers that
+     * need a non-server dispatcher (e.g., {@code RemoteLibrarian} wanting
+     * client-side routing) pass a factory directly.
+     */
+    public Parley(DispatcherFactory dispatcherFactory) {
+        this.dispatcherFactory = dispatcherFactory;
+    }
+
+    /**
+     * Client-side Parley factory.  Produces a Parley whose dispatcher
+     * routes responses by RESPONSE_TO to futures registered on the
+     * dispatcher; bodies without RESPONSE_TO go to {@code pushHandler}.
+     *
+     * @param sessionAgent  iid the client identifies as (its outgoing HELLO's AGENT).
+     * @param pushHandler   callback for unsolicited server bodies; may be null.
+     */
+    public static Parley client(dev.everydaythings.graph.ref.ItemRef sessionAgent,
+                                java.util.function.Consumer<dev.everydaythings.graph.datum.Body> pushHandler) {
+        return new Parley(connection ->
+                new ClientParleyDispatcher(sessionAgent, connection, pushHandler));
     }
 
     /**
@@ -140,9 +172,11 @@ public class Parley {
         Encoding encoder = codecFor(agreedCodec);
         RemoteConnection conn = new RemoteConnection(tunnel, agreedCodec, encoder);
 
+        ParleyDispatcher dispatcher = dispatcherFactory.create(conn);
+        conn.bindDispatcher(dispatcher);
         EmbeddedChannel pipeline = new EmbeddedChannel(
                 new ParleyFramer(encoder),
-                new ParleyDispatcher(librarian, conn));
+                dispatcher);
 
         // Single lock guards the embedded pipeline.  Inbound bytes arrive on
         // whatever thread the tunnel delivers them on; one tunnel → one

@@ -119,6 +119,15 @@ public class Librarian extends Signer implements LibrarianHandle {
     private final Library library;
 
     /**
+     * Per-peer conversation sequence state.  Outgoing counters increment as
+     * this librarian signs records destined for each peer; incoming counters
+     * track the highest sequence observed from each peer for gap / replay
+     * detection.  See [[project_parley_multiplexing_2026_06_02]].
+     */
+    @Getter
+    private final PeerSequences peerSequences = new PeerSequences();
+
+    /**
      * Presence handle: holds the exclusive flock on
      * {@code <data-dir>/parley.pid}, guaranteeing no other librarian
      * process operates on this data dir.  Non-null for persistent
@@ -874,6 +883,23 @@ public class Librarian extends Signer implements LibrarianHandle {
         List<TokenPosting> postings = (limit == null)
                 ? library.lookupToken(token)
                 : library.lookupTokenPrefix(token, limit);
+        List<Frame> responses = new ArrayList<>(postings.size());
+        for (TokenPosting p : postings) {
+            responses.add(postingToFrame(p));
+        }
+        return responses;
+    }
+
+    /**
+     * Direct-call variant of {@link #lookup(Frame)} for callers (e.g.,
+     * ParleyDispatcher resolving a bare-String wire shorthand) that want the
+     * response-frame shape but should not manufacture a LOOKUP frame just to
+     * pass through dispatch.  Identical behavior to LOOKUP-frame dispatch with
+     * no LIMIT (point lookup).
+     */
+    public List<Frame> lookupAsFrames(String token) {
+        Objects.requireNonNull(token, "token");
+        List<TokenPosting> postings = library.lookupToken(token);
         List<Frame> responses = new ArrayList<>(postings.size());
         for (TokenPosting p : postings) {
             responses.add(postingToFrame(p));

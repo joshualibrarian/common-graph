@@ -163,4 +163,112 @@ public class LibrarianVocabulary {
           field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
         static final String englishNounLemma = "creation";
     }
+
+    /**
+     * The {@code NOT_FOUND} predicate — the miss signal for resolution operations.
+     *
+     * <p>Returned over a Parley connection when a {@link Lookup} (text → ref)
+     * or a FETCH (ref → datum / item / content) cannot be satisfied locally.
+     * The THEME binding carries the reference (or text) that was not found so
+     * the receiver can correlate the response to its outstanding request.
+     *
+     * <p>NOT_FOUND is shared across resolution kinds — there is no separate
+     * NOT_FOUND_TOKEN vs NOT_FOUND_DATUM.  The THEME's prefix tells the
+     * receiver which kind of resolution missed.
+     *
+     * <p>Ephemeral: this is per-message scaffolding, not a graph claim.  Not
+     * persisted; not audited.
+     *
+     * <p>Bindings:
+     * <ul>
+     *   <li>{@code THEME → <ref-or-text>} — required: the reference (or token)
+     *       that could not be resolved.</li>
+     * </ul>
+     */
+    @Seed.Item(key = NotFound.KEY, head = CoreVocabulary.Predicate.KEY)
+    public static final class NotFound {
+
+        public static final String KEY = "cg.predicate:not-found";
+
+        private NotFound() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "the miss signal for a resolution operation — returned when a LOOKUP "
+                        + "or FETCH cannot be satisfied locally; THEME carries the unresolved "
+                        + "reference or text";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Adjective.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishAdjectiveLemma = "not found";
+
+        /**
+         * Retention → Ephemeral: NOT_FOUND frames are per-message scaffolding,
+         * never persisted.
+         */
+        @Seed.RecordBinding(role = SchemaVocabulary.Retention.KEY)
+        static final ItemRef retention = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
+    }
+
+    /**
+     * The {@code INPUT} predicate — text input delivered to a context item.
+     *
+     * <p>The bulk-text sibling of per-keystroke input events: where UI types
+     * stream KEYPRESS frames into the librarian and the context item buffers
+     * + parses on commit, batch sources (cg-eval, paste, scripted automation)
+     * ship one INPUT frame carrying the entire string.  The context item's
+     * input handler receives it as though typing had completed.
+     *
+     * <p>Bindings:
+     * <ul>
+     *   <li>{@code THEME → @<context-item-iid>} — required: which item receives
+     *       the input.  Defaults to the session iid when the caller does not
+     *       specify (the session is the implicit context per
+     *       [[project_intrinsic_vs_ui_surface_2026_06_01]]).</li>
+     *   <li>{@code VALUE → "<text>"} — required: the text to deliver.</li>
+     * </ul>
+     *
+     * <p>The librarian's handler routes the INPUT frame to the context item.
+     * The item's own input handler decides what to do with the text — typically
+     * runs the consensus parse circle to generate a frame, then dispatches
+     * that frame.  This means INPUT is the wire-level event; parse is what the
+     * item does in response.  Per
+     * [[project_intrinsic_vs_ui_surface_2026_06_01]] the parse surface is
+     * intrinsic to every item.
+     *
+     * <p>For eval mode specifically: cg-eval submits an INPUT frame with the
+     * full text and the chosen context (--context flag, defaults to session).
+     * No clarification is possible mid-eval — if the input is ambiguous, the
+     * item's handler returns an error frame.
+     *
+     * <p>Ephemeral: INPUT frames are per-message; only the parse-result frames
+     * the item produces in response are candidates for persistence.
+     */
+    @Seed.Item(key = Input.KEY, head = CoreVocabulary.Predicate.KEY)
+    public static final class Input {
+
+        public static final String KEY = "cg.predicate:input";
+
+        private Input() {}
+
+        @Seed.Frame(predicate = LexicalVocabulary.Gloss.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY}))
+        static final String englishGloss =
+                "text input delivered to a context item — the bulk-text sibling of "
+                        + "per-keystroke KEYPRESS events; the item's input handler decides "
+                        + "what to do with the text (typically: parse, dispatch the result)";
+
+        @Seed.Frame(predicate = LexicalVocabulary.Lexeme.KEY,
+          field = @Seed.Binding(role = ThematicRole.Value.KEY, qualifiers = {Language.English.KEY, PartOfSpeech.Noun.KEY, GrammaticalFeature.Lemma.KEY}))
+        static final String englishNounLemma = "input";
+
+        /** Retention → Ephemeral: INPUT events are per-message scaffolding. */
+        @Seed.RecordBinding(role = SchemaVocabulary.Retention.KEY)
+        static final ItemRef retention = ItemRef.iid(SchemaVocabulary.Ephemeral.KEY);
+
+        /** THEME identifies the context item that receives the input. */
+        @Seed.Property(schemaRole = ThematicRole.Theme.KEY)
+        static final TypeRef expectsTheme = TypeRef.iid(Item.KEY);
+    }
 }
